@@ -1,0 +1,70 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: medimagen_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?falta MYSQL_ROOT_PASSWORD en .env}"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=-05:00
+      - --log-bin-trust-function-creators=1
+    ports:
+      - "127.0.0.1:3007:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks:
+      - medimagen_net
+
+  web:
+    build: .
+    container_name: medimagen_web
+    restart: unless-stopped
+    environment:
+      FLASK_ENV: production
+      SECRET_KEY: "${SECRET_KEY:?falta SECRET_KEY en .env}"
+      APP_PORT: "5001"
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: "${DB_NAME:-medimagen}"
+      DB_POOL_SIZE: "${DB_POOL_SIZE:-3}"
+      DB_PASS_LOGIN: "${DB_PASS_LOGIN:?falta DB_PASS_LOGIN en .env}"
+      DB_PASS_ADMINISTRADOR: "${DB_PASS_ADMINISTRADOR:?falta DB_PASS_ADMINISTRADOR en .env}"
+      DB_PASS_RECEPCION: "${DB_PASS_RECEPCION:?falta DB_PASS_RECEPCION en .env}"
+      DB_PASS_MEDICO: "${DB_PASS_MEDICO:?falta DB_PASS_MEDICO en .env}"
+      DB_PASS_IMAGENOLOGIA: "${DB_PASS_IMAGENOLOGIA:?falta DB_PASS_IMAGENOLOGIA en .env}"
+      DB_PASS_LABORATORIO: "${DB_PASS_LABORATORIO:?falta DB_PASS_LABORATORIO en .env}"
+      DB_PASS_PACIENTE: "${DB_PASS_PACIENTE:?falta DB_PASS_PACIENTE en .env}"
+    ports:
+      - "127.0.0.1:5001:5001"
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    volumes:
+      - ./my-app/logs:/app/logs
+    networks:
+      - medimagen_net
+
+volumes:
+  mysql_data:
+
+networks:
+  medimagen_net:

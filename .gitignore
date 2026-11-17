@@ -1,0 +1,13 @@
+/env
+.env
+__pycache__/
+*.pyc
+venv/
+.venv/
+my-app/logs/*
+!my-app/logs/.gitkeep
+database/backups/*
+!database/backups/.gitkeep
+.pytest_cache/
+.idea/
+.vscode/
