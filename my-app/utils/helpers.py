@@ -90,3 +90,13 @@ def registrar_filtros(app):
     app.jinja_env.filters["fecha"] = _filtro_fecha
     app.jinja_env.filters["fechahora"] = _filtro_fechahora
     app.jinja_env.filters["dinero"] = _filtro_dinero
+
+
+# ---------- Busquedas ----------
+def patron_like(texto):
+    """Convierte lo que escribio la persona en un patron seguro para LIKE (escapa % y _). None si esta vacio."""
+    limpio = " ".join(str(texto or "").split())[:60]
+    if not limpio:
+        return None
+    limpio = limpio.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{limpio}%"

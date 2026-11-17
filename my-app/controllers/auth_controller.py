@@ -140,6 +140,10 @@ def registrar_cierre_sesion(id_usuario, cedula, ip, navegador):
 
 
 def sesion_vigente(id_usuario, id_rol):
-    """False si el usuario ya no esta activo o si le cambiaron el rol mientras tenia la sesion abierta."""
-    fila = consultar("login", "SELECT estado, id_rol FROM usuario WHERE id_usuario = %s", (id_usuario,), uno=True)
-    return bool(fila and fila["estado"] == "activo" and fila["id_rol"] == id_rol)
+    """False si el usuario o su rol ya no estan activos, o si le cambiaron el rol con la sesion abierta."""
+    fila = consultar("login", """
+        SELECT u.estado, u.id_rol, r.estado AS rol_estado
+        FROM usuario u JOIN rol r ON r.id_rol = u.id_rol
+        WHERE u.id_usuario = %s""", (id_usuario,), uno=True)
+    return bool(fila and fila["estado"] == "activo" and fila["id_rol"] == id_rol
+                and fila["rol_estado"] == "activo")

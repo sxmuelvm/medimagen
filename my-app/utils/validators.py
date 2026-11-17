@@ -127,3 +127,15 @@ def no_futura(valor, etiqueta="La fecha"):
     if valor > date.today():
         raise ErrorNegocio(f"{etiqueta} no puede ser futura.")
     return valor
+
+
+
+_NOMBRE_PERSONA = re.compile(r"[^\W\d_](?:[^\W\d_]|[ '.\-])*")
+
+
+def nombre_persona(valor, etiqueta="El nombre", maximo=100):
+    """Nombres y apellidos: letras (con tildes), espacios, apostrofe, punto y guion."""
+    limpio = texto(valor, etiqueta, maximo=maximo, minimo=2)
+    if not _NOMBRE_PERSONA.fullmatch(limpio):
+        raise ErrorNegocio(f"{etiqueta} solo puede tener letras, espacios, apóstrofe, punto o guion.")
+    return limpio

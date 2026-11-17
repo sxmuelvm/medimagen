@@ -150,3 +150,18 @@ def registrar_manejadores_errores(app):
     def _interno(error):
         log.error("Error 500 en %s", request.path, exc_info=getattr(error, "original_exception", None))
         return _responder(500)
+
+
+
+def resultado_accion(funcion, mensaje_ok, destino):
+    """Ejecuta una accion (cambiar estado, eliminar...) y vuelve a `destino` con un mensaje de exito o de error."""
+    from flask import flash, redirect
+
+    try:
+        funcion()
+        flash(mensaje_ok, "exito")
+    except ErrorNegocio as error:
+        if error.codigo != 400:
+            raise
+        flash(error.mensaje, "error")
+    return redirect(destino)
