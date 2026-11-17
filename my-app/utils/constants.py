@@ -38,6 +38,7 @@ ESTADOS_EXAMEN = ("pendiente", "realizado", "cancelado")
 AREA_CONSULTAS = 1
 AREA_IMAGENOLOGIA = 2
 AREA_LABORATORIO = 3
+HORAS_ALMUERZO = ("13:00:00", "14:00:00")
 
 # Menu por cuenta: (titulo, endpoint). Los endpoints que aun no existen no se muestran.
 MENU = {

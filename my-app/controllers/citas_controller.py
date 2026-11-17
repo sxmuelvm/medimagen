@@ -8,7 +8,7 @@ estar en dos citas a la vez, y el costo lo fija el trigger. Aqui se validan ante
 from conexion.conexionBD import consultar, ejecutar, transaccion
 from utils import validators
 from utils.constants import (AREA_CONSULTAS, AREA_IMAGENOLOGIA, AREA_LABORATORIO, CUENTA_ADMINISTRADOR,
-                             ESTADOS_ACTIVOS_CITA, ESTADOS_CITA)
+                             ESTADOS_ACTIVOS_CITA, ESTADOS_CITA, HORAS_ALMUERZO)
 from utils.errors import ErrorNegocio
 from utils.helpers import pagina_actual, paginar, patron_like
 from utils.logger import obtener_logger
@@ -92,7 +92,11 @@ def _validar_futura(cuenta, usuario, fecha, hora):
     if not fila["futura"]:
         raise ErrorNegocio("La cita debe ser en una fecha y hora futuras.")
 
-
+def _validar_almuerzo(area, hora):
+    """Todo el personal almuerza de 13:00 a 15:00: en ese rango no se agenda ninguna cita (de ninguna area)."""
+    if hora in HORAS_ALMUERZO:
+        raise ErrorNegocio("De 13:00 a 15:00 es la hora de almuerzo del personal: elige otro horario.")
+    
 def _texto_estado(estado):
     return estado.replace("_", " ")
 
@@ -220,10 +224,12 @@ def horarios_disponibles(cuenta, usuario, fecha, id_area, id_medico=None, id_rec
           AND NOT EXISTS (SELECT 1 FROM cita c WHERE c.cedula_paciente = %(p)s AND c.fecha_cita = %(f)s
                             AND c.hora_inicio = b.hora_inicio AND c.activa = 1 AND c.id_cita <> %(x)s)"""
 
+    almuerzo_extra = " AND b.hora_inicio NOT IN (" + ", ".join(f"'{h}'" for h in HORAS_ALMUERZO) + ")"
+
     filas = consultar(cuenta, f"""
         SELECT b.hora_inicio, b.hora_fin
         FROM bloque_horario b
-        WHERE TIMESTAMP(%(f)s, b.hora_inicio) > NOW()
+        WHERE TIMESTAMP(%(f)s, b.hora_inicio) > NOW(){almuerzo_extra}
           AND EXISTS (SELECT 1 FROM recurso_atencion r
                       WHERE r.id_area = %(a)s AND r.estado = 'activo'{recurso_extra}
                         AND NOT EXISTS (SELECT 1 FROM cita c WHERE c.id_recurso = r.id_recurso
@@ -301,28 +307,39 @@ def _recurso_libre(cursor, area, fecha, hora, preferido=None, excluir=None):
 # ---------------------------------------------------------------------------
 # Crear
 # ---------------------------------------------------------------------------
-def crear(cuenta, usuario, datos):
-    """Registra una cita de consulta, imagenologia o laboratorio. Devuelve {'id_cita', 'id_recurso'}.
-
-    - Consulta: se elige el medico; el consultorio se asigna solo si no se indica.
-    - Imagenologia: se elige el equipo, el examen y el medico que lo solicita.
-    - Laboratorio: se elige el examen y el medico que lo solicita; el puesto se asigna solo si no se indica.
-    """
-    cedula = validators.cedula(datos.get("cedula_paciente"), "La cédula del paciente")
+def paciente_activo(cuenta, usuario, valor):
+    """Valida la cedula y que el paciente exista y este activo. Devuelve la cedula."""
+    cedula = validators.cedula(valor, "La cédula del paciente")
     paciente = consultar(cuenta, "SELECT estado FROM paciente WHERE cedula_paciente = %s", (cedula,),
                          id_usuario_app=usuario, uno=True)
     if paciente is None:
         raise ErrorNegocio("El paciente no está registrado. Regístralo primero.")
     if paciente["estado"] != "activo":
         raise ErrorNegocio("El paciente está inactivo.")
+    return cedula
 
+
+def crear(cuenta, usuario, datos):
+    """Registra una cita de consulta, imagenologia o laboratorio. Devuelve {'id_cita', 'id_recurso'}."""
+    cedula = paciente_activo(cuenta, usuario, datos.get("cedula_paciente"))
     area = validators.entero(datos.get("id_area"), "El área", minimo=1, maximo=3)
     fila_area = consultar(cuenta, "SELECT estado FROM area WHERE id_area = %s", (area,), id_usuario_app=usuario, uno=True)
     if fila_area is None or fila_area["estado"] != "activo":
         raise ErrorNegocio("El área seleccionada no está disponible.")
+    return registrar_cita(cuenta, usuario, cedula, area, datos)
 
+
+def registrar_cita(cuenta, usuario, cedula, area, datos):
+    """Valida horario, medico, examen y recurso, y guarda la cita con su detalle en una sola transaccion.
+
+    - Consulta: se elige el medico; el consultorio se asigna solo si no se indica.
+    - Imagenologia: se elige el equipo, el examen y el medico que lo solicita.
+    - Laboratorio: se elige el examen y el medico que lo solicita; el puesto se asigna solo si no se indica.
+    Lo usan recepcion, el administrador y el medico (cuando solicita un examen).
+    """
     fecha = validators.fecha_laborable(datos.get("fecha_cita"))
     hora = validators.hora_bloque(datos.get("hora_inicio"))
+    _validar_almuerzo(area, hora)
     _validar_futura(cuenta, usuario, fecha, hora)
 
     id_medico = id_subtipo = None
@@ -374,6 +391,7 @@ def reprogramar(cuenta, usuario, id_cita, datos):
 
     fecha = validators.fecha_laborable(datos.get("fecha_cita"))
     hora = validators.hora_bloque(datos.get("hora_inicio"))
+    _validar_almuerzo(area, hora)
     _validar_futura(cuenta, usuario, fecha, hora)
     observacion = validators.texto(datos.get("observacion", cita["observacion"]), "La observación", maximo=255,
                                    obligatorio=False)
