@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Medimagen{% endblock %} | Medimagen</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+</head>
+<body>
+  {% if usuario %}
+  <header>
+    <strong>Medimagen</strong>
+    <span>{{ usuario.nombres }} {{ usuario.apellidos }} ({{ usuario.rol }})</span>
+    <nav>
+      {% for item in menu %}
+        <a href="{{ item.url }}">{{ item.titulo }}</a>
+      {% endfor %}
+      <a href="{{ url_for('perfil.mi_perfil') }}">Mi perfil</a>
+    </nav>
+    <form method="post" action="{{ url_for('auth.logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit">Cerrar sesión</button>
+    </form>
+  </header>
+  {% endif %}
+
+  {% with mensajes = get_flashed_messages(with_categories=true) %}
+    {% if mensajes %}
+      <ul>
+        {% for categoria, mensaje in mensajes %}
+          <li class="mensaje {{ categoria }}">{{ mensaje }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <main>
+    {% block contenido %}{% endblock %}
+  </main>
+</body>
+</html>
