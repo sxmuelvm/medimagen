@@ -71,3 +71,31 @@ def estado(id_medico):
 def eliminar(id_medico):
     return resultado_accion(lambda: ctrl.eliminar(id_medico, session["id_usuario"]),
                             "Médico eliminado.", url_for("medicos.lista"))
+
+
+@bp.get("/<int:id_medico>/horario")
+@SOLO_ADMIN
+def horario(id_medico):
+    return render_pagina("public/medicos/horario.html", form={}, **ctrl.horario(id_medico, session["id_usuario"]))
+
+
+@bp.post("/<int:id_medico>/horario")
+@SOLO_ADMIN
+def agregar_turno(id_medico):
+    admin = session["id_usuario"]
+    try:
+        ctrl.agregar_turno(id_medico, request.form, admin)
+    except ErrorNegocio as error:
+        if error.codigo != 400:
+            raise
+        flash(error.mensaje, "error")
+        return render_pagina("public/medicos/horario.html", form=request.form, **ctrl.horario(id_medico, admin)), 400
+    flash("Turno agregado.", "exito")
+    return redirect(url_for("medicos.horario", id_medico=id_medico))
+
+
+@bp.post("/<int:id_medico>/horario/<int:id_horario>/eliminar")
+@SOLO_ADMIN
+def eliminar_turno(id_medico, id_horario):
+    return resultado_accion(lambda: ctrl.eliminar_turno(id_medico, id_horario, session["id_usuario"]),
+                            "Turno eliminado.", url_for("medicos.horario", id_medico=id_medico))

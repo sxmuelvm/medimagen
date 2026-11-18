@@ -6,7 +6,7 @@
 -- =====================================================================
 USE medimagen;
 
--- 1. READ | Recepción (kvillacis) | Horarios libres del consultorio 1 el 2026-11-11
+-- 1. READ | Recepción (ccriollo) | Horarios libres del consultorio 1 el 2026-11-11
 --    Muestra los bloques que no tienen cita activa. Esperado: 10 bloques (falta el de las 09:00)
 SELECT b.hora_inicio, b.hora_fin
 FROM bloque_horario b
@@ -17,22 +17,22 @@ LEFT JOIN cita c ON c.hora_inicio = b.hora_inicio
 WHERE c.id_cita IS NULL
 ORDER BY b.hora_inicio;
 
--- 2. CREATE | Recepción (kvillacis) | Agendar una consulta para Ana Cordero con el médico 2
+-- 2. CREATE | Recepción (ccriollo) | Agendar una consulta para Ana Cordero con el médico 2
 --    Los triggers validan el horario y asignan el costo (20.00)
 START TRANSACTION;
 INSERT INTO cita (cedula_paciente, id_area, id_recurso, id_usuario_registra, fecha_cita, hora_inicio, hora_fin, estado)
-VALUES ('0105060708', 1, 2, 2, '2026-11-17', '10:00:00', '11:00:00', 'pendiente');
+VALUES ('0000000024', 1, 2, 2, '2026-11-17', '10:00:00', '11:00:00', 'pendiente');
 INSERT INTO cita_consulta (id_cita, id_medico) VALUES (LAST_INSERT_ID(), 2);
 COMMIT;
 
 SELECT id_cita, cedula_paciente, fecha_cita, hora_inicio, estado, costo_aplicado
 FROM cita
-WHERE cedula_paciente = '0105060708' AND fecha_cita = '2026-11-17';
+WHERE cedula_paciente = '0000000024' AND fecha_cita = '2026-11-17';
 
--- 3. UPDATE | Recepción (kvillacis) | Reprogramar esa cita al 2026-11-18 a las 12:00
+-- 3. UPDATE | Recepción (ccriollo) | Reprogramar esa cita al 2026-11-18 a las 12:00
 UPDATE cita
 SET fecha_cita = '2026-11-18', hora_inicio = '12:00:00', hora_fin = '13:00:00'
-WHERE cedula_paciente = '0105060708'
+WHERE cedula_paciente = '0000000024'
   AND fecha_cita = '2026-11-17'
   AND estado = 'pendiente';
 
@@ -44,12 +44,12 @@ SELECT id_cita, estado_anterior, estado_nuevo, usuario_bd, fecha_cambio
 FROM auditoria_cita
 WHERE id_cita = 17;
 
--- 5. CREATE | Médico (rsalamea) | Registrar la atención, el diagnóstico y la receta de esa cita
+-- 5. CREATE | Médico (cmarin) | Registrar la atención, el diagnóstico y la receta de esa cita
 --    Ejecuta todo el bloque junto, porque usa variables (@)
 START TRANSACTION;
 
 SET @id_cita = (SELECT id_cita FROM cita
-                WHERE cedula_paciente = '0105060708' AND fecha_cita = '2026-11-18' AND id_area = 1);
+                WHERE cedula_paciente = '0000000024' AND fecha_cita = '2026-11-18' AND id_area = 1);
 
 INSERT INTO consulta_medica (id_cita, fecha_hora_atencion, motivo_consulta, observaciones)
 VALUES (@id_cita, '2026-11-18 12:00:00', 'Control de rutina', 'Sin novedades');
@@ -69,7 +69,7 @@ UPDATE cita SET estado = 'atendida' WHERE id_cita = @id_cita;
 
 COMMIT;
 
--- 6. READ | Médico (rsalamea) | Exámenes de imagenología que solicitó el médico 1 y su estado
+-- 6. READ | Médico (cmarin) | Exámenes de imagenología que solicitó el médico 1 y su estado
 SELECT c.fecha_cita, c.hora_inicio,
        CONCAT(p.nombres, ' ', p.apellidos) AS paciente,
        t.nombre AS tipo, s.nombre AS examen,
@@ -86,12 +86,12 @@ ORDER BY c.fecha_cita;
 --    La contraseña va como hash (el de uno234cinco). Flask lo genera con werkzeug
 START TRANSACTION;
 INSERT INTO personal (cedula, nombres, apellidos, telefono, correo, cargo)
-VALUES ('0123456789', 'Carlos', 'Criollo', '0960000011', 'carlos.criollo@medimagen.com', 'Recepcionista');
+VALUES ('0000000031', 'Laura', 'Mendieta Cobos', '0960000031', 'laura.mendieta@medimagen.ec', 'Recepcionista');
 
 INSERT INTO usuario (cedula, id_rol, id_personal, nombres, apellidos, nombre_usuario, correo, password_hash)
-VALUES ('0123456789', 2,
-        (SELECT id_personal FROM personal WHERE cedula = '0123456789'),
-        'Carlos', 'Criollo', 'ccriollo', 'carlos.criollo@medimagen.com',
+VALUES ('0000000031', 2,
+        (SELECT id_personal FROM personal WHERE cedula = '0000000031'),
+        'Laura', 'Mendieta Cobos', 'lmendieta', 'laura.mendieta@medimagen.ec',
         'pbkdf2:sha256:1000000$B6H7bOn922NqQi5j$0b4c23fafb117e8a7c093bc856036717abfa6304426f43f8958de0df3b0ce82c');
 COMMIT;
 
@@ -99,9 +99,9 @@ SELECT u.cedula, u.nombres, u.apellidos, u.nombre_usuario, r.nombre AS rol, pe.c
 FROM usuario u
 JOIN rol r ON r.id_rol = u.id_rol
 JOIN personal pe ON pe.id_personal = u.id_personal
-WHERE u.cedula = '0123456789';
+WHERE u.cedula = '0000000031';
 
--- 8. UPDATE | Personal de imagenología (rpenafiel) | Registrar la realización de un procedimiento pendiente
+-- 8. UPDATE | Personal de imagenología (mbajana) | Registrar la realización de un procedimiento pendiente
 START TRANSACTION;
 UPDATE cita_imagenologia
 SET estado_procedimiento = 'realizado',
@@ -137,5 +137,5 @@ JOIN diagnostico d ON d.id_consulta = cm.id_consulta
 JOIN prescripcion pr ON pr.id_consulta = cm.id_consulta
 JOIN detalle_prescripcion dp ON dp.id_prescripcion = pr.id_prescripcion
 JOIN medicamento md ON md.id_medicamento = dp.id_medicamento
-WHERE c.cedula_paciente = '0105060708'
+WHERE c.cedula_paciente = '0000000024'
 ORDER BY cm.fecha_hora_atencion DESC;

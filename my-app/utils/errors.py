@@ -46,6 +46,7 @@ _DUPLICADOS = {
     "tipo_procedimiento.nombre": "Ya existe un tipo con ese nombre.",
     "subtipo_examen.uq_subtipo": "Ya existe un examen con ese nombre en el tipo.",
     "medicamento.uq_medicamento": "Ese medicamento ya está registrado.",
+    "horario_medico.uq_hm": "El médico ya tiene un turno que empieza a esa hora ese día.",
 }
 
 _CHECKS = {
@@ -54,6 +55,8 @@ _CHECKS = {
     "chk_esp_costo": "El costo no puede ser negativo.",
     "chk_subtipo_costo": "El costo no puede ser negativo.",
     "chk_usuario_perfil": "El usuario debe estar asociado a un solo perfil (médico, paciente o personal).",
+    "chk_hm_dia": "El turno solo puede ser de lunes a viernes.",
+    "chk_hm_horas": "La hora de fin debe ser posterior a la de inicio.",
 }
 
 _PERMISO = {1044, 1142, 1143, 1370, 1227}

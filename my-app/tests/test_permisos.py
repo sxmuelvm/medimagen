@@ -17,6 +17,7 @@ PANTALLAS = {
     "/roles": ADMIN,
     "/personal": ADMIN,
     "/medicos": ADMIN,
+    "/medicos/1/horario": ADMIN,
     "/especialidades": ADMIN,
     "/catalogos": ADMIN,
     "/catalogos/areas": ADMIN,
@@ -59,8 +60,11 @@ ACCIONES = [
     ("/usuarios/1/estado", {"estado": "activo"}, ["recepcion", "medico", "imagenologia", "laboratorio", "paciente"]),
     ("/usuarios/1/desbloquear", {}, ["recepcion", "medico", "paciente"]),
     ("/usuarios/nuevo", {}, ["recepcion", "medico", "paciente"]),
-    ("/pacientes/0102030405/estado", {"estado": "inactivo"}, ["recepcion", "medico", "paciente"]),
-    ("/pacientes/0102030405/eliminar", {}, ["recepcion", "medico", "paciente"]),
+    ("/medicos/1/horario", {"dia": "1", "hora_inicio": "08:00", "hora_fin": "10:00"},
+     ["recepcion", "medico", "imagenologia", "laboratorio", "paciente"]),
+    ("/medicos/1/horario/1/eliminar", {}, ["recepcion", "medico", "imagenologia", "laboratorio", "paciente"]),
+    ("/pacientes/0000000021/estado", {"estado": "inactivo"}, ["recepcion", "medico", "paciente"]),
+    ("/pacientes/0000000021/eliminar", {}, ["recepcion", "medico", "paciente"]),
     ("/citas/1/estado", {"estado": "cancelada"}, ["medico", "imagenologia", "laboratorio", "paciente"]),
     ("/citas/1/eliminar", {}, ["medico", "imagenologia", "laboratorio", "paciente"]),
     ("/citas/nueva", {}, ["medico", "imagenologia", "laboratorio", "paciente"]),
@@ -83,7 +87,7 @@ def test_acciones_sin_csrf_se_rechazan(entrar, url):
 
 def test_el_medico_no_ve_citas_de_otro_medico(entrar):
     otra = sql("""SELECT cc.id_cita FROM cita_consulta cc JOIN medico m ON m.id_medico = cc.id_medico
-                  WHERE m.cedula <> '0301000001' LIMIT 1""", uno=True)
+                  WHERE m.cedula <> '0000000003' LIMIT 1""", uno=True)
     assert entrar("medico").get(f"/consultas/{otra['id_cita']}/atender").status_code == 404
 
 

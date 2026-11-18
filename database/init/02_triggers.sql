@@ -82,7 +82,46 @@ BEGIN
     END IF;
 END$$
 
--- Consulta: valida área 1, disponibilidad del médico y asigna el costo de la especialidad
+-- El médico solo atiende dentro de sus turnos (horario_medico). Sin turnos registrados se usa el horario general.
+CREATE PROCEDURE sp_validar_turno_medico(IN p_id_medico INT, IN p_fecha DATE, IN p_hora TIME)
+BEGIN
+    IF EXISTS (SELECT 1 FROM horario_medico WHERE id_medico = p_id_medico)
+       AND NOT EXISTS (SELECT 1 FROM horario_medico
+                       WHERE id_medico = p_id_medico
+                         AND dia_semana = WEEKDAY(p_fecha) + 1
+                         AND hora_inicio <= p_hora
+                         AND ADDTIME(p_hora, '01:00:00') <= hora_fin) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El médico no atiende en ese día u horario';
+    END IF;
+END$$
+
+-- Turnos: la hora de fin debe terminar un bloque y los turnos de un mismo médico no se solapan
+CREATE PROCEDURE sp_validar_horario_medico(IN p_id_horario INT, IN p_id_medico INT, IN p_dia TINYINT,
+                                           IN p_inicio TIME, IN p_fin TIME)
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM bloque_horario WHERE hora_fin = p_fin) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La hora de fin no corresponde a un bloque horario';
+    END IF;
+    IF EXISTS (SELECT 1 FROM horario_medico
+               WHERE id_medico = p_id_medico AND dia_semana = p_dia AND id_horario <> p_id_horario
+                 AND hora_inicio < p_fin AND hora_fin > p_inicio) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El turno se cruza con otro turno del mismo médico';
+    END IF;
+END$$
+
+CREATE TRIGGER trg_horario_medico_bi BEFORE INSERT ON horario_medico
+FOR EACH ROW
+BEGIN
+    CALL sp_validar_horario_medico(0, NEW.id_medico, NEW.dia_semana, NEW.hora_inicio, NEW.hora_fin);
+END$$
+
+CREATE TRIGGER trg_horario_medico_bu BEFORE UPDATE ON horario_medico
+FOR EACH ROW
+BEGIN
+    CALL sp_validar_horario_medico(OLD.id_horario, NEW.id_medico, NEW.dia_semana, NEW.hora_inicio, NEW.hora_fin);
+END$$
+
+-- Consulta: valida área 1, disponibilidad y turno del médico y asigna el costo de la especialidad
 CREATE PROCEDURE sp_preparar_consulta(IN p_id_cita INT, IN p_id_medico INT)
 BEGIN
     DECLARE v_area INT;
@@ -97,6 +136,7 @@ BEGIN
     END IF;
     IF v_activa = 1 THEN
         CALL sp_validar_medico_libre(p_id_cita, p_id_medico, v_fecha, v_hora);
+        CALL sp_validar_turno_medico(p_id_medico, v_fecha, v_hora);
     END IF;
     SELECT e.costo_consulta INTO v_costo
     FROM medico m JOIN especialidad e ON e.id_especialidad = m.id_especialidad
@@ -163,6 +203,7 @@ BEGIN
 END$$
 
 -- Al reprogramar o reactivar una consulta, el médico no puede quedar con dos pacientes
+-- y la nueva fecha y hora deben caer dentro de sus turnos
 CREATE TRIGGER trg_cita_bu BEFORE UPDATE ON cita
 FOR EACH ROW
 BEGIN
@@ -173,6 +214,7 @@ BEGIN
         SELECT id_medico INTO v_medico FROM cita_consulta WHERE id_cita = NEW.id_cita;
         IF v_medico IS NOT NULL THEN
             CALL sp_validar_medico_libre(NEW.id_cita, v_medico, NEW.fecha_cita, NEW.hora_inicio);
+            CALL sp_validar_turno_medico(v_medico, NEW.fecha_cita, NEW.hora_inicio);
         END IF;
     END IF;
 END$$
@@ -224,7 +266,7 @@ CREATE TRIGGER trg_acceso_bd BEFORE DELETE ON auditoria_acceso
 FOR EACH ROW
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El registro de accesos no se puede eliminar'$$
 
--- Horarios libres de un recurso (y opcionalmente de un médico) en una fecha
+-- Horarios libres de un recurso (y opcionalmente de un médico, dentro de sus turnos) en una fecha
 CREATE PROCEDURE sp_horarios_disponibles(IN p_fecha DATE, IN p_id_recurso INT, IN p_id_medico INT)
 BEGIN
     SELECT b.hora_inicio, b.hora_fin
@@ -237,6 +279,11 @@ BEGIN
                       JOIN cita_consulta cc ON cc.id_cita = c.id_cita
                       WHERE cc.id_medico = p_id_medico AND c.fecha_cita = p_fecha
                         AND c.hora_inicio = b.hora_inicio AND c.activa = 1))
+      AND (p_id_medico IS NULL
+           OR NOT EXISTS (SELECT 1 FROM horario_medico h0 WHERE h0.id_medico = p_id_medico)
+           OR EXISTS (SELECT 1 FROM horario_medico h
+                      WHERE h.id_medico = p_id_medico AND h.dia_semana = WEEKDAY(p_fecha) + 1
+                        AND h.hora_inicio <= b.hora_inicio AND b.hora_fin <= h.hora_fin))
     ORDER BY b.hora_inicio;
 END$$
 

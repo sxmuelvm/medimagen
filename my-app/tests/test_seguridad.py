@@ -85,7 +85,7 @@ def test_token_csrf_falso_se_rechaza(entrar):
     assert c.c.post("/citas/1/estado", data={"estado": "cancelada", "csrf_token": "falso"}).status_code == 400
 
 
-@pytest.mark.parametrize("cedula", ["' OR '1'='1", "0301100001' -- ", "0301100001'; DROP TABLE usuario; --", "1 OR 1=1"])
+@pytest.mark.parametrize("cedula", ["' OR '1'='1", "0000000001' -- ", "0000000001'; DROP TABLE usuario; --", "1 OR 1=1"])
 @pytest.mark.parametrize("clave", ["' OR '1'='1", "x' OR 1=1 -- "])
 def test_inyeccion_sql_en_el_login(anonimo, cedula, clave):
     assert anonimo.login(cedula, clave).status_code == 401
@@ -104,7 +104,7 @@ def test_inyeccion_sql_y_xss_en_buscadores(entrar, url):
 
 
 def test_los_datos_se_pasan_como_parametros_no_como_texto_sql(entrar, limpiar_citas):
-    r = entrar("recepcion").post("/citas/nueva", {"cedula_paciente": "0102030405'; DROP TABLE cita; --",
+    r = entrar("recepcion").post("/citas/nueva", {"cedula_paciente": "0000000021'; DROP TABLE cita; --",
                                                   "id_area": "1", "fecha_cita": "2030-01-01", "hora_inicio": "09:00"})
     assert r.status_code == 400
     assert sql("SELECT COUNT(*) AS n FROM cita", uno=True)["n"] > 0
@@ -166,7 +166,7 @@ def test_cuentas_no_leen_tablas_ajenas(cuenta, tabla):
     ("laboratorio", "UPDATE cita SET costo_aplicado = 0 WHERE 1 = 0"),
     ("laboratorio", "DELETE FROM resultado_laboratorio WHERE 1 = 0"),
     ("paciente", "UPDATE v_historial_paciente SET motivo_consulta = 'x' WHERE 1 = 0"),
-    ("paciente", "INSERT INTO cita (cedula_paciente) SELECT '0102030405' FROM DUAL WHERE 1 = 0"),
+    ("paciente", "INSERT INTO cita (cedula_paciente) SELECT '0000000021' FROM DUAL WHERE 1 = 0"),
 ])
 def test_cuentas_no_modifican_lo_que_no_les_toca(cuenta, sentencia):
     assert prohibido(cuenta, sentencia, escribir=True)

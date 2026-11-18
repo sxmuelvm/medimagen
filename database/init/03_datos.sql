@@ -1,6 +1,6 @@
 -- =====================================================================
 -- MEDIMAGEN | 03_datos.sql
--- Datos iniciales (ficticios). Los 16 usuarios entran con la clave uno234cinco
+-- Datos iniciales (ficticios). Los 16 usuarios entran con la clave uno234cinco (cédulas 0000000001, 0000000002, ...)
 -- (hash de werkzeug). Ejecutar con root.
 -- =====================================================================
 USE medimagen;
@@ -54,61 +54,78 @@ INSERT INTO medicamento (nombre, presentacion, concentracion) VALUES
 ('Multivitamínico','Tableta',NULL),('Loratadina','Tableta','10 mg');
 
 INSERT INTO paciente (cedula_paciente, nombres, apellidos, fecha_nacimiento, sexo, telefono, correo, direccion) VALUES
-('0102030405','Carlos','Andrade Pinos','1990-03-14','M','0991111111','carlos.andrade@mail.com','Av. Loja y Remigio Crespo'),
-('0103040506','María','Vintimilla Cueva','1985-07-22','F','0992222222','maria.vintimilla@mail.com','Calle Larga 4-35'),
-('0104050607','José','Quezada Brito','2016-11-05','M','0993333333','jose.quezada@mail.com','Ricaurte, Cuenca'),
-('0105060708','Ana','Cordero Ríos','1972-01-30','F','0994444444','ana.cordero@mail.com','Av. Ordóñez Lasso 2-10'),
-('0106070809','Luis','Pesántez Mora','1998-09-18','M','0995555555','luis.pesantez@mail.com','Challuabamba'),
-('0107080910','Daniela','Ortiz Tapia','2001-05-09','F','0996666666','daniela.ortiz@mail.com','Av. de las Américas 8-20'),
-('0108091011','Pedro','Calle Arévalo','1965-12-02','M','0997777777','pedro.calle@mail.com','Baños, Cuenca'),
-('0109101112','Sofía','Barrera León','1993-04-27','F','0998888888','sofia.barrera@mail.com','El Batán'),
-('0110111213','Andrés','Idrovo Sarmiento','1980-08-11','M','0999999999','andres.idrovo@mail.com','Totoracocha'),
-('0111121314','Camila','Loja Zhunio','2004-02-19','F','0981234567','camila.loja@mail.com','Monay');
+('0000000021','Carlos','Andrade Pinos','1990-03-14','M','0991111111','carlos.andrade@mail.com','Av. Loja y Remigio Crespo'),
+('0000000022','María','Vintimilla Cueva','1985-07-22','F','0992222222','maria.vintimilla@mail.com','Calle Larga 4-35'),
+('0000000023','José','Quezada Brito','2016-11-05','M','0993333333','jose.quezada@mail.com','Ricaurte, Cuenca'),
+('0000000024','Ana','Cordero Ríos','1972-01-30','F','0994444444','ana.cordero@mail.com','Av. Ordóñez Lasso 2-10'),
+('0000000025','Luis','Pesántez Mora','1998-09-18','M','0995555555','luis.pesantez@mail.com','Challuabamba'),
+('0000000026','Daniela','Ortiz Tapia','2001-05-09','F','0996666666','daniela.ortiz@mail.com','Av. de las Américas 8-20'),
+('0000000027','Pedro','Calle Arévalo','1965-12-02','M','0997777777','pedro.calle@mail.com','Baños, Cuenca'),
+('0000000028','Sofía','Barrera León','1993-04-27','F','0998888888','sofia.barrera@mail.com','El Batán'),
+('0000000029','Andrés','Idrovo Sarmiento','1980-08-11','M','0999999999','andres.idrovo@mail.com','Totoracocha'),
+('0000000030','Camila','Loja Zhunio','2004-02-19','F','0981234567','camila.loja@mail.com','Monay');
 
 INSERT INTO medico (id_especialidad, cedula, nombres, apellidos, telefono, correo) VALUES
-('ESP-01','0301000001','Ricardo','Salamea Ochoa','0970000001','ricardo.salamea@medimagen.com'),
-('ESP-01','0301000002','Patricia','Crespo Vélez','0970000002','patricia.crespo@medimagen.com'),
-('ESP-01','0301000003','Esteban','Peña Alvear','0970000003','esteban.pena@medimagen.com'),
-('ESP-02','0301000004','Gabriela','Mora Ullauri','0970000004','gabriela.mora@medimagen.com'),
-('ESP-03','0301000005','Verónica','Astudillo Cabrera','0970000005','veronica.astudillo@medimagen.com'),
-('ESP-04','0301000006','Marcelo','Tello Bravo','0970000006','marcelo.tello@medimagen.com'),
-('ESP-05','0301000007','Lucía','Serrano Maldonado','0970000007','lucia.serrano@medimagen.com'),
-('ESP-06','0301000008','Fernando','Guamán Pacheco','0970000008','fernando.guaman@medimagen.com'),
-('ESP-07','0301000009','Mónica','Jaramillo Heredia','0970000009','monica.jaramillo@medimagen.com'),
-('ESP-07','0301000010','Santiago','Rivera Coronel','0970000010','santiago.rivera@medimagen.com');
+('ESP-01','0000000003','Cristian Teodoro','Marin Guachichullca','0970000001','cristian.marin@medimagen.ec'),
+('ESP-01','0000000012','Patricia','Crespo Vélez','0970000002','patricia.crespo@medimagen.ec'),
+('ESP-01','0000000013','Esteban','Peña Alvear','0970000003','esteban.pena@medimagen.ec'),
+('ESP-02','0000000014','Gabriela','Mora Ullauri','0970000004','gabriela.mora@medimagen.ec'),
+('ESP-03','0000000015','Verónica','Astudillo Cabrera','0970000005','veronica.astudillo@medimagen.ec'),
+('ESP-04','0000000016','Marcelo','Tello Bravo','0970000006','marcelo.tello@medimagen.ec'),
+('ESP-05','0000000017','Lucía','Serrano Maldonado','0970000007','lucia.serrano@medimagen.ec'),
+('ESP-06','0000000018','Fernando','Guamán Pacheco','0970000008','fernando.guaman@medimagen.ec'),
+('ESP-07','0000000019','Mónica','Jaramillo Heredia','0970000009','monica.jaramillo@medimagen.ec'),
+('ESP-07','0000000020','Santiago','Rivera Coronel','0970000010','santiago.rivera@medimagen.ec');
+
+-- Turnos de atención (lunes a viernes). El almuerzo de 13:00 a 15:00 no se atiende en ningún caso.
+-- Médicos 1 a 6: jornada completa (07:00-13:00 y 15:00-18:00). Médicos 8 y 9: mañana. Médicos 7 y 10: tarde.
+INSERT INTO horario_medico (id_medico, dia_semana, hora_inicio, hora_fin)
+SELECT t.id_medico, d.dia, t.hora_inicio, t.hora_fin
+FROM (SELECT 1 AS dia UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) d
+CROSS JOIN (
+    SELECT 1 AS id_medico, '07:00:00' AS hora_inicio, '13:00:00' AS hora_fin
+    UNION ALL SELECT 2, '07:00:00', '13:00:00' UNION ALL SELECT 3, '07:00:00', '13:00:00'
+    UNION ALL SELECT 4, '07:00:00', '13:00:00' UNION ALL SELECT 5, '07:00:00', '13:00:00'
+    UNION ALL SELECT 6, '07:00:00', '13:00:00' UNION ALL SELECT 8, '07:00:00', '13:00:00'
+    UNION ALL SELECT 9, '07:00:00', '13:00:00'
+    UNION ALL SELECT 1, '15:00:00', '18:00:00' UNION ALL SELECT 2, '15:00:00', '18:00:00'
+    UNION ALL SELECT 3, '15:00:00', '18:00:00' UNION ALL SELECT 4, '15:00:00', '18:00:00'
+    UNION ALL SELECT 5, '15:00:00', '18:00:00' UNION ALL SELECT 6, '15:00:00', '18:00:00'
+    UNION ALL SELECT 7, '15:00:00', '18:00:00' UNION ALL SELECT 10, '15:00:00', '18:00:00'
+) t;
 
 INSERT INTO personal (cedula, nombres, apellidos, telefono, correo, cargo) VALUES
-('0301100001','Mateo','Cárdenas Gil','0960000001','mateo.cardenas@medimagen.com','Administrador'),
-('0301100002','Karla','Villacís Ponce','0960000002','karla.villacis@medimagen.com','Recepcionista'),
-('0301100003','Mónica','Vargas Ruiz','0960000003','monica.vargas@medimagen.com','Recepcionista'),
-('0301100004','Esteban','Calle Paredes','0960000004','esteban.calle@medimagen.com','Recepcionista'),
-('0301100005','Roberto','Peñafiel Mora','0960000005','roberto.penafiel@medimagen.com','Técnico de imagenología'),
-('0301100006','Diego','Ochoa Brito','0960000006','diego.ochoa@medimagen.com','Técnico de imagenología'),
-('0301100007','Lucas','Paredes Soto','0960000007','lucas.paredes@medimagen.com','Técnico de imagenología'),
-('0301100008','Andrea','Sornoza Viteri','0960000008','andrea.sornoza@medimagen.com','Laboratorista'),
-('0301100009','Elena','Rojas Cabrera','0960000009','elena.rojas@medimagen.com','Laboratorista'),
-('0301100010','Nelson','Tapia Ullauri','0960000010','nelson.tapia@medimagen.com','Laboratorista');
+('0000000001','Samuel Felipe','Vallejo Morales','0960000001','samuel.vallejo@medimagen.ec','Administrador'),
+('0000000002','Christian David','Criollo Lucero','0960000002','christian.criollo@medimagen.ec','Recepcionista'),
+('0000000005','Mónica','Vargas Ruiz','0960000003','monica.vargas@medimagen.ec','Recepcionista'),
+('0000000006','Esteban','Calle Paredes','0960000004','esteban.calle@medimagen.ec','Recepcionista'),
+('0000000004','Michael Jose','Bajaña Espinoza','0960000005','michael.bajana@medimagen.ec','Técnico de imagenología'),
+('0000000007','Diego','Ochoa Brito','0960000006','diego.ochoa@medimagen.ec','Técnico de imagenología'),
+('0000000008','Lucas','Paredes Soto','0960000007','lucas.paredes@medimagen.ec','Técnico de imagenología'),
+('0000000009','Andrea','Sornoza Viteri','0960000008','andrea.sornoza@medimagen.ec','Laboratorista'),
+('0000000010','Elena','Rojas Cabrera','0960000009','elena.rojas@medimagen.ec','Laboratorista'),
+('0000000011','Nelson','Tapia Ullauri','0960000010','nelson.tapia@medimagen.ec','Laboratorista');
 
 -- Hash werkzeug (pbkdf2:sha256) de la contraseña de prueba: uno234cinco
 SET @hash = 'pbkdf2:sha256:1000000$B6H7bOn922NqQi5j$0b4c23fafb117e8a7c093bc856036717abfa6304426f43f8958de0df3b0ce82c';
 
 INSERT INTO usuario (cedula, id_rol, id_medico, cedula_paciente, id_personal, nombres, apellidos, nombre_usuario, correo, password_hash) VALUES
-('0301100001',1,NULL,NULL,1,'Mateo','Cárdenas Gil','admin','mateo.cardenas@medimagen.com',@hash),
-('0301100002',2,NULL,NULL,2,'Karla','Villacís Ponce','kvillacis','karla.villacis@medimagen.com',@hash),
-('0301100003',2,NULL,NULL,3,'Mónica','Vargas Ruiz','mvargas','monica.vargas@medimagen.com',@hash),
-('0301100004',2,NULL,NULL,4,'Esteban','Calle Paredes','ecalle','esteban.calle@medimagen.com',@hash),
-('0301100005',4,NULL,NULL,5,'Roberto','Peñafiel Mora','rpenafiel','roberto.penafiel@medimagen.com',@hash),
-('0301100006',4,NULL,NULL,6,'Diego','Ochoa Brito','dochoa','diego.ochoa@medimagen.com',@hash),
-('0301100007',4,NULL,NULL,7,'Lucas','Paredes Soto','lparedes','lucas.paredes@medimagen.com',@hash),
-('0301100008',5,NULL,NULL,8,'Andrea','Sornoza Viteri','asornoza','andrea.sornoza@medimagen.com',@hash),
-('0301100009',5,NULL,NULL,9,'Elena','Rojas Cabrera','erojas','elena.rojas@medimagen.com',@hash),
-('0301100010',5,NULL,NULL,10,'Nelson','Tapia Ullauri','ntapia','nelson.tapia@medimagen.com',@hash),
-('0301000001',3,1,NULL,NULL,'Ricardo','Salamea Ochoa','rsalamea','ricardo.salamea@medimagen.com',@hash),
-('0301000004',3,4,NULL,NULL,'Gabriela','Mora Ullauri','gmora','gabriela.mora@medimagen.com',@hash),
-('0301000009',3,9,NULL,NULL,'Mónica','Jaramillo Heredia','mjaramillo','monica.jaramillo@medimagen.com',@hash),
-('0102030405',6,NULL,'0102030405',NULL,'Carlos','Andrade Pinos','candrade','carlos.andrade@mail.com',@hash),
-('0103040506',6,NULL,'0103040506',NULL,'María','Vintimilla Cueva','mvintimilla','maria.vintimilla@mail.com',@hash),
-('0105060708',6,NULL,'0105060708',NULL,'Ana','Cordero Ríos','acordero','ana.cordero@mail.com',@hash);
+('0000000001',1,NULL,NULL,1,'Samuel Felipe','Vallejo Morales','admin','samuel.vallejo@medimagen.ec',@hash),
+('0000000002',2,NULL,NULL,2,'Christian David','Criollo Lucero','ccriollo','christian.criollo@medimagen.ec',@hash),
+('0000000005',2,NULL,NULL,3,'Mónica','Vargas Ruiz','mvargas','monica.vargas@medimagen.ec',@hash),
+('0000000006',2,NULL,NULL,4,'Esteban','Calle Paredes','ecalle','esteban.calle@medimagen.ec',@hash),
+('0000000004',4,NULL,NULL,5,'Michael Jose','Bajaña Espinoza','mbajana','michael.bajana@medimagen.ec',@hash),
+('0000000007',4,NULL,NULL,6,'Diego','Ochoa Brito','dochoa','diego.ochoa@medimagen.ec',@hash),
+('0000000008',4,NULL,NULL,7,'Lucas','Paredes Soto','lparedes','lucas.paredes@medimagen.ec',@hash),
+('0000000009',5,NULL,NULL,8,'Andrea','Sornoza Viteri','asornoza','andrea.sornoza@medimagen.ec',@hash),
+('0000000010',5,NULL,NULL,9,'Elena','Rojas Cabrera','erojas','elena.rojas@medimagen.ec',@hash),
+('0000000011',5,NULL,NULL,10,'Nelson','Tapia Ullauri','ntapia','nelson.tapia@medimagen.ec',@hash),
+('0000000003',3,1,NULL,NULL,'Cristian Teodoro','Marin Guachichullca','cmarin','cristian.marin@medimagen.ec',@hash),
+('0000000014',3,4,NULL,NULL,'Gabriela','Mora Ullauri','gmora','gabriela.mora@medimagen.ec',@hash),
+('0000000019',3,9,NULL,NULL,'Mónica','Jaramillo Heredia','mjaramillo','monica.jaramillo@medimagen.ec',@hash),
+('0000000021',6,NULL,'0000000021',NULL,'Carlos','Andrade Pinos','candrade','carlos.andrade@mail.com',@hash),
+('0000000022',6,NULL,'0000000022',NULL,'María','Vintimilla Cueva','mvintimilla','maria.vintimilla@mail.com',@hash),
+('0000000024',6,NULL,'0000000024',NULL,'Ana','Cordero Ríos','acordero','ana.cordero@mail.com',@hash);
 
 INSERT INTO recurso_atencion (id_area, nombre_recurso, tipo_recurso, descripcion) VALUES
 (1,'Consultorio 1','consultorio','Planta baja'),
@@ -124,36 +141,36 @@ INSERT INTO recurso_atencion (id_area, nombre_recurso, tipo_recurso, descripcion
 
 -- Citas 1-10 consultas (usuario 2), 11-20 imagenología (usuario 3), 21-30 laboratorio (usuario 4)
 INSERT INTO cita (cedula_paciente, id_area, id_recurso, id_usuario_registra, fecha_cita, hora_inicio, hora_fin, estado) VALUES
-('0102030405',1,1,2,'2026-11-02','08:00:00','09:00:00','confirmada'),
-('0103040506',1,1,2,'2026-11-02','09:00:00','10:00:00','confirmada'),
-('0104050607',1,2,2,'2026-11-03','10:00:00','11:00:00','confirmada'),
-('0105060708',1,3,2,'2026-11-04','11:00:00','12:00:00','confirmada'),
-('0106070809',1,4,2,'2026-11-05','14:00:00','15:00:00','confirmada'),
-('0107080910',1,2,2,'2026-11-06','15:00:00','16:00:00','confirmada'),
-('0108091011',1,3,2,'2026-11-09','07:00:00','08:00:00','confirmada'),
-('0109101112',1,4,2,'2026-11-10','16:00:00','17:00:00','confirmada'),
-('0110111213',1,1,2,'2026-11-11','09:00:00','10:00:00','confirmada'),
-('0111121314',1,3,2,'2026-11-12','17:00:00','18:00:00','confirmada'),
-('0102030405',2,5,3,'2026-11-02','10:00:00','11:00:00','confirmada'),
-('0103040506',2,5,3,'2026-11-03','08:00:00','09:00:00','confirmada'),
-('0104050607',2,5,3,'2026-11-04','09:00:00','10:00:00','confirmada'),
-('0105060708',2,6,3,'2026-11-05','10:00:00','11:00:00','confirmada'),
-('0106070809',2,7,3,'2026-11-06','11:00:00','12:00:00','confirmada'),
-('0107080910',2,8,3,'2026-11-09','08:00:00','09:00:00','confirmada'),
-('0108091011',2,6,3,'2026-11-10','09:00:00','10:00:00','confirmada'),
-('0109101112',2,5,3,'2026-11-17','10:00:00','11:00:00','pendiente'),
-('0110111213',2,7,3,'2026-11-18','08:00:00','09:00:00','confirmada'),
-('0111121314',2,6,3,'2026-11-19','14:00:00','15:00:00','pendiente'),
-('0102030405',3,9,4,'2026-11-03','07:00:00','08:00:00','confirmada'),
-('0102030405',3,10,4,'2026-11-03','08:00:00','09:00:00','confirmada'),
-('0103040506',3,9,4,'2026-11-04','07:00:00','08:00:00','confirmada'),
-('0104050607',3,10,4,'2026-11-05','08:00:00','09:00:00','confirmada'),
-('0105060708',3,9,4,'2026-11-06','07:00:00','08:00:00','confirmada'),
-('0106070809',3,10,4,'2026-11-09','09:00:00','10:00:00','confirmada'),
-('0107080910',3,9,4,'2026-11-10','07:00:00','08:00:00','confirmada'),
-('0108091011',3,10,4,'2026-11-11','08:00:00','09:00:00','confirmada'),
-('0109101112',3,9,4,'2026-11-12','07:00:00','08:00:00','confirmada'),
-('0111121314',3,10,4,'2026-11-13','08:00:00','09:00:00','confirmada');
+('0000000021',1,1,2,'2026-11-02','08:00:00','09:00:00','confirmada'),
+('0000000022',1,1,2,'2026-11-02','09:00:00','10:00:00','confirmada'),
+('0000000023',1,2,2,'2026-11-03','10:00:00','11:00:00','confirmada'),
+('0000000024',1,3,2,'2026-11-04','11:00:00','12:00:00','confirmada'),
+('0000000025',1,4,2,'2026-11-05','15:00:00','16:00:00','confirmada'),
+('0000000026',1,2,2,'2026-11-06','15:00:00','16:00:00','confirmada'),
+('0000000027',1,3,2,'2026-11-09','07:00:00','08:00:00','confirmada'),
+('0000000028',1,4,2,'2026-11-10','16:00:00','17:00:00','confirmada'),
+('0000000029',1,1,2,'2026-11-11','09:00:00','10:00:00','confirmada'),
+('0000000030',1,3,2,'2026-11-12','17:00:00','18:00:00','confirmada'),
+('0000000021',2,5,3,'2026-11-02','10:00:00','11:00:00','confirmada'),
+('0000000022',2,5,3,'2026-11-03','08:00:00','09:00:00','confirmada'),
+('0000000023',2,5,3,'2026-11-04','09:00:00','10:00:00','confirmada'),
+('0000000024',2,6,3,'2026-11-05','10:00:00','11:00:00','confirmada'),
+('0000000025',2,7,3,'2026-11-06','11:00:00','12:00:00','confirmada'),
+('0000000026',2,8,3,'2026-11-09','08:00:00','09:00:00','confirmada'),
+('0000000027',2,6,3,'2026-11-10','09:00:00','10:00:00','confirmada'),
+('0000000028',2,5,3,'2026-11-17','10:00:00','11:00:00','pendiente'),
+('0000000029',2,7,3,'2026-11-18','08:00:00','09:00:00','confirmada'),
+('0000000030',2,6,3,'2026-11-19','15:00:00','16:00:00','pendiente'),
+('0000000021',3,9,4,'2026-11-03','07:00:00','08:00:00','confirmada'),
+('0000000021',3,10,4,'2026-11-03','08:00:00','09:00:00','confirmada'),
+('0000000022',3,9,4,'2026-11-04','07:00:00','08:00:00','confirmada'),
+('0000000023',3,10,4,'2026-11-05','08:00:00','09:00:00','confirmada'),
+('0000000024',3,9,4,'2026-11-06','07:00:00','08:00:00','confirmada'),
+('0000000025',3,10,4,'2026-11-09','09:00:00','10:00:00','confirmada'),
+('0000000026',3,9,4,'2026-11-10','07:00:00','08:00:00','confirmada'),
+('0000000027',3,10,4,'2026-11-11','08:00:00','09:00:00','confirmada'),
+('0000000028',3,9,4,'2026-11-12','07:00:00','08:00:00','confirmada'),
+('0000000030',3,10,4,'2026-11-13','08:00:00','09:00:00','confirmada');
 
 -- Los triggers asignan costo_aplicado en estos tres INSERT
 INSERT INTO cita_consulta (id_cita, id_medico) VALUES
@@ -204,7 +221,7 @@ INSERT INTO consulta_medica (id_cita, fecha_hora_atencion, motivo_consulta, obse
 (2,'2026-11-02 09:00:00','Control general','Control anual'),
 (3,'2026-11-03 10:00:00','Fiebre y tos','Vigilar temperatura'),
 (4,'2026-11-04 11:00:00','Palpitaciones','Solicitar chequeo de seguimiento'),
-(5,'2026-11-05 14:00:00','Manchas en la piel','Evitar jabones perfumados'),
+(5,'2026-11-05 15:00:00','Manchas en la piel','Evitar jabones perfumados'),
 (6,'2026-11-06 15:00:00','Dolor dental','Programar calzado dental'),
 (7,'2026-11-09 07:00:00','Dolor abdominal','Dieta blanda por una semana'),
 (8,'2026-11-10 16:00:00','Control de peso','Plan nutricional de 4 semanas'),
@@ -228,7 +245,7 @@ INSERT INTO prescripcion (id_consulta, fecha_prescripcion, indicaciones_generale
 (2,'2026-11-02 10:00:00','Mantener alimentación balanceada'),
 (3,'2026-11-03 11:00:00','Completar el tratamiento'),
 (4,'2026-11-04 12:00:00','Control en 15 días'),
-(5,'2026-11-05 15:00:00','Aplicar en zona afectada'),
+(5,'2026-11-05 16:00:00','Aplicar en zona afectada'),
 (6,'2026-11-06 16:00:00','Tomar después de las comidas'),
 (7,'2026-11-09 08:00:00','Dieta blanda'),
 (8,'2026-11-10 17:00:00','Exposición solar moderada'),
@@ -251,13 +268,13 @@ INSERT INTO detalle_prescripcion (id_prescripcion, id_medicamento, dosis, frecue
 
 -- Accesos de demostracion (el sistema real los escribe Flask con usr_login)
 INSERT INTO auditoria_acceso (cedula_intento, id_usuario, resultado, ip, navegador, fecha) VALUES
-('0301100001',1,'exitoso','127.0.0.1','Chrome','2026-11-02 07:45:00'),
-('0301100002',2,'exitoso','127.0.0.1','Chrome','2026-11-02 07:50:00'),
-('0301000001',11,'exitoso','127.0.0.1','Firefox','2026-11-02 07:55:00'),
-('0102030405',14,'exitoso','127.0.0.1','Chrome','2026-11-02 18:10:00'),
-('0103040506',15,'fallido','127.0.0.1','Edge','2026-11-03 09:00:00'),
-('0103040506',15,'exitoso','127.0.0.1','Edge','2026-11-03 09:01:00'),
+('0000000001',1,'exitoso','127.0.0.1','Chrome','2026-11-02 07:45:00'),
+('0000000002',2,'exitoso','127.0.0.1','Chrome','2026-11-02 07:50:00'),
+('0000000003',11,'exitoso','127.0.0.1','Firefox','2026-11-02 07:55:00'),
+('0000000021',14,'exitoso','127.0.0.1','Chrome','2026-11-02 18:10:00'),
+('0000000022',15,'fallido','127.0.0.1','Edge','2026-11-03 09:00:00'),
+('0000000022',15,'exitoso','127.0.0.1','Edge','2026-11-03 09:01:00'),
 ('0999999999',NULL,'fallido','127.0.0.1','Chrome','2026-11-03 10:20:00'),
-('0301100005',5,'exitoso','127.0.0.1','Chrome','2026-11-04 08:00:00'),
-('0301100008',8,'exitoso','127.0.0.1','Chrome','2026-11-04 08:05:00'),
-('0301100001',1,'cierre_sesion','127.0.0.1','Chrome','2026-11-04 17:30:00');
+('0000000004',5,'exitoso','127.0.0.1','Chrome','2026-11-04 08:00:00'),
+('0000000009',8,'exitoso','127.0.0.1','Chrome','2026-11-04 08:05:00'),
+('0000000001',1,'cierre_sesion','127.0.0.1','Chrome','2026-11-04 17:30:00');

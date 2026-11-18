@@ -92,11 +92,13 @@ def _validar_futura(cuenta, usuario, fecha, hora):
     if not fila["futura"]:
         raise ErrorNegocio("La cita debe ser en una fecha y hora futuras.")
 
+
 def _validar_almuerzo(area, hora):
     """Todo el personal almuerza de 13:00 a 15:00: en ese rango no se agenda ninguna cita (de ninguna area)."""
     if hora in HORAS_ALMUERZO:
         raise ErrorNegocio("De 13:00 a 15:00 es la hora de almuerzo del personal: elige otro horario.")
-    
+
+
 def _texto_estado(estado):
     return estado.replace("_", " ")
 
@@ -199,7 +201,8 @@ def opciones_nueva(cuenta, usuario, cedula=None):
 def horarios_disponibles(cuenta, usuario, fecha, id_area, id_medico=None, id_recurso=None,
                          cedula_paciente=None, excluir_cita=None):
     """Bloques de una hora libres en una fecha. Un bloque esta libre si hay un recurso activo del area sin cita
-    en ese horario y, segun lo que se indique, el medico y el paciente tampoco tienen otra cita a esa hora."""
+    en ese horario y, segun lo que se indique, el medico (dentro de sus turnos) y el paciente tampoco tienen
+    otra cita a esa hora."""
     dia = validators.fecha(fecha, "La fecha")
     area = validators.entero(id_area, "El área", minimo=1, maximo=3)
     if dia.weekday() >= 5:
@@ -216,7 +219,11 @@ def horarios_disponibles(cuenta, usuario, fecha, id_area, id_medico=None, id_rec
         medico_extra = """
           AND NOT EXISTS (SELECT 1 FROM cita c JOIN cita_consulta cc ON cc.id_cita = c.id_cita
                           WHERE cc.id_medico = %(m)s AND c.fecha_cita = %(f)s AND c.hora_inicio = b.hora_inicio
-                            AND c.activa = 1 AND c.id_cita <> %(x)s)"""
+                            AND c.activa = 1 AND c.id_cita <> %(x)s)
+          AND (NOT EXISTS (SELECT 1 FROM horario_medico h0 WHERE h0.id_medico = %(m)s)
+               OR EXISTS (SELECT 1 FROM horario_medico h
+                          WHERE h.id_medico = %(m)s AND h.dia_semana = WEEKDAY(%(f)s) + 1
+                            AND h.hora_inicio <= b.hora_inicio AND b.hora_fin <= h.hora_fin))"""
     paciente_extra = ""
     if cedula_paciente:
         p["p"] = validators.cedula(cedula_paciente, "La cédula del paciente")

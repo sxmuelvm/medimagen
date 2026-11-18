@@ -24,7 +24,7 @@ def test_crear_usuario_con_datos_invalidos_no_crea_nada(entrar):
         {"id_rol": "abc", "id_perfil": "1", "nombre_usuario": "pruebaxx"},                 # rol no numerico
         {"id_rol": "1", "id_perfil": "99999", "nombre_usuario": "pruebaxx"},               # perfil inexistente
         {"id_rol": "1", "id_perfil": "", "nombre_usuario": ""},                            # vacio
-        {"id_rol": "6", "id_perfil": "0102030405", "nombre_usuario": "otro_nombre"},       # el paciente ya tiene usuario
+        {"id_rol": "6", "id_perfil": "0000000021", "nombre_usuario": "otro_nombre"},       # el paciente ya tiene usuario
     ]
     for datos in casos:
         assert admin.post("/usuarios/nuevo", datos).status_code == 400, datos

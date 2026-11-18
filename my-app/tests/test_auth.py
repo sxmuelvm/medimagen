@@ -24,7 +24,7 @@ def test_clave_incorrecta_y_cedula_inexistente_dan_el_mismo_mensaje(anonimo):
     assert aviso(mala) == aviso(inexistente)
 
 
-@pytest.mark.parametrize("cedula", ["", "abc", "12345", "' OR '1'='1", "0301100001'--", "03011000011", "030110000"])
+@pytest.mark.parametrize("cedula", ["", "abc", "12345", "' OR '1'='1", "0000000001'--", "00000000011", "000000000"])
 def test_cedulas_mal_formadas_no_entran(anonimo, cedula):
     assert anonimo.login(cedula, CLAVE).status_code == 401
 

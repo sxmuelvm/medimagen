@@ -1,6 +1,6 @@
 -- =====================================================================
 -- MEDIMAGEN | 01_tablas_vistas.sql
--- Base de datos, 24 tablas y 8 vistas. Ejecutar con root.
+-- Base de datos, 25 tablas y 8 vistas. Ejecutar con root.
 -- =====================================================================
 CREATE DATABASE medimagen CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE medimagen;
@@ -79,6 +79,21 @@ CREATE TABLE medico (
     CONSTRAINT chk_med_cedula CHECK (cedula REGEXP '^[0-9]{10}$')
 ) ENGINE=InnoDB;
 
+-- Turnos de atencion de cada medico: un tramo por fila (dia_semana 1 = lunes ... 5 = viernes).
+-- Un medico sin turnos se atiende en el horario general. El almuerzo (13:00 a 15:00) lo aplica el sistema a todos.
+CREATE TABLE horario_medico (
+    id_horario INT AUTO_INCREMENT PRIMARY KEY,
+    id_medico INT NOT NULL,
+    dia_semana TINYINT NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+    CONSTRAINT fk_hm_medico FOREIGN KEY (id_medico) REFERENCES medico(id_medico) ON DELETE CASCADE,
+    CONSTRAINT fk_hm_inicio FOREIGN KEY (hora_inicio) REFERENCES bloque_horario(hora_inicio),
+    CONSTRAINT uq_hm UNIQUE (id_medico, dia_semana, hora_inicio),
+    CONSTRAINT chk_hm_dia CHECK (dia_semana BETWEEN 1 AND 5),
+    CONSTRAINT chk_hm_horas CHECK (hora_fin > hora_inicio)
+) ENGINE=InnoDB;
+
 CREATE TABLE usuario (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
     cedula VARCHAR(10) NOT NULL UNIQUE,
@@ -96,7 +111,7 @@ CREATE TABLE usuario (
     ultimo_acceso DATETIME NULL,
     intentos_fallidos TINYINT UNSIGNED NOT NULL DEFAULT 0,
     bloqueado_hasta DATETIME NULL,
-        cambio_clave_obligatorio TINYINT NOT NULL DEFAULT 0,
+    cambio_clave_obligatorio TINYINT NOT NULL DEFAULT 0,
     CONSTRAINT fk_usuario_rol FOREIGN KEY (id_rol) REFERENCES rol(id_rol),
     CONSTRAINT fk_usuario_medico FOREIGN KEY (id_medico) REFERENCES medico(id_medico),
     CONSTRAINT fk_usuario_paciente FOREIGN KEY (cedula_paciente) REFERENCES paciente(cedula_paciente),

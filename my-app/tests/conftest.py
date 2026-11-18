@@ -25,14 +25,14 @@ CLAVE = "Prueba2026ok"          # clave conocida que se pone a los usuarios de p
 
 # nombre corto -> cedula del usuario de ejemplo
 USUARIOS = {
-    "admin": "0301100001",
-    "recepcion": "0301100002",
-    "medico": "0301000001",
-    "imagenologia": "0301100005",
-    "laboratorio": "0301100008",
-    "paciente": "0102030405",       # Carlos Andrade
-    "paciente2": "0105060708",      # Ana Cordero
-    "victima": "0103040506",        # paciente usado en pruebas que bloquean, desactivan o cambian la clave
+    "admin": "0000000001",
+    "recepcion": "0000000002",
+    "medico": "0000000003",
+    "imagenologia": "0000000004",
+    "laboratorio": "0000000009",
+    "paciente": "0000000021",       # Carlos Andrade
+    "paciente2": "0000000024",      # Ana Cordero
+    "victima": "0000000022",        # paciente usado en pruebas que bloquean, desactivan o cambian la clave
 }
 COLUMNAS = "password_hash, cambio_clave_obligatorio, intentos_fallidos, bloqueado_hasta, estado"
 
