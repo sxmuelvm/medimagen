@@ -8,7 +8,7 @@ estar en dos citas a la vez, y el costo lo fija el trigger. Aqui se validan ante
 from conexion.conexionBD import consultar, ejecutar, transaccion
 from utils import validators
 from utils.constants import (AREA_CONSULTAS, AREA_IMAGENOLOGIA, AREA_LABORATORIO, CUENTA_ADMINISTRADOR,
-                             ESTADOS_ACTIVOS_CITA, ESTADOS_CITA, HORAS_ALMUERZO)
+                             ESTADOS_ACTIVOS_CITA, ESTADOS_CITA)
 from utils.errors import ErrorNegocio
 from utils.helpers import pagina_actual, paginar, patron_like
 from utils.logger import obtener_logger
@@ -91,12 +91,6 @@ def _validar_futura(cuenta, usuario, fecha, hora):
                      id_usuario_app=usuario, uno=True)
     if not fila["futura"]:
         raise ErrorNegocio("La cita debe ser en una fecha y hora futuras.")
-
-
-def _validar_almuerzo(area, hora):
-    """Todo el personal almuerza de 13:00 a 15:00: en ese rango no se agenda ninguna cita (de ninguna area)."""
-    if hora in HORAS_ALMUERZO:
-        raise ErrorNegocio("De 13:00 a 15:00 es la hora de almuerzo del personal: elige otro horario.")
 
 
 def _texto_estado(estado):
@@ -231,12 +225,10 @@ def horarios_disponibles(cuenta, usuario, fecha, id_area, id_medico=None, id_rec
           AND NOT EXISTS (SELECT 1 FROM cita c WHERE c.cedula_paciente = %(p)s AND c.fecha_cita = %(f)s
                             AND c.hora_inicio = b.hora_inicio AND c.activa = 1 AND c.id_cita <> %(x)s)"""
 
-    almuerzo_extra = " AND b.hora_inicio NOT IN (" + ", ".join(f"'{h}'" for h in HORAS_ALMUERZO) + ")"
-
     filas = consultar(cuenta, f"""
         SELECT b.hora_inicio, b.hora_fin
         FROM bloque_horario b
-        WHERE TIMESTAMP(%(f)s, b.hora_inicio) > NOW(){almuerzo_extra}
+        WHERE TIMESTAMP(%(f)s, b.hora_inicio) > NOW()
           AND EXISTS (SELECT 1 FROM recurso_atencion r
                       WHERE r.id_area = %(a)s AND r.estado = 'activo'{recurso_extra}
                         AND NOT EXISTS (SELECT 1 FROM cita c WHERE c.id_recurso = r.id_recurso
@@ -346,7 +338,6 @@ def registrar_cita(cuenta, usuario, cedula, area, datos):
     """
     fecha = validators.fecha_laborable(datos.get("fecha_cita"))
     hora = validators.hora_bloque(datos.get("hora_inicio"))
-    _validar_almuerzo(area, hora)
     _validar_futura(cuenta, usuario, fecha, hora)
 
     id_medico = id_subtipo = None
@@ -398,7 +389,6 @@ def reprogramar(cuenta, usuario, id_cita, datos):
 
     fecha = validators.fecha_laborable(datos.get("fecha_cita"))
     hora = validators.hora_bloque(datos.get("hora_inicio"))
-    _validar_almuerzo(area, hora)
     _validar_futura(cuenta, usuario, fecha, hora)
     observacion = validators.texto(datos.get("observacion", cita["observacion"]), "La observación", maximo=255,
                                    obligatorio=False)

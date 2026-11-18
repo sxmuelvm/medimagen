@@ -1,4 +1,4 @@
-"""Citas: agenda, horarios, reglas de negocio (almuerzo, fines de semana, choques), reprogramar y estados.
+"""Citas: agenda, horarios, reglas de negocio (jornada continua, fines de semana, choques), reprogramar y estados.
 
 Todo lo que se crea aqui se cancela y se elimina al terminar cada prueba.
 """
@@ -68,12 +68,10 @@ def test_horarios_en_json(entrar, dia, fecha_laborable):
     c = entrar("recepcion")
     r = c.get(f"/citas/horarios?fecha={dia}&id_area=1")
     horas = [h["hora_inicio"] for h in r.get_json()["horarios"]]
-    assert r.status_code == 200 and "13:00" not in horas and "14:00" not in horas
-    assert horas[0] == "07:00" and "12:00" in horas and "15:00" in horas and len(horas) == 9
-    # el almuerzo vale para todas las areas
+    assert r.status_code == 200 and horas == [f"{h:02d}:00" for h in range(7, 18)]       # 07:00 a 17:00, sin almuerzo
     for area in (2, 3):
         horas = [h["hora_inicio"] for h in c.get(f"/citas/horarios?fecha={dia}&id_area={area}").get_json()["horarios"]]
-        assert "13:00" not in horas and "14:00" not in horas
+        assert horas == [f"{h:02d}:00" for h in range(7, 18)]
     assert c.get("/citas/horarios?fecha=xx&id_area=1").status_code == 400
     assert c.get("/citas/horarios?fecha=2026-01-05&id_area=1").get_json()["horarios"] == []     # pasado
     sabado = sabado_despues_de(dia)
@@ -98,14 +96,14 @@ def test_crear_consulta(entrar, limpiar_citas, pacientes, dia):
 
 @pytest.mark.parametrize("hora", ["13:00", "14:00"])
 @pytest.mark.parametrize("area,extra", [(1, {}), (2, {"equipo": "7"}), (3, {})])
-def test_no_se_agenda_en_el_almuerzo(entrar, limpiar_citas, pacientes, dia, area, extra, hora):
+def test_se_agenda_de_13_a_15_porque_no_hay_hora_de_almuerzo(entrar, limpiar_citas, pacientes, dia, area, extra, hora):
     c = entrar("recepcion")
     if area == 1:
         datos = consulta(pacientes[0], dia, hora)
     else:
         datos = examen(pacientes[0], dia, area, "RM-02" if area == 2 else "LAB-01", hora, extra.get("equipo", ""))
     r, id_cita = nueva(c, limpiar_citas, **datos)
-    assert r.status_code == 400 and id_cita is None and "almuerzo" in texto(r)
+    assert r.status_code == 302 and id_cita
 
 
 @pytest.mark.parametrize("hora", ["06:00", "07:30", "18:00", "xx", ""])
@@ -185,7 +183,8 @@ def test_reprogramar(entrar, limpiar_citas, pacientes, dia, fecha_laborable):
     assert r.status_code == 302
     fila = sql("SELECT fecha_cita, hora_inicio, observacion FROM cita WHERE id_cita = %s", (id_cita,), uno=True)
     assert fila["fecha_cita"].isoformat() == nuevo_dia and str(fila["hora_inicio"]) == "15:00:00" and fila["observacion"] == "movida"
-    assert c.post(f"/citas/{id_cita}/reprogramar", {"fecha_cita": nuevo_dia, "hora_inicio": "14:00"}).status_code == 400   # almuerzo
+    assert c.post(f"/citas/{id_cita}/reprogramar", {"fecha_cita": nuevo_dia, "hora_inicio": "14:00"}).status_code == 302   # no hay almuerzo
+    assert c.post(f"/citas/{id_cita}/reprogramar", {"fecha_cita": nuevo_dia, "hora_inicio": "18:00"}).status_code == 400   # fuera de la jornada
     assert c.post(f"/citas/{id_cita}/reprogramar", {"fecha_cita": "2026-01-05", "hora_inicio": "10:00"}).status_code == 400
     # choque con otra cita del mismo paciente
     _, otra = nueva(c, limpiar_citas, **consulta(pacientes[0], nuevo_dia, "16:00", medico=2))

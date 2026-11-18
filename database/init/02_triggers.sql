@@ -95,6 +95,34 @@ BEGIN
     END IF;
 END$$
 
+-- Una especialidad activa nunca se queda sin médico: no se puede desactivar, eliminar ni pasar a otra especialidad
+-- al último médico activo que la atiende.
+CREATE PROCEDURE sp_validar_cobertura_especialidad(IN p_id_medico INT, IN p_id_especialidad VARCHAR(10))
+BEGIN
+    IF EXISTS (SELECT 1 FROM especialidad WHERE id_especialidad = p_id_especialidad AND estado = 'activo')
+       AND NOT EXISTS (SELECT 1 FROM medico WHERE id_especialidad = p_id_especialidad
+                         AND estado = 'activo' AND id_medico <> p_id_medico) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Es el único médico activo de su especialidad: primero asigna otro médico a esa especialidad';
+    END IF;
+END$$
+
+CREATE TRIGGER trg_medico_bu BEFORE UPDATE ON medico
+FOR EACH ROW
+BEGIN
+    IF OLD.estado = 'activo' AND (NEW.estado <> 'activo' OR NEW.id_especialidad <> OLD.id_especialidad) THEN
+        CALL sp_validar_cobertura_especialidad(OLD.id_medico, OLD.id_especialidad);
+    END IF;
+END$$
+
+CREATE TRIGGER trg_medico_bd BEFORE DELETE ON medico
+FOR EACH ROW
+BEGIN
+    IF OLD.estado = 'activo' THEN
+        CALL sp_validar_cobertura_especialidad(OLD.id_medico, OLD.id_especialidad);
+    END IF;
+END$$
+
 -- Turnos: la hora de fin debe terminar un bloque y los turnos de un mismo médico no se solapan
 CREATE PROCEDURE sp_validar_horario_medico(IN p_id_horario INT, IN p_id_medico INT, IN p_dia TINYINT,
                                            IN p_inicio TIME, IN p_fin TIME)
@@ -202,8 +230,7 @@ BEGIN
     END IF;
 END$$
 
--- Al reprogramar o reactivar una consulta, el médico no puede quedar con dos pacientes
--- y la nueva fecha y hora deben caer dentro de sus turnos
+-- Al reprogramar o reactivar una consulta, el médico no puede quedar con dos pacientes ni fuera de su turno
 CREATE TRIGGER trg_cita_bu BEFORE UPDATE ON cita
 FOR EACH ROW
 BEGIN

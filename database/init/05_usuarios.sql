@@ -6,8 +6,6 @@
 -- =====================================================================
 
 -- Creacion de usuarios
-CREATE USER IF NOT EXISTS 'dba_medimagen'@'%' IDENTIFIED BY 'uno234cinco'
-    WITH MAX_USER_CONNECTIONS 5 PASSWORD EXPIRE INTERVAL 90 DAY FAILED_LOGIN_ATTEMPTS 5 PASSWORD_LOCK_TIME 1;
 CREATE USER IF NOT EXISTS 'usr_administrador'@'%' IDENTIFIED BY 'uno234cinco' WITH MAX_USER_CONNECTIONS 10;
 CREATE USER IF NOT EXISTS 'usr_recepcion'@'%' IDENTIFIED BY 'uno234cinco' WITH MAX_USER_CONNECTIONS 20;
 CREATE USER IF NOT EXISTS 'usr_medico'@'%' IDENTIFIED BY 'uno234cinco' WITH MAX_USER_CONNECTIONS 20;
@@ -19,7 +17,6 @@ CREATE USER IF NOT EXISTS 'usr_reportes'@'%' IDENTIFIED BY 'uno234cinco' WITH MA
 CREATE USER IF NOT EXISTS 'usr_login'@'%' IDENTIFIED BY 'uno234cinco' WITH MAX_USER_CONNECTIONS 20;
 
 -- Usuarios con privilegios especificos (directos, sin rol)
-GRANT ALL PRIVILEGES ON medimagen.* TO 'dba_medimagen'@'%' WITH GRANT OPTION;
 GRANT SELECT ON medimagen.v_reporte_ingresos TO 'usr_reportes'@'%';
 
 -- usr_login: solo autenticacion. Lee las columnas necesarias, actualiza solo las del login

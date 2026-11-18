@@ -74,13 +74,13 @@ def crear_consulta(cliente, cedula, id_medico, fecha, hora):
 # ---------------------------------------------------------------------------
 def test_turnos_de_ejemplo(entrar, dia):
     c = entrar("recepcion")
-    assert horas(c, dia, 1) == ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "15:00", "16:00", "17:00"]
-    assert horas(c, dia, 7) == ["15:00", "16:00", "17:00"]                                 # solo en la tarde
-    assert horas(c, dia, 8) == ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00"]      # solo en la manana
+    jornada = [f"{h:02d}:00" for h in range(7, 18)]                  # 07:00 a 17:00, sin hora de almuerzo
+    for id_medico in (1, 7, 8, 10):                                  # todos tienen jornada completa
+        assert horas(c, dia, id_medico) == jornada
 
 
 def test_un_medico_sin_turnos_usa_el_horario_general(entrar, medico, dia):
-    assert len(horas(entrar("recepcion"), dia, medico)) == 9
+    assert len(horas(entrar("recepcion"), dia, medico)) == 11
 
 
 def test_agregar_un_turno_limita_los_horarios(entrar, medico, dia):
@@ -200,7 +200,7 @@ def test_sin_turnos_se_vuelve_al_horario_general(entrar, medico, dia):
     assert len(horas(recepcion, dia, medico)) == 2
     for t in turnos(medico):
         assert admin.post(f"/medicos/{medico}/horario/{t['id_horario']}/eliminar").status_code == 302
-    assert len(horas(recepcion, dia, medico)) == 9
+    assert len(horas(recepcion, dia, medico)) == 11
 
 
 def test_eliminar_el_turno_de_otro_medico_no_funciona(entrar, medico):

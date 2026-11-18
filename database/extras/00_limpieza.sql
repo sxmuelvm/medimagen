@@ -1,6 +1,7 @@
 -- =====================================================================
 -- MEDIMAGEN | 00_limpieza.sql
 -- Borra la base y las cuentas de Medimagen para volver a crearlas desde cero.
+-- (dba_medimagen ya no se crea; se borra solo por si quedo de una version anterior.)
 -- Ejecutar con root. No toca ninguna otra base ni cuenta (profesor, prof_user, etc.).
 -- Docker NO ejecuta este archivo (esta en extras/): el volumen nuevo ya llega vacio.
 -- =====================================================================

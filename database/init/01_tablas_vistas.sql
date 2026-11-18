@@ -80,7 +80,7 @@ CREATE TABLE medico (
 ) ENGINE=InnoDB;
 
 -- Turnos de atencion de cada medico: un tramo por fila (dia_semana 1 = lunes ... 5 = viernes).
--- Un medico sin turnos se atiende en el horario general. El almuerzo (13:00 a 15:00) lo aplica el sistema a todos.
+-- Un medico sin turnos se atiende en el horario general (07:00 a 18:00, sin pausa de almuerzo).
 CREATE TABLE horario_medico (
     id_horario INT AUTO_INCREMENT PRIMARY KEY,
     id_medico INT NOT NULL,

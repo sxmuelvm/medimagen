@@ -65,6 +65,7 @@ INSERT INTO paciente (cedula_paciente, nombres, apellidos, fecha_nacimiento, sex
 ('0000000029','Andrés','Idrovo Sarmiento','1980-08-11','M','0999999999','andres.idrovo@mail.com','Totoracocha'),
 ('0000000030','Camila','Loja Zhunio','2004-02-19','F','0981234567','camila.loja@mail.com','Monay');
 
+-- 28 médicos: cada una de las 7 especialidades tiene 4, para que atiendan de forma simultánea
 INSERT INTO medico (id_especialidad, cedula, nombres, apellidos, telefono, correo) VALUES
 ('ESP-01','0000000003','Cristian Teodoro','Marin Guachichullca','0970000001','cristian.marin@medimagen.ec'),
 ('ESP-01','0000000012','Patricia','Crespo Vélez','0970000002','patricia.crespo@medimagen.ec'),
@@ -75,24 +76,33 @@ INSERT INTO medico (id_especialidad, cedula, nombres, apellidos, telefono, corre
 ('ESP-05','0000000017','Lucía','Serrano Maldonado','0970000007','lucia.serrano@medimagen.ec'),
 ('ESP-06','0000000018','Fernando','Guamán Pacheco','0970000008','fernando.guaman@medimagen.ec'),
 ('ESP-07','0000000019','Mónica','Jaramillo Heredia','0970000009','monica.jaramillo@medimagen.ec'),
-('ESP-07','0000000020','Santiago','Rivera Coronel','0970000010','santiago.rivera@medimagen.ec');
+('ESP-07','0000000020','Santiago','Rivera Coronel','0970000010','santiago.rivera@medimagen.ec'),
+('ESP-02','0000000031','Andrea','Palacios Reyes','0970000011','andrea.palacios@medimagen.ec'),
+('ESP-03','0000000032','Diego','Vázquez Cobos','0970000012','diego.vazquez@medimagen.ec'),
+('ESP-04','0000000033','Paola','Ordóñez Salto','0970000013','paola.ordonez@medimagen.ec'),
+('ESP-05','0000000034','Javier','Cuesta Lazo','0970000014','javier.cuesta@medimagen.ec'),
+('ESP-06','0000000035','Carolina','Illescas Neira','0970000015','carolina.illescas@medimagen.ec'),
+('ESP-01','0000000036','Ricardo','Zambrano Ávila','0970000016','ricardo.zambrano@medimagen.ec'),
+('ESP-02','0000000037','Mariana','Loaiza Pino','0970000017','mariana.loaiza@medimagen.ec'),
+('ESP-02','0000000038','Pablo','Cevallos Mena','0970000018','pablo.cevallos@medimagen.ec'),
+('ESP-03','0000000039','Silvia','Narváez Ochoa','0970000019','silvia.narvaez@medimagen.ec'),
+('ESP-03','0000000040','Tomás','Rendón Salinas','0970000020','tomas.rendon@medimagen.ec'),
+('ESP-04','0000000041','Elisa','Bermeo Quito','0970000021','elisa.bermeo@medimagen.ec'),
+('ESP-04','0000000042','Hugo','Parra Castro','0970000022','hugo.parra@medimagen.ec'),
+('ESP-05','0000000043','Natalia','Fajardo León','0970000023','natalia.fajardo@medimagen.ec'),
+('ESP-05','0000000044','Óscar','Ayala Medina','0970000024','oscar.ayala@medimagen.ec'),
+('ESP-06','0000000045','Rosa','Montero Vega','0970000025','rosa.montero@medimagen.ec'),
+('ESP-06','0000000046','Iván','Cárdenas Toral','0970000026','ivan.cardenas@medimagen.ec'),
+('ESP-07','0000000047','Alejandra','Peralta Cruz','0970000027','alejandra.peralta@medimagen.ec'),
+('ESP-07','0000000048','Raúl','Espinoza Maza','0970000028','raul.espinoza@medimagen.ec');
 
--- Turnos de atención (lunes a viernes). El almuerzo de 13:00 a 15:00 no se atiende en ningún caso.
--- Médicos 1 a 6: jornada completa (07:00-13:00 y 15:00-18:00). Médicos 8 y 9: mañana. Médicos 7 y 10: tarde.
+-- Turnos de atención (lunes a viernes). La clínica atiende de forma continua de 07:00 a 18:00, sin hora de almuerzo.
+-- Todos los médicos tienen jornada completa: así ninguna especialidad queda sin médico en ningún horario, y las
+-- especialidades tienen 4 médicos que atienden de forma simultánea.
 INSERT INTO horario_medico (id_medico, dia_semana, hora_inicio, hora_fin)
-SELECT t.id_medico, d.dia, t.hora_inicio, t.hora_fin
-FROM (SELECT 1 AS dia UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) d
-CROSS JOIN (
-    SELECT 1 AS id_medico, '07:00:00' AS hora_inicio, '13:00:00' AS hora_fin
-    UNION ALL SELECT 2, '07:00:00', '13:00:00' UNION ALL SELECT 3, '07:00:00', '13:00:00'
-    UNION ALL SELECT 4, '07:00:00', '13:00:00' UNION ALL SELECT 5, '07:00:00', '13:00:00'
-    UNION ALL SELECT 6, '07:00:00', '13:00:00' UNION ALL SELECT 8, '07:00:00', '13:00:00'
-    UNION ALL SELECT 9, '07:00:00', '13:00:00'
-    UNION ALL SELECT 1, '15:00:00', '18:00:00' UNION ALL SELECT 2, '15:00:00', '18:00:00'
-    UNION ALL SELECT 3, '15:00:00', '18:00:00' UNION ALL SELECT 4, '15:00:00', '18:00:00'
-    UNION ALL SELECT 5, '15:00:00', '18:00:00' UNION ALL SELECT 6, '15:00:00', '18:00:00'
-    UNION ALL SELECT 7, '15:00:00', '18:00:00' UNION ALL SELECT 10, '15:00:00', '18:00:00'
-) t;
+SELECT m.id_medico, d.dia, '07:00:00', '18:00:00'
+FROM medico m
+CROSS JOIN (SELECT 1 AS dia UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) d;
 
 INSERT INTO personal (cedula, nombres, apellidos, telefono, correo, cargo) VALUES
 ('0000000001','Samuel Felipe','Vallejo Morales','0960000001','samuel.vallejo@medimagen.ec','Administrador'),
