@@ -1,127 +1,119 @@
-"""Personal de laboratorio: agenda de examenes y registro del resultado."""
-from conexion.conexionBD import consultar, transaccion
+"""Rutas del medico: agenda, atender consulta y examenes solicitados."""
+from itertools import zip_longest
+
+from flask import Blueprint, abort, flash, jsonify, redirect, request, session, url_for
+
+from controllers import citas_controller as citas
+from controllers import consultas_controller as ctrl
 from utils import validators
-from utils.constants import CUENTA_LABORATORIO, ESTADOS_ACTIVOS_CITA
+from utils.constants import CUENTA_MEDICO
+from utils.decorators import roles_permitidos
 from utils.errors import ErrorNegocio
-from utils.helpers import pagina_actual, paginar, patron_like
-from utils.logger import obtener_logger
+from utils.helpers import render_pagina
 
-log = obtener_logger("laboratorio")
-
-POR_PAGINA = 15
-ESTADOS_EXAMEN = ("pendiente", "realizado", "cancelado")
-
-_SQL_EXAMEN = """
-    SELECT a.id_cita, a.fecha_cita, a.hora_inicio, a.hora_fin, a.estado, a.cedula_paciente, a.paciente,
-           a.medico_solicitante, a.id_subtipo, a.examen, a.estado_examen, a.fecha_realizacion, a.puesto,
-           rl.id_resultado, (a.fecha_cita <= CURDATE()) AS llego_el_dia
-    FROM v_agenda_laboratorio a
-    LEFT JOIN v_resultados_laboratorio rl ON rl.id_cita = a.id_cita"""
+bp = Blueprint("consultas", __name__, url_prefix="/consultas")
+SOLO_MEDICO = roles_permitidos(CUENTA_MEDICO)
+MAX_FILAS = 20          # diagnosticos o medicamentos por consulta
 
 
-def _completar(fila):
-    fila["puede_registrar"] = (fila["estado"] in ESTADOS_ACTIVOS_CITA and fila["estado_examen"] == "pendiente"
-                               and bool(fila["llego_el_dia"]))
-    fila["puede_corregir"] = fila["id_resultado"] is not None
-    return fila
+def _medico():
+    """(id del usuario, id del medico), ambos de la sesion. Un usuario 'medico' sin ficha no puede entrar."""
+    if not session.get("id_medico"):
+        abort(403)
+    return session["id_usuario"], session["id_medico"]
 
 
-def _fecha_o_none(valor):
+def _listas(form):
+    """Arma las listas de diagnosticos y medicamentos a partir de los campos repetidos del formulario."""
+    diagnosticos = [{"descripcion": d, "observacion": o}
+                    for d, o in zip_longest(form.getlist("diagnostico"), form.getlist("diagnostico_obs"),
+                                            fillvalue="")][:MAX_FILAS]
+    medicamentos = [{"id_medicamento": a, "dosis": b, "frecuencia": c, "duracion": d, "indicaciones": e}
+                    for a, b, c, d, e in zip_longest(form.getlist("id_medicamento"), form.getlist("dosis"),
+                                                     form.getlist("frecuencia"), form.getlist("duracion"),
+                                                     form.getlist("indicaciones_med"), fillvalue="")][:MAX_FILAS]
+    return diagnosticos, medicamentos
+
+
+@bp.get("/")
+@SOLO_MEDICO
+def mi_agenda():
+    usuario, id_medico = _medico()
+    datos = ctrl.mi_agenda(usuario, id_medico, request.args.get("q"), request.args.get("estado"),
+                           request.args.get("desde"), request.args.get("hasta"), request.args.get("pagina"))
+    return render_pagina("public/consultas/mi_agenda.html", **datos)
+
+
+@bp.route("/<int:id_cita>/atender", methods=["GET", "POST"])
+@SOLO_MEDICO
+def atender(id_cita):
+    usuario, id_medico = _medico()
+    if request.method == "POST":
+        diagnosticos, medicamentos = _listas(request.form)
+        try:
+            ctrl.atender(usuario, id_medico, id_cita, request.form, diagnosticos, medicamentos)
+        except ErrorNegocio as error:
+            if error.codigo != 400:
+                raise
+            flash(error.mensaje, "error")
+            return render_pagina("public/consultas/atender.html", form=request.form, diagnosticos=diagnosticos,
+                                 filas_medicamentos=medicamentos,
+                                 **ctrl.preparar_atencion(usuario, id_medico, id_cita)), 400
+        flash("Consulta registrada.", "exito")
+        return redirect(url_for("consultas.atender", id_cita=id_cita))
+    return render_pagina("public/consultas/atender.html", form={}, diagnosticos=[], filas_medicamentos=[],
+                         **ctrl.preparar_atencion(usuario, id_medico, id_cita))
+
+
+@bp.route("/examenes/nuevo", methods=["GET", "POST"])
+@SOLO_MEDICO
+def solicitar_examen():
+    usuario, id_medico = _medico()
+    if request.method == "POST":
+        try:
+            creado = ctrl.solicitar_examen(usuario, id_medico, request.form)
+        except ErrorNegocio as error:
+            if error.codigo != 400:
+                raise
+            flash(error.mensaje, "error")
+            return render_pagina("public/consultas/solicitar_examen.html", form=request.form,
+                                 paciente=citas.buscar_paciente(CUENTA_MEDICO, usuario,
+                                                                request.form.get("cedula_paciente")),
+                                 **ctrl.opciones_examen(usuario)), 400
+        flash("Examen solicitado y agendado.", "exito")
+        return redirect(url_for("consultas.examenes_solicitados", cita=creado["id_cita"]))
+    return render_pagina("public/consultas/solicitar_examen.html", form={},
+                         paciente=citas.buscar_paciente(CUENTA_MEDICO, usuario, request.args.get("cedula")),
+                         **ctrl.opciones_examen(usuario))
+
+
+@bp.get("/examenes/horarios")
+@SOLO_MEDICO
+def horarios_examen():
+    """Horarios libres para un examen (JSON). Solo areas 2 (imagenologia) y 3 (laboratorio)."""
+    usuario, _ = _medico()
     try:
-        return validators.fecha(valor)
-    except ErrorNegocio:
-        return None
+        area = validators.entero(request.args.get("id_area"), "El área", minimo=2, maximo=3)
+        lista = citas.horarios_disponibles(CUENTA_MEDICO, usuario, request.args.get("fecha"), area,
+                                           id_recurso=request.args.get("id_recurso"),
+                                           cedula_paciente=request.args.get("cedula_paciente"))
+    except ErrorNegocio as error:
+        return jsonify({"error": error.mensaje}), error.codigo
+    return jsonify({"horarios": lista})
 
 
-def agenda(usuario, q=None, estado=None, desde=None, hasta=None, pagina=1):
-    """Examenes de laboratorio desde la fecha indicada (por defecto, desde hoy)."""
-    hoy = consultar(CUENTA_LABORATORIO, "SELECT CURDATE() AS hoy", id_usuario_app=usuario, uno=True)["hoy"]
-    desde_f = _fecha_o_none(desde) or hoy
-    hasta_f = _fecha_o_none(hasta)
-    condiciones, parametros = ["a.fecha_cita >= %s"], [desde_f]
-    if hasta_f:
-        condiciones.append("a.fecha_cita <= %s")
-        parametros.append(hasta_f)
-    patron = patron_like(q)
-    if patron:
-        condiciones.append("(a.cedula_paciente LIKE %s OR a.paciente LIKE %s)")
-        parametros += [patron, patron]
-    if estado in ESTADOS_EXAMEN:
-        condiciones.append("a.estado_examen = %s")
-        parametros.append(estado)
-    donde = "WHERE " + " AND ".join(condiciones)
-
-    total = consultar(CUENTA_LABORATORIO, f"SELECT COUNT(*) AS total FROM v_agenda_laboratorio a {donde}",
-                      parametros, id_usuario_app=usuario, uno=True)["total"]
-    pag = paginar(total, pagina_actual(pagina), POR_PAGINA)
-    filas = consultar(CUENTA_LABORATORIO, f"{_SQL_EXAMEN} {donde} ORDER BY a.fecha_cita, a.hora_inicio, a.id_cita LIMIT %s OFFSET %s",
-                      parametros + [pag["por_pagina"], pag["offset"]], id_usuario_app=usuario)
-    return {"examenes": [_completar(f) for f in filas], "paginacion": pag, "estados": ESTADOS_EXAMEN,
-            "filtros": {"q": q or "", "estado": estado or "", "desde": desde_f.isoformat(),
-                        "hasta": hasta_f.isoformat() if hasta_f else ""}}
+@bp.get("/examenes")
+@SOLO_MEDICO
+def examenes_solicitados():
+    usuario, id_medico = _medico()
+    return render_pagina("public/consultas/examenes_solicitados.html",
+                         **ctrl.examenes_solicitados(usuario, id_medico, request.args.get("estado"),
+                                                     request.args.get("q"), request.args.get("pagina")))
 
 
-def obtener(usuario, id_cita):
-    """El examen y, si ya existe, su resultado (para registrarlo o corregirlo)."""
-    fila = consultar(CUENTA_LABORATORIO, f"{_SQL_EXAMEN} WHERE a.id_cita = %s", (id_cita,),
-                     id_usuario_app=usuario, uno=True)
-    if fila is None:
-        raise ErrorNegocio("El examen no existe.", 404)
-    resultado = None
-    if fila["id_resultado"]:
-        resultado = consultar(CUENTA_LABORATORIO, """
-            SELECT fecha_resultado, resultado, observaciones FROM resultado_laboratorio WHERE id_cita = %s""",
-                              (id_cita,), id_usuario_app=usuario, uno=True)
-    return {"examen": _completar(fila), "resultado": resultado}
-
-
-def _validar_datos(examen, datos):
-    resultado = validators.texto(datos.get("resultado"), "El resultado", maximo=5000)
-    observaciones = validators.texto(datos.get("observaciones"), "Las observaciones", maximo=2000, obligatorio=False)
-    texto_fecha = str(datos.get("fecha_resultado") or "").strip()
-    if texto_fecha:
-        fecha = validators.no_futura(validators.fecha(texto_fecha, "La fecha del resultado"), "La fecha del resultado")
-        if fecha < examen["fecha_cita"]:
-            raise ErrorNegocio("La fecha del resultado no puede ser anterior a la fecha de la cita.")
-    else:
-        fecha = None                                    # se usa la fecha de hoy de la base de datos
-    return resultado, observaciones, fecha
-
-
-def registrar_resultado(usuario, id_cita, datos):
-    """Registra el resultado, marca el examen como realizado y la cita como atendida."""
-    examen = obtener(usuario, id_cita)["examen"]
-    if examen["estado"] not in ESTADOS_ACTIVOS_CITA or examen["estado_examen"] != "pendiente":
-        raise ErrorNegocio("A este examen ya no se le puede registrar un resultado.")
-    if not examen["llego_el_dia"]:
-        raise ErrorNegocio("El resultado se registra el día de la cita, no antes.")
-    resultado, observaciones, fecha = _validar_datos(examen, datos)
-
-    with transaccion(CUENTA_LABORATORIO, usuario) as cursor:
-        cursor.execute("""UPDATE cita SET estado = 'atendida'
-                          WHERE id_cita = %s AND estado IN ('pendiente', 'confirmada')""", (id_cita,))
-        if cursor.rowcount != 1:
-            raise ErrorNegocio("A este examen ya no se le puede registrar un resultado.")
-        cursor.execute("""UPDATE cita_laboratorio SET estado_examen = 'realizado', fecha_realizacion = CURDATE()
-                          WHERE id_cita = %s AND estado_examen = 'pendiente'""", (id_cita,))
-        if cursor.rowcount != 1:
-            raise ErrorNegocio("A este examen ya no se le puede registrar un resultado.")
-        cursor.execute("""INSERT INTO resultado_laboratorio (id_cita, registrado_por, fecha_resultado, resultado,
-                                                             observaciones)
-                          VALUES (%s, %s, COALESCE(%s, CURDATE()), %s, %s)""",
-                       (id_cita, usuario, fecha, resultado, observaciones))
-    log.info("Resultado de laboratorio registrado en la cita %s (usuario %s)", id_cita, usuario)
-
-
-def corregir_resultado(usuario, id_cita, datos):
-    """Corrige el texto, las observaciones o la fecha de un resultado ya registrado."""
-    contexto = obtener(usuario, id_cita)
-    examen = contexto["examen"]
-    if contexto["resultado"] is None:
-        raise ErrorNegocio("Este examen todavía no tiene resultado.")
-    resultado, observaciones, fecha = _validar_datos(examen, datos)
-    with transaccion(CUENTA_LABORATORIO, usuario) as cursor:
-        cursor.execute("""UPDATE resultado_laboratorio
-                          SET resultado = %s, observaciones = %s, fecha_resultado = COALESCE(%s, fecha_resultado)
-                          WHERE id_cita = %s""", (resultado, observaciones, fecha, id_cita))
-    log.info("Resultado de laboratorio corregido en la cita %s (usuario %s)", id_cita, usuario)
+@bp.get("/examenes/<int:id_cita>/resultado")
+@SOLO_MEDICO
+def resultado_examen(id_cita):
+    usuario, id_medico = _medico()
+    return render_pagina("public/consultas/resultado_examen.html",
+                         resultado=ctrl.resultado_examen(usuario, id_medico, id_cita), id_cita=id_cita)

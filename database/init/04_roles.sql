@@ -12,7 +12,7 @@ GRANT SELECT, INSERT, UPDATE, EXECUTE, CREATE, ALTER, INDEX, REFERENCES,
       CREATE VIEW, SHOW VIEW, TRIGGER, CREATE ROUTINE, ALTER ROUTINE
       ON medimagen.* TO 'rol_administrador';
 
--- DELETE y DROP tabla por tabla, excepto usuario
+-- DELETE y DROP tabla por tabla, excepto usuario y las tablas de auditoría (esas son inmutables)
 GRANT DELETE, DROP ON medimagen.secuencia_codigo TO 'rol_administrador';
 GRANT DELETE, DROP ON medimagen.rol TO 'rol_administrador';
 GRANT DELETE, DROP ON medimagen.personal TO 'rol_administrador';
@@ -34,8 +34,6 @@ GRANT DELETE, DROP ON medimagen.diagnostico TO 'rol_administrador';
 GRANT DELETE, DROP ON medimagen.prescripcion TO 'rol_administrador';
 GRANT DELETE, DROP ON medimagen.detalle_prescripcion TO 'rol_administrador';
 GRANT DELETE, DROP ON medimagen.resultado_laboratorio TO 'rol_administrador';
-GRANT DELETE, DROP ON medimagen.auditoria_cita TO 'rol_administrador';
-GRANT DELETE, DROP ON medimagen.auditoria_acceso TO 'rol_administrador';
 
 -- DROP de las vistas
 GRANT DROP ON medimagen.v_usuarios TO 'rol_administrador';
@@ -121,3 +119,5 @@ GRANT SELECT ON medimagen.v_resultados_laboratorio TO 'rol_paciente';
 
 -- rol_respaldo: lo necesario para mysqldump
 GRANT SELECT, SHOW VIEW, TRIGGER, EVENT, LOCK TABLES ON medimagen.* TO 'rol_respaldo';
+-- mysqldump 9.x hace FLUSH TABLES al iniciar la copia
+GRANT FLUSH_TABLES ON *.* TO 'rol_respaldo';
