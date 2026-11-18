@@ -3,7 +3,7 @@
 La cuenta de MySQL del paciente solo puede leer vistas, y cada consulta se filtra por la cedula que viene de la
 SESION (nunca de la URL ni del formulario), asi que un paciente solo ve lo suyo.
 """
-from conexion.conexionBD import consultar
+from conexion.conexionBD import consultar, ejecutar
 from utils import validators
 from utils.constants import CUENTA_PACIENTE, ESTADOS_CITA
 from utils.errors import ErrorNegocio
@@ -165,3 +165,31 @@ def mis_resultados(usuario, cedula, pagina=1):
         FROM v_agenda_imagenologia WHERE cedula_paciente = %s AND estado_procedimiento = 'realizado'
         ORDER BY fecha_realizacion DESC, id_cita DESC LIMIT 20""", (cedula,), id_usuario_app=usuario)
     return {"laboratorio": laboratorio, "imagenologia": imagenologia, "paginacion": pag}
+
+# ---------------------------------------------------------------------------
+# Lo que el paciente puede modificar de lo suyo (por procedimientos que comprueban que todo sea suyo)
+# ---------------------------------------------------------------------------
+def mis_datos(usuario, cedula):
+    """Datos de contacto del paciente (la cedula sale de la sesion, nunca del formulario)."""
+    fila = consultar(CUENTA_PACIENTE, "SELECT * FROM v_contacto_paciente WHERE cedula_paciente = %s", (cedula,),
+                     id_usuario_app=usuario, uno=True)
+    if fila is None:
+        raise ErrorNegocio("No se encontró tu ficha de paciente.", 404)
+    return fila
+
+
+def actualizar_contacto(usuario, cedula, datos):
+    """El paciente cambia solo su telefono, correo y direccion. Nombre, cedula y fecha de nacimiento los corrige
+    recepcion."""
+    ejecutar(CUENTA_PACIENTE, "CALL sp_paciente_actualizar_contacto(%s, %s, %s, %s)",
+             (cedula, validators.telefono(datos.get("telefono")),
+              validators.correo(datos.get("correo"), obligatorio=False),
+              validators.texto(datos.get("direccion"), "La dirección", maximo=200, obligatorio=False)),
+             id_usuario_app=usuario)
+    log.info("El paciente %s actualizo su contacto (usuario %s)", cedula, usuario)
+
+
+def cancelar_cita(usuario, cedula, id_cita):
+    """El paciente cancela una cita suya pendiente que aun no empezo. Reservar sigue siendo trabajo de recepcion."""
+    ejecutar(CUENTA_PACIENTE, "CALL sp_paciente_cancelar_cita(%s, %s)", (cedula, id_cita), id_usuario_app=usuario)
+    log.info("El paciente %s cancelo la cita %s (usuario %s)", cedula, id_cita, usuario)

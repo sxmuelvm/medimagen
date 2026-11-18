@@ -289,6 +289,8 @@ def examenes_solicitados(usuario, id_medico, estado=None, q=None, pagina=1):
     filas = consultar(CUENTA_MEDICO, f"""SELECT * FROM ({union}) t {donde}
                                          ORDER BY fecha_cita DESC, hora_inicio DESC, id_cita DESC LIMIT %s OFFSET %s""",
                       base + parametros + [pag["por_pagina"], pag["offset"]], id_usuario_app=usuario)
+    for fila in filas:       # solo se modifica o cancela lo que sigue pendiente
+        fila["modificable"] = fila["estado"] in ESTADOS_ACTIVOS_CITA and fila["estado_examen"] == "pendiente"
     return {"examenes": filas, "paginacion": pag, "filtros": {"estado": estado or "", "q": q or ""}}
 
 
@@ -301,3 +303,26 @@ def resultado_examen(usuario, id_medico, id_cita):
     return consultar(CUENTA_MEDICO, """
         SELECT paciente, cedula_paciente, examen, fecha_realizacion, fecha_resultado, resultado, observaciones
         FROM v_resultados_laboratorio WHERE id_cita = %s""", (id_cita,), id_usuario_app=usuario, uno=True)
+
+def examen_propio(usuario, id_medico, id_cita):
+    """Un examen de imagenologia o laboratorio que solicito este medico (404 si no existe o es de otro medico)."""
+    cita = citas.obtener(CUENTA_MEDICO, usuario, id_cita)
+    if cita["id_area"] == AREA_CONSULTAS or cita["id_medico_solicitante"] != id_medico:
+        raise ErrorNegocio("El examen no existe.", 404)
+    return cita
+
+
+def modificar_examen(usuario, id_medico, id_cita, datos):
+    """Cambia fecha, hora, equipo/puesto y observacion de un examen propio mientras siga pendiente.
+    Para cambiar el tipo de examen se cancela este y se solicita otro."""
+    if not examen_propio(usuario, id_medico, id_cita)["modificable"]:
+        raise ErrorNegocio("Este examen ya no se puede modificar.")
+    return citas.reprogramar(CUENTA_MEDICO, usuario, id_cita, datos)
+
+
+def cancelar_examen(usuario, id_medico, id_cita):
+    """Cancela un examen propio que siga pendiente."""
+    if not examen_propio(usuario, id_medico, id_cita)["modificable"]:
+        raise ErrorNegocio("Este examen ya no se puede cancelar.")
+    citas.cambiar_estado(CUENTA_MEDICO, usuario, id_cita, "cancelada")
+    log.info("Examen %s cancelado por el medico %s (usuario %s)", id_cita, id_medico, usuario)

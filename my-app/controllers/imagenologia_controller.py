@@ -13,8 +13,9 @@ ESTADOS_PROCEDIMIENTO = ("pendiente", "realizado", "cancelado")
 
 
 def _completar(fila):
-    fila["puede_registrar"] = (fila["estado"] in ESTADOS_ACTIVOS_CITA and fila["estado_procedimiento"] == "pendiente"
-                               and bool(fila["llego_el_dia"]))
+    pendiente = fila["estado"] in ESTADOS_ACTIVOS_CITA and fila["estado_procedimiento"] == "pendiente"
+    fila["puede_registrar"] = pendiente and bool(fila["llego_el_dia"])
+    fila["puede_cancelar"] = pendiente
     return fila
 
 
@@ -84,3 +85,19 @@ def registrar_realizacion(usuario, id_cita):
         if cursor.rowcount != 1:
             raise ErrorNegocio("Este examen ya no se puede registrar como realizado.")
     log.info("Examen de imagenologia %s realizado (usuario %s)", id_cita, usuario)
+
+def cancelar(usuario, id_cita):
+    """Cancela un examen pendiente (por ejemplo, si el equipo no esta disponible o el paciente no puede venir)."""
+    examen = obtener(usuario, id_cita)
+    if not examen["puede_cancelar"]:
+        raise ErrorNegocio("Este examen ya no se puede cancelar.")
+    with transaccion(CUENTA_IMAGENOLOGIA, usuario) as cursor:
+        cursor.execute("""UPDATE cita SET estado = 'cancelada'
+                          WHERE id_cita = %s AND estado IN ('pendiente', 'confirmada')""", (id_cita,))
+        if cursor.rowcount != 1:
+            raise ErrorNegocio("Este examen ya no se puede cancelar.")
+        cursor.execute("""UPDATE cita_imagenologia SET estado_procedimiento = 'cancelado'
+                          WHERE id_cita = %s AND estado_procedimiento = 'pendiente'""", (id_cita,))
+        if cursor.rowcount != 1:
+            raise ErrorNegocio("Este examen ya no se puede cancelar.")
+    log.info("Examen de imagenologia %s cancelado (usuario %s)", id_cita, usuario)

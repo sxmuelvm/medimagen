@@ -63,14 +63,21 @@ ACCIONES = [
     ("/medicos/1/horario", {"dia": "1", "hora_inicio": "08:00", "hora_fin": "10:00"},
      ["recepcion", "medico", "imagenologia", "laboratorio", "paciente"]),
     ("/medicos/1/horario/1/eliminar", {}, ["recepcion", "medico", "imagenologia", "laboratorio", "paciente"]),
-    ("/pacientes/0000000021/estado", {"estado": "inactivo"}, ["recepcion", "medico", "paciente"]),
-    ("/pacientes/0000000021/eliminar", {}, ["recepcion", "medico", "paciente"]),
+    ("/usuarios/1/eliminar", {}, ["recepcion", "medico", "imagenologia", "laboratorio", "paciente"]),
+    ("/pacientes/0000000021/estado", {"estado": "inactivo"}, ["medico", "imagenologia", "laboratorio", "paciente"]),
+    ("/pacientes/0000000021/eliminar", {}, ["medico", "imagenologia", "laboratorio", "paciente"]),
     ("/citas/1/estado", {"estado": "cancelada"}, ["medico", "imagenologia", "laboratorio", "paciente"]),
     ("/citas/1/eliminar", {}, ["medico", "imagenologia", "laboratorio", "paciente"]),
     ("/citas/nueva", {}, ["medico", "imagenologia", "laboratorio", "paciente"]),
     ("/consultas/1/atender", {}, ["admin", "recepcion", "imagenologia", "laboratorio", "paciente"]),
+    ("/consultas/examenes/1/cancelar", {}, ["admin", "recepcion", "imagenologia", "laboratorio", "paciente"]),
+    ("/consultas/examenes/1/editar", {}, ["admin", "recepcion", "imagenologia", "laboratorio", "paciente"]),
     ("/imagenologia/18/realizar", {}, ["admin", "recepcion", "medico", "laboratorio", "paciente"]),
+    ("/imagenologia/1/cancelar", {}, ["admin", "recepcion", "medico", "laboratorio", "paciente"]),
     ("/laboratorio/21/resultado", {}, ["admin", "recepcion", "medico", "imagenologia", "paciente"]),
+    ("/laboratorio/21/resultado/eliminar", {}, ["admin", "recepcion", "medico", "imagenologia", "paciente"]),
+    ("/historial/mis-datos", {}, ["admin", "recepcion", "medico", "imagenologia", "laboratorio"]),
+    ("/historial/citas/1/cancelar", {}, ["admin", "recepcion", "medico", "imagenologia", "laboratorio"]),
 ]
 CASOS_POST = [(u, d, r) for u, d, roles in ACCIONES for r in roles]
 

@@ -8,7 +8,7 @@ from controllers import consultas_controller as ctrl
 from utils import validators
 from utils.constants import CUENTA_MEDICO
 from utils.decorators import roles_permitidos
-from utils.errors import ErrorNegocio
+from utils.errors import ErrorNegocio, resultado_accion
 from utils.helpers import render_pagina
 
 bp = Blueprint("consultas", __name__, url_prefix="/consultas")
@@ -117,3 +117,31 @@ def resultado_examen(id_cita):
     usuario, id_medico = _medico()
     return render_pagina("public/consultas/resultado_examen.html",
                          resultado=ctrl.resultado_examen(usuario, id_medico, id_cita), id_cita=id_cita)
+
+@bp.route("/examenes/<int:id_cita>/editar", methods=["GET", "POST"])
+@SOLO_MEDICO
+def modificar_examen(id_cita):
+    """Reprograma un examen que el medico solicito y que sigue pendiente."""
+    usuario, id_medico = _medico()
+    examen = ctrl.examen_propio(usuario, id_medico, id_cita)
+    if request.method == "POST":
+        try:
+            ctrl.modificar_examen(usuario, id_medico, id_cita, request.form)
+        except ErrorNegocio as error:
+            if error.codigo != 400:
+                raise
+            flash(error.mensaje, "error")
+            return render_pagina("public/consultas/modificar_examen.html", form=request.form, examen=examen,
+                                 **ctrl.opciones_examen(usuario)), 400
+        flash("Examen modificado.", "exito")
+        return redirect(url_for("consultas.examenes_solicitados", cita=id_cita))
+    return render_pagina("public/consultas/modificar_examen.html", form={}, examen=examen,
+                         **ctrl.opciones_examen(usuario))
+
+
+@bp.post("/examenes/<int:id_cita>/cancelar")
+@SOLO_MEDICO
+def cancelar_examen(id_cita):
+    usuario, id_medico = _medico()
+    return resultado_accion(lambda: ctrl.cancelar_examen(usuario, id_medico, id_cita),
+                            "Examen cancelado.", url_for("consultas.examenes_solicitados"))

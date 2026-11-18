@@ -65,6 +65,12 @@ def estado(id_usuario):
                             "Estado actualizado.", url_for("usuarios.editar", id_usuario=id_usuario))
 
 
+@bp.post("/<int:id_usuario>/eliminar")
+@SOLO_ADMIN
+def eliminar(id_usuario):
+    return resultado_accion(lambda: ctrl.eliminar(id_usuario, session["id_usuario"]),
+                            "Usuario eliminado.", url_for("usuarios.lista"))
+
 @bp.post("/<int:id_usuario>/desbloquear")
 @SOLO_ADMIN
 def desbloquear(id_usuario):

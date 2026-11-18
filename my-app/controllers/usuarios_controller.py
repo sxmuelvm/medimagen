@@ -293,3 +293,18 @@ def restablecer_clave(id_usuario, datos, administrador):
         WHERE id_usuario = %s""", (hashear_clave(clave), id_usuario), id_usuario_app=administrador)
     log.info("Clave restablecida: usuario %s (por el usuario %s)", id_usuario, administrador)
     return {"usuario": usuario, "clave_temporal": clave if generada else None}
+
+def eliminar(id_usuario, administrador):
+    """Elimina un usuario que nunca se uso (sin citas, resultados ni accesos registrados).
+    Si ya tiene actividad, MySQL lo impide con las llaves foraneas y se ofrece desactivarlo."""
+    obtener(id_usuario, administrador)
+    if id_usuario == administrador:
+        raise ErrorNegocio("No puedes eliminar tu propia cuenta.")
+    try:
+        ejecutar(CUENTA, "DELETE FROM usuario WHERE id_usuario = %s", (id_usuario,), id_usuario_app=administrador)
+    except ErrorNegocio as error:
+        if error.codigo == 400:
+            raise ErrorNegocio("Este usuario ya tiene actividad registrada (accesos, citas o resultados) y no se "
+                               "puede eliminar. Desactívalo en su lugar.") from error
+        raise
+    log.info("Usuario %s eliminado por el usuario %s", id_usuario, administrador)

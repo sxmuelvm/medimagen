@@ -155,7 +155,6 @@ def test_cuentas_no_leen_tablas_ajenas(cuenta, tabla):
 
 
 @pytest.mark.parametrize("cuenta,sentencia", [
-    ("recepcion", "DELETE FROM paciente WHERE 1 = 0"),
     ("recepcion", "UPDATE cita SET costo_aplicado = 0 WHERE 1 = 0"),
     ("recepcion", "INSERT INTO medicamento (nombre) SELECT 'x' FROM DUAL WHERE 1 = 0"),
     ("medico", "DELETE FROM cita WHERE 1 = 0"),
@@ -164,7 +163,13 @@ def test_cuentas_no_leen_tablas_ajenas(cuenta, tabla):
     ("imagenologia", "UPDATE cita SET fecha_cita = CURDATE() WHERE 1 = 0"),
     ("imagenologia", "DELETE FROM cita_imagenologia WHERE 1 = 0"),
     ("laboratorio", "UPDATE cita SET costo_aplicado = 0 WHERE 1 = 0"),
-    ("laboratorio", "DELETE FROM resultado_laboratorio WHERE 1 = 0"),
+    ("recepcion", "DELETE FROM usuario WHERE 1 = 0"),
+    ("recepcion", "DELETE FROM cita_consulta WHERE 1 = 0"),
+    ("medico", "DELETE FROM consulta_medica WHERE 1 = 0"),
+    ("medico", "DELETE FROM usuario WHERE 1 = 0"),
+    ("laboratorio", "DELETE FROM cita WHERE 1 = 0"),
+    ("imagenologia", "DELETE FROM cita WHERE 1 = 0"),
+    ("paciente", "UPDATE paciente SET telefono = 'x' WHERE 1 = 0"),
     ("paciente", "UPDATE v_historial_paciente SET motivo_consulta = 'x' WHERE 1 = 0"),
     ("paciente", "INSERT INTO cita (cedula_paciente) SELECT '0000000021' FROM DUAL WHERE 1 = 0"),
 ])
@@ -195,10 +200,10 @@ def privilegios_por_tabla(clave):
     return resultado
 
 
-def test_el_administrador_no_puede_borrar_usuarios_ni_eliminar_la_base():
+def test_el_administrador_no_puede_eliminar_la_base_ni_la_tabla_usuario():
     p = privilegios_por_tabla("administrador")
     assert "DELETE" not in p.get("*", set()) and "DROP" not in p.get("*", set())
-    assert not ({"DELETE", "DROP"} & p.get("usuario", set()))
+    assert "DROP" not in p.get("usuario", set())          # puede eliminar usuarios (DELETE), nunca la tabla
     assert not any("ALL PRIVILEGES" in x or "WITH GRANT OPTION" in x for x in privilegios("administrador"))
 
 
@@ -220,9 +225,11 @@ def test_ninguna_cuenta_de_la_app_tiene_privilegios_globales(clave):
             assert x.startswith("GRANT USAGE ON"), x
 
 
-def test_prueba_sin_efecto_si_se_ejecuta_con_where_falso():
-    """Sentencias con WHERE 1 = 0: aunque el privilegio existiera no tocan ningun dato."""
-    assert prohibido("administrador", "DELETE FROM usuario WHERE 1 = 0", escribir=True)
+def test_el_administrador_puede_eliminar_usuarios_pero_no_borrar_la_auditoria():
+    """Prueba sin efecto (WHERE 1 = 0): DELETE sobre usuario esta permitido, sobre la auditoria no."""
+    assert not prohibido("administrador", "DELETE FROM usuario WHERE 1 = 0", escribir=True)
+    assert prohibido("administrador", "DELETE FROM auditoria_cita WHERE 1 = 0", escribir=True)
+    assert prohibido("administrador", "DELETE FROM auditoria_acceso WHERE 1 = 0", escribir=True)
 
 
 def test_la_cuenta_de_login_no_toca_datos_clinicos():

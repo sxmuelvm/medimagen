@@ -266,6 +266,60 @@ CREATE TRIGGER trg_acceso_bd BEFORE DELETE ON auditoria_acceso
 FOR EACH ROW
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El registro de accesos no se puede eliminar'$$
 
+-- Al desactivar a un paciente se desactiva también su usuario (recepción puede desactivar pacientes pero no ve usuarios)
+CREATE TRIGGER trg_paciente_au AFTER UPDATE ON paciente
+FOR EACH ROW
+BEGIN
+    IF NEW.estado = 'inactivo' AND OLD.estado <> 'inactivo' THEN
+        UPDATE usuario SET estado = 'inactivo' WHERE cedula_paciente = NEW.cedula_paciente AND estado = 'activo';
+    END IF;
+END$$
+
+-- El paciente edita solo su teléfono, correo y dirección (la cédula la pone la sesión, nunca el formulario)
+CREATE PROCEDURE sp_paciente_actualizar_contacto(IN p_cedula VARCHAR(10), IN p_telefono VARCHAR(15),
+    IN p_correo VARCHAR(100), IN p_direccion VARCHAR(200))
+BEGIN
+    UPDATE paciente SET telefono = p_telefono, correo = p_correo, direccion = p_direccion
+    WHERE cedula_paciente = p_cedula AND estado = 'activo';
+    IF ROW_COUNT() = 0 AND NOT EXISTS (SELECT 1 FROM paciente WHERE cedula_paciente = p_cedula
+                                       AND telefono <=> p_telefono AND correo <=> p_correo
+                                       AND direccion <=> p_direccion) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No se pudo actualizar tu información';
+    END IF;
+END$$
+
+-- El paciente cancela solo sus propias citas, pendientes o confirmadas, que aún no empezaron
+CREATE PROCEDURE sp_paciente_cancelar_cita(IN p_cedula VARCHAR(10), IN p_id_cita INT)
+BEGIN
+    DECLARE v_estado VARCHAR(20) DEFAULT NULL;
+    DECLARE v_area INT DEFAULT NULL;
+    DECLARE v_futura TINYINT DEFAULT 0;
+    DECLARE v_examen VARCHAR(20) DEFAULT NULL;
+    SELECT estado, id_area, TIMESTAMP(fecha_cita, hora_inicio) > NOW()
+      INTO v_estado, v_area, v_futura
+    FROM cita WHERE id_cita = p_id_cita AND cedula_paciente = p_cedula;
+    IF v_estado IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La cita no existe';
+    END IF;
+    IF v_estado NOT IN ('pendiente', 'confirmada') OR v_futura = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Solo puedes cancelar citas pendientes que aún no han empezado';
+    END IF;
+    IF v_area = 2 THEN
+        SELECT estado_procedimiento INTO v_examen FROM cita_imagenologia WHERE id_cita = p_id_cita;
+    ELSEIF v_area = 3 THEN
+        SELECT estado_examen INTO v_examen FROM cita_laboratorio WHERE id_cita = p_id_cita;
+    END IF;
+    IF v_examen IS NOT NULL AND v_examen <> 'pendiente' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Solo puedes cancelar citas pendientes que aún no han empezado';
+    END IF;
+    UPDATE cita SET estado = 'cancelada' WHERE id_cita = p_id_cita;
+    IF v_area = 2 THEN
+        UPDATE cita_imagenologia SET estado_procedimiento = 'cancelado' WHERE id_cita = p_id_cita;
+    ELSEIF v_area = 3 THEN
+        UPDATE cita_laboratorio SET estado_examen = 'cancelado' WHERE id_cita = p_id_cita;
+    END IF;
+END$$
+
 -- Horarios libres de un recurso (y opcionalmente de un médico, dentro de sus turnos) en una fecha
 CREATE PROCEDURE sp_horarios_disponibles(IN p_fecha DATE, IN p_id_recurso INT, IN p_id_medico INT)
 BEGIN

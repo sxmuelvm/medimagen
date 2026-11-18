@@ -4,7 +4,7 @@ from flask import Blueprint, flash, redirect, request, session, url_for
 from controllers import laboratorio_controller as ctrl
 from utils.constants import CUENTA_LABORATORIO
 from utils.decorators import roles_permitidos
-from utils.errors import ErrorNegocio
+from utils.errors import ErrorNegocio, resultado_accion
 from utils.helpers import render_pagina
 
 bp = Blueprint("laboratorio", __name__, url_prefix="/laboratorio")
@@ -43,3 +43,9 @@ def registrar_resultado(id_cita):
         flash("A este examen no se le puede registrar un resultado ahora.", "aviso")
         return redirect(url_for("laboratorio.agenda"))
     return render_pagina("public/laboratorio/registrar_resultado.html", form=contexto["resultado"] or {}, **contexto)
+
+@bp.post("/<int:id_cita>/resultado/eliminar")
+@SOLO_LABORATORIO
+def eliminar_resultado(id_cita):
+    return resultado_accion(lambda: ctrl.eliminar_resultado(session["id_usuario"], id_cita),
+                            "Resultado eliminado. El examen quedó pendiente.", url_for("laboratorio.agenda"))

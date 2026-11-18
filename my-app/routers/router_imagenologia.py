@@ -35,3 +35,9 @@ def registrar_realizacion(id_cita):
 def confirmar_realizacion(id_cita):
     return resultado_accion(lambda: ctrl.registrar_realizacion(session["id_usuario"], id_cita),
                             "Examen registrado como realizado.", url_for("imagenologia.agenda"))
+
+@bp.post("/<int:id_cita>/cancelar")
+@SOLO_IMAGENOLOGIA
+def cancelar(id_cita):
+    return resultado_accion(lambda: ctrl.cancelar(session["id_usuario"], id_cita),
+                            "Examen cancelado.", url_for("imagenologia.agenda"))

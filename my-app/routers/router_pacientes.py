@@ -1,4 +1,4 @@
-"""Rutas de pacientes. Administrador y recepcion; cambiar estado y eliminar es solo del administrador."""
+"""Rutas de pacientes. Administrador y recepcion."""
 from flask import Blueprint, flash, redirect, request, session, url_for
 
 from controllers import pacientes_controller as ctrl
@@ -9,7 +9,6 @@ from utils.helpers import render_pagina
 
 bp = Blueprint("pacientes", __name__, url_prefix="/pacientes")
 ADMIN_O_RECEPCION = roles_permitidos(CUENTA_ADMINISTRADOR, CUENTA_RECEPCION)
-SOLO_ADMIN = roles_permitidos(CUENTA_ADMINISTRADOR)
 
 
 @bp.get("/")
@@ -62,15 +61,15 @@ def editar(cedula):
 
 
 @bp.post("/<cedula>/estado")
-@SOLO_ADMIN
+@ADMIN_O_RECEPCION
 def estado(cedula):
     nuevo = request.form.get("estado")
-    return resultado_accion(lambda: ctrl.cambiar_estado(session["id_usuario"], cedula, nuevo),
+    return resultado_accion(lambda: ctrl.cambiar_estado(session["cuenta"], session["id_usuario"], cedula, nuevo),
                             "Estado actualizado.", url_for("pacientes.ficha", cedula=cedula))
 
 
 @bp.post("/<cedula>/eliminar")
-@SOLO_ADMIN
+@ADMIN_O_RECEPCION
 def eliminar(cedula):
-    return resultado_accion(lambda: ctrl.eliminar(session["id_usuario"], cedula),
+    return resultado_accion(lambda: ctrl.eliminar(session["cuenta"], session["id_usuario"], cedula),
                             "Paciente eliminado.", url_for("pacientes.lista"))

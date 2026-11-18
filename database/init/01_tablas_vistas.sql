@@ -390,6 +390,11 @@ JOIN paciente p ON p.cedula_paciente = c.cedula_paciente
 JOIN medico m ON m.id_medico = cl.id_medico_solicitante
 JOIN subtipo_examen s ON s.id_subtipo = cl.id_subtipo;
 
+-- Datos de contacto: el paciente los consulta y los edita (la app filtra por la cédula de la sesión)
+CREATE VIEW v_contacto_paciente AS
+SELECT cedula_paciente, nombres, apellidos, telefono, correo, direccion, estado
+FROM paciente;
+
 CREATE VIEW v_reporte_ingresos AS
 SELECT a.nombre AS area, DATE_FORMAT(c.fecha_cita, '%Y-%m') AS mes,
        COUNT(*) AS citas_atendidas, SUM(c.costo_aplicado) AS ingresos

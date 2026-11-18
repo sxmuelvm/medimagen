@@ -125,3 +125,19 @@ def corregir_resultado(usuario, id_cita, datos):
                           SET resultado = %s, observaciones = %s, fecha_resultado = COALESCE(%s, fecha_resultado)
                           WHERE id_cita = %s""", (resultado, observaciones, fecha, id_cita))
     log.info("Resultado de laboratorio corregido en la cita %s (usuario %s)", id_cita, usuario)
+
+def eliminar_resultado(usuario, id_cita):
+    """Elimina un resultado que registro esta misma persona (por ejemplo, para corregir un error de fondo) y deja el
+    examen otra vez pendiente para volver a registrarlo."""
+    contexto = obtener(usuario, id_cita)
+    if contexto["resultado"] is None:
+        raise ErrorNegocio("Este examen no tiene resultado.")
+    with transaccion(CUENTA_LABORATORIO, usuario) as cursor:
+        cursor.execute("DELETE FROM resultado_laboratorio WHERE id_cita = %s AND registrado_por = %s",
+                       (id_cita, usuario))
+        if cursor.rowcount != 1:
+            raise ErrorNegocio("Solo puedes eliminar los resultados que tú registraste.")
+        cursor.execute("""UPDATE cita_laboratorio SET estado_examen = 'pendiente', fecha_realizacion = NULL
+                          WHERE id_cita = %s AND estado_examen = 'realizado'""", (id_cita,))
+        cursor.execute("UPDATE cita SET estado = 'pendiente' WHERE id_cita = %s AND estado = 'atendida'", (id_cita,))
+    log.info("Resultado de laboratorio eliminado en la cita %s (usuario %s)", id_cita, usuario)

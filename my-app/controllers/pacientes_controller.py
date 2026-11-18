@@ -124,27 +124,29 @@ def actualizar(cuenta, usuario_app, cedula, datos):
     log.info("Paciente %s modificado (cuenta %s, usuario %s)", cedula, cuenta, usuario_app)
 
 
-def cambiar_estado(administrador, cedula, estado):
-    """Solo administrador. Al desactivar a un paciente tambien se desactiva su usuario."""
+def cambiar_estado(cuenta, usuario_app, cedula, estado):
+    """Administrador y recepcion. Al desactivar a un paciente, un trigger de la base desactiva tambien su usuario."""
     estado = validators.opcion(estado, ESTADOS, "El estado")
-    obtener(CUENTA_ADMINISTRADOR, administrador, cedula)
-    with transaccion(CUENTA_ADMINISTRADOR, administrador) as cursor:
-        cursor.execute("UPDATE paciente SET estado = %s WHERE cedula_paciente = %s", (estado, cedula))
-        if estado == "inactivo":
-            cursor.execute("UPDATE usuario SET estado = 'inactivo' WHERE cedula_paciente = %s AND estado = 'activo'",
-                           (cedula,))
-    log.info("Paciente %s pasa a %s (por el usuario %s)", cedula, estado, administrador)
+    obtener(cuenta, usuario_app, cedula)
+    ejecutar(cuenta, "UPDATE paciente SET estado = %s WHERE cedula_paciente = %s", (estado, cedula),
+             id_usuario_app=usuario_app)
+    log.info("Paciente %s pasa a %s (cuenta %s, usuario %s)", cedula, estado, cuenta, usuario_app)
 
 
-def eliminar(administrador, cedula):
-    """Solo administrador. No se elimina si tiene usuario o citas: se desactiva."""
-    paciente = obtener(CUENTA_ADMINISTRADOR, administrador, cedula)
-    if paciente["usuario"]:
+def eliminar(cuenta, usuario_app, cedula):
+    """Administrador y recepcion, solo para corregir un registro hecho por error. Si el paciente ya tiene citas o
+    usuario no se elimina: se desactiva (ademas, MySQL lo bloquea con las llaves foraneas)."""
+    paciente = obtener(cuenta, usuario_app, cedula)
+    if paciente.get("usuario"):                  # solo el administrador puede leer la tabla usuario
         raise ErrorNegocio("Tiene un usuario asociado. Desactívalo en lugar de eliminarlo.")
-    citas = consultar(CUENTA_ADMINISTRADOR, "SELECT COUNT(*) AS total FROM cita WHERE cedula_paciente = %s",
-                      (cedula,), id_usuario_app=administrador, uno=True)["total"]
+    citas = consultar(cuenta, "SELECT COUNT(*) AS total FROM cita WHERE cedula_paciente = %s",
+                      (cedula,), id_usuario_app=usuario_app, uno=True)["total"]
     if citas:
         raise ErrorNegocio("Tiene citas registradas. Desactívalo en lugar de eliminarlo.")
-    ejecutar(CUENTA_ADMINISTRADOR, "DELETE FROM paciente WHERE cedula_paciente = %s", (cedula,),
-             id_usuario_app=administrador)
-    log.info("Paciente %s eliminado por el usuario %s", cedula, administrador)
+    try:
+        ejecutar(cuenta, "DELETE FROM paciente WHERE cedula_paciente = %s", (cedula,), id_usuario_app=usuario_app)
+    except ErrorNegocio as error:
+        if error.codigo == 400:
+            raise ErrorNegocio("Tiene un usuario asociado. Desactívalo en lugar de eliminarlo.") from error
+        raise
+    log.info("Paciente %s eliminado (cuenta %s, usuario %s)", cedula, cuenta, usuario_app)

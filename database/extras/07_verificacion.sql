@@ -50,8 +50,20 @@ DELETE FROM medimagen.medicamento WHERE nombre = 'Prueba';
 SELECT * FROM medimagen.auditoria_acceso ORDER BY fecha DESC;
 SELECT * FROM medimagen.horario_medico WHERE id_medico = 1 ORDER BY dia_semana, hora_inicio;
 
+-- Eliminar usuarios: el administrador puede, pero MySQL lo bloquea (error 1451) si el usuario ya tiene accesos,
+-- citas o resultados registrados. Para un usuario nunca usado funciona (se crea y se elimina):
+INSERT INTO medimagen.paciente (cedula_paciente, nombres, apellidos, fecha_nacimiento, sexo)
+VALUES ('0000000097', 'Prueba', 'Eliminar', '1990-01-01', 'M');
+INSERT INTO medimagen.usuario (cedula, id_rol, cedula_paciente, nombres, apellidos, nombre_usuario, correo, password_hash)
+SELECT '0000000097', id_rol, '0000000097', 'Prueba', 'Eliminar', 'pruebaelim', 'pruebaelim@medimagen.ec', 'x'
+FROM medimagen.rol WHERE nombre = 'paciente';
+DELETE FROM medimagen.usuario WHERE nombre_usuario = 'pruebaelim';
+DELETE FROM medimagen.paciente WHERE cedula_paciente = '0000000097';
+
+-- Debe dar error 1451 (el usuario tiene accesos registrados, se debe desactivar):
+DELETE FROM medimagen.usuario WHERE nombre_usuario = 'candrade';
+
 -- Debe dar error de permisos (1044 o 1142):
-DELETE FROM medimagen.usuario WHERE nombre_usuario = 'acordero';
 DROP TABLE medimagen.usuario;
 TRUNCATE TABLE medimagen.auditoria_cita;       -- la auditoria no se puede vaciar
 TRUNCATE TABLE medimagen.auditoria_acceso;
