@@ -33,7 +33,7 @@ def test_cookie_de_sesion_es_httponly_y_samesite(anonimo):
 
 
 def test_configuracion_de_sesion(app):
-    assert app.config["PERMANENT_SESSION_LIFETIME"].total_seconds() == 30 * 60
+    assert app.config["PERMANENT_SESSION_LIFETIME"].total_seconds() == 60 * 60
     assert app.config["SESSION_COOKIE_HTTPONLY"] is True
     assert len(app.config["SECRET_KEY"]) >= 32
     assert app.config["MAX_CONTENT_LENGTH"] == 1024 * 1024

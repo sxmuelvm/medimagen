@@ -35,7 +35,8 @@ class Config:
     # Solo se pone en True si algun dia hay HTTPS (proxy con certificado delante).
     SESSION_COOKIE_SECURE = False
     SESSION_REFRESH_EACH_REQUEST = True          # la sesion vence por inactividad
-    PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
+    # Cierre de sesion por inactividad: 60 minutos sin usar el sistema (se renueva con cada accion)
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=_entero("SESION_INACTIVIDAD_MIN", 60))
     MAX_CONTENT_LENGTH = 1 * 1024 * 1024         # 1 MB por peticion
 
     # ---------- CSRF ----------
