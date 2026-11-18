@@ -1,0 +1,1 @@
+"""Utilidades compartidas: constantes, validadores, seguridad, errores, menu y registro de eventos."""

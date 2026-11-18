@@ -1,0 +1,1 @@
+"""Conexion a MySQL: una cuenta por rol y acceso unico a la base de datos."""

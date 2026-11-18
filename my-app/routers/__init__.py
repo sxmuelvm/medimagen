@@ -1,0 +1,1 @@
+"""Rutas de Flask (un Blueprint por modulo). Se registran solas desde app.py."""

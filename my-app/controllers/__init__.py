@@ -1,0 +1,1 @@
+"""Logica de negocio: validaciones, reglas y consultas SQL de cada modulo."""
