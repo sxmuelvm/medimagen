@@ -16,7 +16,6 @@ from utils.logger import obtener_logger
 log = obtener_logger("citas")
 
 POR_PAGINA = 15
-AREAS = (AREA_CONSULTAS, AREA_IMAGENOLOGIA, AREA_LABORATORIO)
 
 _RECURSO_PLURAL = {AREA_CONSULTAS: "consultorios libres", AREA_IMAGENOLOGIA: "equipos libres",
                    AREA_LABORATORIO: "puestos de laboratorio libres"}

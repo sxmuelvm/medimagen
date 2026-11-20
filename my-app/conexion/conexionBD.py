@@ -126,25 +126,6 @@ def ejecutar(clave, sql, parametros=None, id_usuario_app=None):
         return {"filas": cursor.rowcount, "id": cursor.lastrowid}
 
 
-def llamar(clave, procedimiento, parametros=(), id_usuario_app=None):
-    """Ejecuta un procedimiento almacenado de solo lectura y devuelve sus filas."""
-    marcas = ", ".join(["%s"] * len(parametros))
-    conexion = obtener_conexion(clave, id_usuario_app)
-    cursor = conexion.cursor(dictionary=True)
-    try:
-        cursor.execute(f"CALL {procedimiento}({marcas})", tuple(parametros))
-        filas = cursor.fetchall()
-        while cursor.nextset():
-            pass
-    except mysql.connector.Error as error:
-        raise ErrorNegocio(traducir_error_mysql(error)) from error
-    finally:
-        cursor.close()
-        conexion.close()
-    return filas
-
-
 def probar_conexion(clave):
     """Para scripts/probar_conexiones.py: devuelve la cuenta con la que MySQL reconocio la conexion."""
-    fila = consultar(clave, "SELECT CURRENT_USER() AS cuenta, CURRENT_ROLE() AS rol", uno=True)
-    return fila
+    return consultar(clave, "SELECT CURRENT_USER() AS cuenta, CURRENT_ROLE() AS rol", uno=True)
