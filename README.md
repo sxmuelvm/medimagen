@@ -3,8 +3,8 @@
 Sistema de gestion y agendamiento de citas medicas.
 
 ## Local
-python -m venv venv
-venv\Scripts\activate
+python -m env venv
+env\Scripts\activate
 pip install -r requirements.txt
 cd my-app
 python run.py
