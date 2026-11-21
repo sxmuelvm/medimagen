@@ -1,0 +1,45 @@
+/* Medimagen Cuenca · campo de contraseña con botón de ojo (lo agrega js/modules/clave.js) */
+.campo__clave {
+  position: relative;
+}
+
+.campo__clave .campo__control {
+  padding-right: calc(var(--objetivo-tactil) + var(--e1));
+}
+
+.campo__ojo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-grid;
+  place-items: center;
+  width: var(--objetivo-tactil);
+  height: 100%;
+  min-height: var(--objetivo-tactil);
+  padding: 0;
+  border: 0;
+  border-radius: 0 var(--radio) var(--radio) 0;
+  background: transparent;
+  color: var(--azul-900);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.campo__ojo:focus-visible {
+  outline: 3px solid var(--turquesa);
+  outline-offset: -3px;
+}
+
+.campo__ojo[aria-pressed="true"] {
+  color: var(--turquesa-700);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .campo__ojo:hover {
+    background: var(--celeste-50);
+  }
+}
+
+@media (forced-colors: active) {
+  .campo__ojo { color: ButtonText; }
+}

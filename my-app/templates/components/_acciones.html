@@ -1,0 +1,10 @@
+{# Botón que envía un POST (cambiar estado, eliminar…), con confirmación opcional.
+   {{ boton_post(url_for('usuarios.estado', id_usuario=1), "Desactivar", campos={"estado": "inactivo"},
+                 confirmar="¿Desactivar este usuario?", boton_texto="Desactivar", clase="boton--peligro-suave boton--pequeno") }} #}
+{% macro boton_post(url, texto, clase="boton--secundario boton--pequeno", confirmar="", boton_texto="", campos={}) -%}
+<form class="formulario-en-linea" method="post" action="{{ url }}"{% if confirmar %} data-confirmar="{{ confirmar }}"{% if boton_texto %} data-confirmar-boton="{{ boton_texto }}"{% endif %}{% endif %}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% for nombre, valor in campos.items() %}<input type="hidden" name="{{ nombre }}" value="{{ valor }}">{% endfor %}
+  <button type="submit" class="boton {{ clase }}">{{ texto }}</button>
+</form>
+{%- endmacro %}

@@ -1,0 +1,16 @@
+{% from "components/_icono.html" import icono %}
+{# Avisos del servidor (flash). Categorías: exito, error, aviso. Cualquier otra se muestra como información. #}
+{% with mensajes = get_flashed_messages(with_categories=true) %}
+  {% if mensajes %}
+  <div class="mensajes" data-mensajes>
+    {% for categoria, texto in mensajes %}
+      {% set tipo = categoria if categoria in ["exito", "error", "aviso"] else "info" %}
+      <div class="mensaje mensaje--{{ tipo }}" role="{{ 'alert' if tipo == 'error' else 'status' }}">
+        {{ icono({"exito": "exito", "error": "error", "aviso": "alerta", "info": "info"}[tipo], "mensaje__icono") }}
+        <p class="mensaje__texto">{{ texto }}</p>
+        <button type="button" class="mensaje__cerrar" data-cerrar-mensaje aria-label="Cerrar aviso">{{ icono("cerrar") }}</button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}

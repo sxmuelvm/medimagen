@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Usuarios", url_for('usuarios.lista')), ("Nuevo usuario", None)] %}
+{% block titulo %}{% if creado %}Usuario creado{% else %}Nuevo usuario{% endif %}{% endblock %}
+{% block subtitulo %}{% if creado %}La cuenta ya puede iniciar sesión.{% else %}Una cuenta se crea siempre para una persona que ya está registrada como médico, paciente o personal.{% endif %}{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+{% if creado %}
+<section class="aviso-clave" aria-labelledby="titulo-clave">
+  <h2 class="aviso-clave__titulo" id="titulo-clave">Contraseña temporal</h2>
+  <p>Entrégale esta contraseña a <strong>{{ creado.nombre_usuario }}</strong>. Solo se muestra ahora: no queda guardada en ningún lugar y la persona deberá cambiarla en su primer ingreso.</p>
+  <p><span class="clave-temporal">{{ creado.clave_temporal }}</span></p>
+  <div class="fila">
+    <a class="boton boton--primario" href="{{ url_for('usuarios.lista') }}">Volver a usuarios</a>
+    <a class="boton boton--secundario" href="{{ url_for('usuarios.crear') }}">Crear otro usuario</a>
+  </div>
+</section>
+{% else %}
+<section class="panel panel--medio">
+  <form class="formulario" method="post" action="{{ url_for('usuarios.crear') }}" autocomplete="off" data-formulario-usuario>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="id_rol">Rol<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+      <select class="campo__control" id="id_rol" name="id_rol" required data-selector-rol>
+        <option value="">Elige un rol…</option>
+        {% for r in roles %}
+        <option value="{{ r.id_rol }}" data-tipo="{{ r.tipo_perfil }}"{% if form.get('id_rol') == r.id_rol|string %} selected{% endif %}>{{ r.nombre|replace("_", " ")|capitalize }}</option>
+        {% endfor %}
+      </select>
+      <p class="campo__ayuda">El rol decide qué pantallas verá la persona.</p>
+    </div>
+
+    <fieldset class="grupo" data-grupo-perfil="medico">
+      <legend class="grupo__titulo">Médico</legend>
+      <div class="campo">
+        <label class="campo__etiqueta" for="perfil-medico">Médico sin usuario</label>
+        <select class="campo__control" id="perfil-medico" name="id_perfil">
+          <option value="">Elige un médico…</option>
+          {% for m in medicos %}<option value="{{ m.id_medico }}"{% if form.get('id_perfil') == m.id_medico|string %} selected{% endif %}>{{ m.apellidos }} {{ m.nombres }} · {{ m.especialidad }}</option>{% endfor %}
+        </select>
+        {% if not medicos %}<p class="campo__ayuda">Todos los médicos activos ya tienen usuario.</p>{% endif %}
+      </div>
+    </fieldset>
+
+    <fieldset class="grupo" data-grupo-perfil="paciente">
+      <legend class="grupo__titulo">Paciente</legend>
+      <div class="campo">
+        <label class="campo__etiqueta" for="perfil-paciente">Paciente sin usuario</label>
+        <select class="campo__control" id="perfil-paciente" name="id_perfil">
+          <option value="">Elige un paciente…</option>
+          {% for p in pacientes %}<option value="{{ p.cedula_paciente }}"{% if form.get('id_perfil') == p.cedula_paciente %} selected{% endif %}>{{ p.apellidos }} {{ p.nombres }} · {{ p.cedula_paciente }}</option>{% endfor %}
+        </select>
+        {% if not pacientes %}<p class="campo__ayuda">Todos los pacientes activos ya tienen usuario.</p>{% endif %}
+      </div>
+    </fieldset>
+
+    <fieldset class="grupo" data-grupo-perfil="personal">
+      <legend class="grupo__titulo">Personal del centro</legend>
+      <div class="campo">
+        <label class="campo__etiqueta" for="perfil-personal">Persona sin usuario</label>
+        <select class="campo__control" id="perfil-personal" name="id_perfil">
+          <option value="">Elige a la persona…</option>
+          {% for p in personal %}<option value="{{ p.id_personal }}"{% if form.get('id_perfil') == p.id_personal|string %} selected{% endif %}>{{ p.apellidos }} {{ p.nombres }} · {{ p.cargo }}</option>{% endfor %}
+        </select>
+        {% if not personal %}<p class="campo__ayuda">Todo el personal activo ya tiene usuario.</p>{% endif %}
+      </div>
+    </fieldset>
+
+    <div class="formulario__rejilla">
+      <div class="campo">
+        <label class="campo__etiqueta" for="nombre_usuario">Nombre de usuario<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+        <input class="campo__control" id="nombre_usuario" name="nombre_usuario" type="text" value="{{ form.get('nombre_usuario', '') }}" maxlength="30" required autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="ayuda-usuario">
+        <p class="campo__ayuda" id="ayuda-usuario">Sin espacios. Es el nombre con el que se reconoce la cuenta.</p>
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="correo">Correo</label>
+        <input class="campo__control" id="correo" name="correo" type="email" value="{{ form.get('correo', '') }}" maxlength="120" autocomplete="off" inputmode="email" autocapitalize="none" aria-describedby="ayuda-correo">
+        <p class="campo__ayuda" id="ayuda-correo">Si lo dejas vacío se usa el del perfil elegido.</p>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="clave">Contraseña inicial</label>
+      <input class="campo__control" id="clave" name="clave" type="text" value="" maxlength="128" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="ayuda-clave">
+      <p class="campo__ayuda" id="ayuda-clave">Déjala vacía para generar una temporal. Si la escribes: mínimo 8 caracteres con letras y números. La persona deberá cambiarla al entrar.</p>
+    </div>
+
+    <div class="formulario__acciones">
+      <a class="boton boton--secundario" href="{{ url_for('usuarios.lista') }}">Cancelar</a>
+      <button type="submit" class="boton boton--primario">Crear usuario</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if not creado %}<script src="{{ url_for('static', filename='js/modules/usuarios.js') }}" defer></script>{% endif %}{% endblock %}

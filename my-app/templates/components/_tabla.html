@@ -1,0 +1,26 @@
+{# Contenedor de tabla con ficha por fila en móvil.
+   {% call tabla("Citas de hoy", ["Hora", "Paciente", "Estado", "Acciones"]) %}
+     <tr><td data-etiqueta="Hora">…</td> … <td class="tabla__acciones" data-etiqueta="Acciones">…</td></tr>
+   {% endcall %}
+   Cada <td> lleva data-etiqueta con el mismo texto de su encabezado (así se entiende en móvil). #}
+{% macro tabla(descripcion, columnas, desplazable=false) -%}
+<div class="tabla-contenedor">
+  <table class="tabla{% if desplazable %} tabla--desplazable{% endif %}">
+    <caption class="visualmente-oculto">{{ descripcion }}</caption>
+    <thead>
+      <tr>{% for c in columnas %}<th scope="col">{{ c }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>{{ caller() }}</tbody>
+  </table>
+</div>
+{%- endmacro %}
+
+{# Estado vacío: {{ vacio("No hay citas", "Cuando se agenden aparecerán aquí.") }} #}
+{% macro vacio(titulo, texto="") -%}
+<div class="vacio">
+  <div class="vacio__latido latido latido--tenue" aria-hidden="true"></div>
+  <h3 class="vacio__titulo">{{ titulo }}</h3>
+  {% if texto %}<p class="vacio__texto">{{ texto }}</p>{% endif %}
+  {{ caller() if caller else "" }}
+</div>
+{%- endmacro %}

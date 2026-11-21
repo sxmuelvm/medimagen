@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_campo_formulario.html" import campo %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Exámenes solicitados", url_for('consultas.examenes_solicitados')), ("Modificar examen", None)] %}
+{% set bloques = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"] %}
+{% set recurso_actual = form.get("id_recurso", examen.id_recurso|string if examen.id_area == 2 else "") %}
+{% block titulo %}Modificar examen{% endblock %}
+{% block subtitulo %}Cambia la fecha, la hora o el lugar. Para cambiar de examen, cancela este y solicita otro.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/citas.css') }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/modules/citas.js') }}" defer></script>{% endblock %}
+{% block contenido %}
+<div class="pila">
+  <section class="cita-actual" aria-label="Examen actual">
+    <h2 class="cita-actual__titulo">{{ examen.paciente }}</h2>
+    <p>{{ examen.area }} · {{ examen.examen or "—" }}</p>
+    <p>Ahora: <strong>{{ examen.fecha_cita|fecha }}, {{ examen.hora_inicio|hora }}</strong> en {{ examen.recurso }} {{ estado_badge(examen.estado) }}</p>
+  </section>
+
+  <section class="panel panel--medio">
+    <form class="formulario" method="post" action="{{ url_for('consultas.modificar_examen', id_cita=examen.id_cita) }}" autocomplete="off" data-formulario-cita data-url-horarios="{{ url_for('consultas.horarios_examen') }}" data-area="{{ examen.id_area }}" data-paciente="{{ examen.cedula_paciente }}" data-excluir="{{ examen.id_cita }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="formulario__rejilla">
+        {{ campo("fecha_cita", "Nueva fecha", valor=form.get("fecha_cita", ""), tipo="date", requerido=true, ayuda="Solo de lunes a viernes.") }}
+        <div class="campo">
+          <label class="campo__etiqueta" for="hora_inicio">Nueva hora<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+          <select class="campo__control" id="hora_inicio" name="hora_inicio" required data-campo-hora aria-describedby="estado-horarios">
+            <option value="">Elige una hora…</option>
+            {% for b in bloques %}<option value="{{ b }}"{% if form.get("hora_inicio", "")[:5] == b %} selected{% endif %}>{{ b }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <p class="horarios-estado" id="estado-horarios" role="status" aria-live="polite" data-estado-horarios>Elige una fecha para ver los horarios libres.</p>
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="id_recurso">{{ "Equipo" if examen.id_area == 2 else "Puesto" }}</label>
+        <select class="campo__control" id="id_recurso" name="id_recurso" data-campo-recurso>
+          {% if examen.id_area != 2 %}<option value="">Asignar automáticamente</option>{% endif %}
+          {% for r in recursos if r.id_area == examen.id_area %}<option value="{{ r.id_recurso }}"{% if recurso_actual|string == r.id_recurso|string %} selected{% endif %}>{{ r.nombre_recurso }}</option>{% endfor %}
+        </select>
+      </div>
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="observacion">Observación</label>
+        <textarea class="campo__control" id="observacion" name="observacion" maxlength="255" rows="2">{{ form.get("observacion", examen.observacion or "") }}</textarea>
+      </div>
+
+      <div class="formulario__acciones">
+        <a class="boton boton--secundario" href="{{ url_for('consultas.examenes_solicitados') }}">Cancelar</a>
+        <button type="submit" class="boton boton--primario">Guardar cambios</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

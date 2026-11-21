@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_filtros.html" import filtro_select, filtro_campo, filtro_botones, buscador %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Auditoría de citas", url_for('auditoria.lista')), ("Accesos", None)] %}
+{% set etiquetas = {"exitoso": "Exitoso", "fallido": "Fallido", "bloqueado": "Bloqueado", "cierre_sesion": "Cierre de sesión"} %}
+{% set plurales = {"exitoso": "Accesos exitosos", "fallido": "Accesos fallidos", "bloqueado": "Bloqueos", "cierre_sesion": "Cierres de sesión"} %}
+{% block titulo %}Accesos al sistema{% endblock %}
+{% block subtitulo %}Inicios y cierres de sesión, con los intentos fallidos y los bloqueos.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('auditoria.lista') }}">Ver cambios de citas</a>{% endblock %}
+{% block contenido %}
+<div class="cifras" role="group" aria-label="Accesos de las últimas 24 horas">
+  {% for clave in ["exitoso", "fallido", "bloqueado", "cierre_sesion"] %}
+  <div class="cifra-bloque{% if clave in ("fallido", "bloqueado") and resumen_24h.get(clave) %} cifra-bloque--alerta{% endif %}"><span class="cifra-bloque__valor">{{ resumen_24h.get(clave, 0) }}</span><span class="cifra-bloque__etiqueta">{{ plurales[clave] }} · 24 h</span></div>
+  {% endfor %}
+</div>
+
+<form class="filtros" method="get" action="{{ url_for('auditoria.accesos') }}" role="search">
+  {{ buscador(filtros.q, "Cédula o usuario") }}
+  {% set opciones_resultado = [] %}{% for r in resultados %}{% set _ = opciones_resultado.append((r, etiquetas.get(r, r))) %}{% endfor %}
+  {{ filtro_select("resultado", "Resultado", opciones_resultado, filtros.resultado) }}
+  {{ filtro_campo("desde", "Desde", filtros.desde) }}
+  {{ filtro_campo("hasta", "Hasta", filtros.hasta) }}
+  {{ filtro_botones(url_for('auditoria.accesos')) }}
+</form>
+
+<section class="panel panel--sin-relleno">
+  {% if accesos %}
+    {% call tabla("Accesos al sistema", ["Fecha", "Cédula usada", "Usuario", "Resultado", "Origen"]) %}
+      {% for a in accesos %}
+      <tr>
+        <td data-etiqueta="Fecha">{{ a.fecha|fechahora }}</td>
+        <td data-etiqueta="Cédula usada">{{ a.cedula_intento or "—" }}</td>
+        <td data-etiqueta="Usuario">{% if a.persona or a.nombre_usuario %}<span class="tabla__principal">{{ a.persona or a.nombre_usuario }}</span>{% if a.persona and a.nombre_usuario %}<span class="tabla__secundario">{{ a.nombre_usuario }}</span>{% endif %}{% else %}<span class="sin-dato">No identificado</span>{% endif %}</td>
+        <td data-etiqueta="Resultado"><span class="insignia insignia--{{ 'exito' if a.resultado in ('exitoso', 'cierre_sesion') else ('error' if a.resultado in ('fallido', 'bloqueado') else 'neutra') }}">{{ etiquetas.get(a.resultado, a.resultado) }}</span></td>
+        <td data-etiqueta="Origen"><span class="tabla__principal">{{ a.ip or "—" }}</span>{% if a.navegador %}<span class="registro-detalle">{{ a.navegador }}</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("No hay accesos con esos filtros", "Prueba con otra cédula o amplía las fechas.") %}<a class="boton boton--secundario" href="{{ url_for('auditoria.accesos') }}">Quitar filtros</a>{% endcall %}
+  {% endif %}
+</section>
+{{ paginacion_de(paginacion, "auditoria.accesos", filtros) }}
+{% endblock %}

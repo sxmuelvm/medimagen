@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Mi agenda", url_for('consultas.mi_agenda')), ("Consulta", None)] %}
+{% set filas_dx = diagnosticos if diagnosticos else [] %}
+{% set filas_rx = filas_medicamentos if filas_medicamentos else [] %}
+{% block titulo %}{{ "Consulta registrada" if registrada else "Atender consulta" }}{% endblock %}
+{% block subtitulo %}{{ cita.paciente }} · {{ cita.fecha_cita|fecha }}, {{ cita.hora_inicio|hora }} · {{ cita.consultorio }}{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/atencion.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('consultas.mi_agenda') }}">{{ icono("flecha-izq") }}Mi agenda</a>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/modules/consultas.js') }}" defer></script>{% endblock %}
+
+{% macro fila_dx(i, d) -%}
+<li class="fila-dinamica" data-fila>
+  <div class="fila-dinamica__cabeza"><span class="fila-dinamica__titulo" data-numero-fila data-prefijo="Diagnóstico">Diagnóstico {{ i }}</span><button type="button" class="boton boton--terciario boton--pequeno" data-quitar-fila hidden>Quitar</button></div>
+  <div class="fila-dinamica__rejilla fila-dinamica__rejilla--dx">
+    <div class="campo"><label class="campo__etiqueta" for="dx-{{ i }}">Diagnóstico</label><input class="campo__control" id="dx-{{ i }}" name="diagnostico" type="text" maxlength="500" value="{{ d.get('descripcion', '') }}" autocomplete="off"></div>
+    <div class="campo"><label class="campo__etiqueta" for="dxo-{{ i }}">Observación</label><input class="campo__control" id="dxo-{{ i }}" name="diagnostico_obs" type="text" maxlength="2000" value="{{ d.get('observacion', '') }}" autocomplete="off"></div>
+  </div>
+</li>
+{%- endmacro %}
+
+{% macro fila_rx(i, r) -%}
+<li class="fila-dinamica" data-fila>
+  <div class="fila-dinamica__cabeza"><span class="fila-dinamica__titulo" data-numero-fila data-prefijo="Medicamento">Medicamento {{ i }}</span><button type="button" class="boton boton--terciario boton--pequeno" data-quitar-fila hidden>Quitar</button></div>
+  <div class="fila-dinamica__rejilla fila-dinamica__rejilla--medicamento">
+    <div class="campo campo--completo">
+      <label class="campo__etiqueta" for="rx-{{ i }}">Medicamento</label>
+      <select class="campo__control" id="rx-{{ i }}" name="id_medicamento">
+        <option value="">Elige un medicamento…</option>
+        {% for m in medicamentos %}<option value="{{ m.id_medicamento }}"{% if r.get('id_medicamento', '')|string == m.id_medicamento|string %} selected{% endif %}>{{ m.nombre }} · {{ m.presentacion }} {{ m.concentracion }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="campo"><label class="campo__etiqueta" for="rxd-{{ i }}">Dosis</label><input class="campo__control" id="rxd-{{ i }}" name="dosis" type="text" maxlength="100" value="{{ r.get('dosis', '') }}" placeholder="1 tableta" autocomplete="off"></div>
+    <div class="campo"><label class="campo__etiqueta" for="rxf-{{ i }}">Frecuencia</label><input class="campo__control" id="rxf-{{ i }}" name="frecuencia" type="text" maxlength="100" value="{{ r.get('frecuencia', '') }}" placeholder="Cada 8 horas" autocomplete="off"></div>
+    <div class="campo"><label class="campo__etiqueta" for="rxu-{{ i }}">Duración</label><input class="campo__control" id="rxu-{{ i }}" name="duracion" type="text" maxlength="100" value="{{ r.get('duracion', '') }}" placeholder="5 días" autocomplete="off"></div>
+    <div class="campo campo--completo"><label class="campo__etiqueta" for="rxi-{{ i }}">Indicaciones del medicamento</label><input class="campo__control" id="rxi-{{ i }}" name="indicaciones_med" type="text" maxlength="1000" value="{{ r.get('indicaciones', '') }}" autocomplete="off"></div>
+  </div>
+</li>
+{%- endmacro %}
+
+{% block contenido %}
+<div class="pagina-dividida pagina-dividida--lateral">
+  <div class="pila">
+    {% if registrada %}
+      <section class="panel">
+        <div class="panel__cabecera"><h2 class="panel__titulo">Consulta registrada</h2>{{ estado_badge(cita.estado) }}</div>
+        <dl class="ficha">
+          <div class="ficha__dato"><dt>Atendida</dt><dd>{{ registrada.consulta.fecha_hora_atencion|fechahora }}</dd></div>
+          <div class="ficha__dato"><dt>Motivo de consulta</dt><dd>{{ registrada.consulta.motivo_consulta }}</dd></div>
+          <div class="ficha__dato"><dt>Observaciones</dt><dd class="texto-clinico">{{ registrada.consulta.observaciones or "—" }}</dd></div>
+        </dl>
+      </section>
+      <section class="panel">
+        <div class="panel__cabecera"><h2 class="panel__titulo">Diagnósticos</h2></div>
+        <ul class="registros">
+          {% for d in registrada.diagnosticos %}
+          <li class="registro registro--compacto"><p class="registro__titulo">{{ d.descripcion }}</p>{% if d.observacion %}<p class="registro__meta texto-clinico">{{ d.observacion }}</p>{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </section>
+      <section class="panel">
+        <div class="panel__cabecera"><h2 class="panel__titulo">Receta</h2></div>
+        {% if registrada.receta %}
+          <ul class="medicamentos">
+            {% for m in registrada.medicamentos %}
+            <li class="medicamento">
+              <span class="medicamento__nombre">{{ m.nombre }} <span class="registro__meta">{{ m.presentacion }} {{ m.concentracion }}</span></span>
+              <span class="medicamento__pauta">{{ m.dosis }} · {{ m.frecuencia }} · {{ m.duracion }}</span>
+              {% if m.indicaciones %}<span class="medicamento__nota">{{ m.indicaciones }}</span>{% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+          {% if registrada.receta.indicaciones_generales %}<p class="nota texto-clinico">Indicaciones generales: {{ registrada.receta.indicaciones_generales }}</p>{% endif %}
+        {% else %}
+          <p class="nota">En esta consulta no se recetaron medicamentos.</p>
+        {% endif %}
+      </section>
+      <div class="lista-acciones"><a class="boton boton--secundario" href="{{ url_for('consultas.solicitar_examen', cedula=cita.cedula_paciente) }}">{{ icono("examenes") }}Solicitar un examen para este paciente</a></div>
+    {% elif cita.puede_atender %}
+      <form class="pila" method="post" action="{{ url_for('consultas.atender', id_cita=cita.id_cita) }}" autocomplete="off" data-formulario-consulta data-confirmar="¿Registrar la consulta? Después no podrás modificarla." data-confirmar-boton="Registrar consulta">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <section class="panel bloque-clinico">
+          <div class="panel__cabecera"><h2 class="panel__titulo">Consulta</h2></div>
+          <div class="campo">
+            <label class="campo__etiqueta" for="motivo_consulta">Motivo de consulta<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+            <input class="campo__control" id="motivo_consulta" name="motivo_consulta" type="text" maxlength="255" required value="{{ form.get('motivo_consulta', '') }}" autofocus>
+          </div>
+          <div class="campo">
+            <label class="campo__etiqueta" for="observaciones">Observaciones</label>
+            <textarea class="campo__control" id="observaciones" name="observaciones" rows="4" maxlength="5000">{{ form.get('observaciones', '') }}</textarea>
+          </div>
+        </section>
+
+        <section class="panel bloque-clinico" data-lista-filas data-maximo="20">
+          <div class="panel__cabecera"><h2 class="panel__titulo">Diagnósticos</h2></div>
+          <p class="bloque-clinico__intro">Registra al menos uno. Las filas vacías se ignoran.</p>
+          <ol class="filas-dinamicas" data-filas>
+            {% for i in range(1, ([filas_dx|length, 2]|max) + 1) %}{{ fila_dx(i, filas_dx[i - 1] if i <= filas_dx|length else {}) }}{% endfor %}
+          </ol>
+          <template data-plantilla-fila>{{ fila_dx("N", {}) }}</template>
+          <div><button type="button" class="boton boton--secundario boton--pequeno" data-agregar-fila hidden>{{ icono("mas") }}Agregar diagnóstico</button></div>
+        </section>
+
+        <section class="panel bloque-clinico" data-lista-filas data-maximo="20">
+          <div class="panel__cabecera"><h2 class="panel__titulo">Receta</h2></div>
+          <p class="bloque-clinico__intro">Opcional. Deja las filas vacías si no vas a recetar.</p>
+          <ol class="filas-dinamicas" data-filas>
+            {% for i in range(1, ([filas_rx|length, 2]|max) + 1) %}{{ fila_rx(i, filas_rx[i - 1] if i <= filas_rx|length else {}) }}{% endfor %}
+          </ol>
+          <template data-plantilla-fila>{{ fila_rx("N", {}) }}</template>
+          <div><button type="button" class="boton boton--secundario boton--pequeno" data-agregar-fila hidden>{{ icono("mas") }}Agregar medicamento</button></div>
+          <div class="campo">
+            <label class="campo__etiqueta" for="indicaciones_generales">Indicaciones generales de la receta</label>
+            <textarea class="campo__control" id="indicaciones_generales" name="indicaciones_generales" rows="2" maxlength="2000">{{ form.get('indicaciones_generales', '') }}</textarea>
+          </div>
+        </section>
+
+        <div class="formulario__acciones">
+          <a class="boton boton--secundario" href="{{ url_for('consultas.mi_agenda') }}">Cancelar</a>
+          <button type="submit" class="boton boton--primario">{{ icono("check") }}Registrar consulta</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="mensaje mensaje--aviso" role="status">{{ icono("alerta", "mensaje__icono") }}<p class="mensaje__texto">{% if cita.estado not in ["pendiente", "confirmada"] %}Esta cita está en estado «{{ cita.estado|replace("_", " ") }}» y ya no se puede atender.{% else %}La consulta se atiende el día de la cita ({{ cita.fecha_cita|fecha }}), no antes.{% endif %}</p></div>
+      <section class="panel">
+        <div class="panel__cabecera"><h2 class="panel__titulo">Datos de la cita</h2>{{ estado_badge(cita.estado) }}</div>
+        <dl class="ficha">
+          <div class="ficha__dato"><dt>Fecha</dt><dd>{{ cita.fecha_cita|fecha }}</dd></div>
+          <div class="ficha__dato"><dt>Hora</dt><dd>{{ cita.hora_inicio|hora }} – {{ cita.hora_fin|hora }}</dd></div>
+          <div class="ficha__dato"><dt>Consultorio</dt><dd>{{ cita.consultorio }}</dd></div>
+          <div class="ficha__dato"><dt>Observación</dt><dd>{{ cita.observacion or "—" }}</dd></div>
+        </dl>
+      </section>
+    {% endif %}
+  </div>
+
+  <aside class="pila" aria-label="Contexto del paciente">
+    <section class="panel">
+      <div class="paciente-resumen">
+        <p class="paciente-resumen__nombre">{{ cita.paciente }}</p>
+        <p class="paciente-resumen__dato">Cédula {{ cita.cedula_paciente }} · {{ cita.edad }} años</p>
+      </div>
+      <div class="panel__cabecera"><h2 class="panel__titulo">Últimas consultas</h2></div>
+      {% if historial.consultas %}
+        <ul class="registros">
+          {% for h in historial.consultas %}
+          <li class="registro registro--compacto">
+            <div class="registro__cabeza"><span class="registro__fecha">{{ h.fecha_hora_atencion|fecha }}</span><span class="registro__meta">{{ h.especialidad }}</span></div>
+            <p class="registro__titulo">{{ h.motivo_consulta }}</p>
+            {% if h.diagnostico %}<p class="registro__meta">{{ h.diagnostico }}</p>{% endif %}
+            <p class="registro__meta">{{ h.medico }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}<p class="nota">Es su primera consulta registrada.</p>{% endif %}
+    </section>
+    <section class="panel">
+      <div class="panel__cabecera"><h2 class="panel__titulo">Recetas recientes</h2></div>
+      {% if historial.recetas %}
+        <ul class="registros">
+          {% for r in historial.recetas %}
+          <li class="registro registro--compacto">
+            <div class="registro__cabeza"><span class="registro__fecha">{{ r.fecha_prescripcion|fecha }}</span><span class="registro__meta">{{ r.medico }}</span></div>
+            <p class="registro__titulo">{{ r.medicamento }} {{ r.concentracion }}</p>
+            <p class="registro__meta">{{ r.dosis }} · {{ r.frecuencia }} · {{ r.duracion }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}<p class="nota">Sin recetas anteriores.</p>{% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

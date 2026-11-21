@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_acciones.html" import boton_post %}
+{% from "components/_filtros.html" import buscador, filtro_select, filtro_botones %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Especialidades", None)] %}
+{% block titulo %}Especialidades{% endblock %}
+{% block subtitulo %}Una especialidad no puede quedarse sin un médico activo.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block acciones %}<a class="boton boton--primario" href="{{ url_for('especialidades.crear') }}">{{ icono("mas") }}Nueva especialidad</a>{% endblock %}
+{% block contenido %}
+<form class="filtros" method="get" action="{{ url_for('especialidades.lista') }}" role="search">
+  {{ buscador(filtros.q, "Código o nombre") }}
+  {{ filtro_select("estado", "Estado", [("activo", "Activa"), ("inactivo", "Inactiva")], filtros.estado) }}
+  {{ filtro_botones(url_for('especialidades.lista')) }}
+</form>
+
+<section class="panel panel--sin-relleno">
+  {% if especialidades %}
+    {% call tabla("Especialidades médicas", ["Especialidad", "Costo de consulta", "Médicos", "Estado", "Acciones"]) %}
+      {% for e in especialidades %}
+      <tr>
+        <td data-etiqueta="Especialidad"><span class="tabla__principal">{{ e.nombre }}</span><span class="tabla__secundario">{{ e.id_especialidad }}{% if e.descripcion %} · {{ e.descripcion }}{% endif %}</span></td>
+        <td class="tabla__numero" data-etiqueta="Costo de consulta">{{ e.costo_consulta|dinero }}</td>
+        <td class="tabla__numero" data-etiqueta="Médicos">{{ e.medicos }}</td>
+        <td data-etiqueta="Estado">{{ estado_badge(e.estado) }}</td>
+        <td class="tabla__acciones" data-etiqueta="Acciones">
+          <div class="acciones-fila">
+            <a class="boton boton--secundario boton--pequeno" href="{{ url_for('especialidades.editar', codigo=e.id_especialidad) }}">Editar</a>
+            {% if e.estado == "activo" %}
+              {{ boton_post(url_for('especialidades.estado', codigo=e.id_especialidad), "Desactivar", confirmar="¿Desactivar la especialidad " ~ e.nombre ~ "? Ya no se podrán agendar consultas en ella.", boton_texto="Desactivar", campos={"estado": "inactivo"}) }}
+            {% else %}
+              {{ boton_post(url_for('especialidades.estado', codigo=e.id_especialidad), "Activar", campos={"estado": "activo"}) }}
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("No se encontraron especialidades", "Prueba con otra búsqueda o quita los filtros.") %}<a class="boton boton--secundario" href="{{ url_for('especialidades.lista') }}">Quitar filtros</a>{% endcall %}
+  {% endif %}
+</section>
+{{ paginacion_de(paginacion, "especialidades.lista", filtros) }}
+{% endblock %}

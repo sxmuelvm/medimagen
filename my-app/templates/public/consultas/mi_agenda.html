@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_filtros.html" import buscador, filtro_select, filtro_campo, filtro_botones %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Mi agenda", None)] %}
+{% block titulo %}Mi agenda{% endblock %}
+{% block subtitulo %}Tus consultas desde la fecha elegida. Cada una se atiende el día de la cita.{% endblock %}
+{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('consultas.examenes_solicitados') }}">{{ icono("examenes") }}Exámenes solicitados</a>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/core/tablas.js') }}" defer></script>{% endblock %}
+{% block contenido %}
+{% set opciones_estado = [] %}{% for e in estados %}{% set _ = opciones_estado.append((e, "No asistió" if e == "no_asistio" else e|capitalize)) %}{% endfor %}
+<form class="filtros" method="get" action="{{ url_for('consultas.mi_agenda') }}" role="search" data-filtros-auto>
+  {{ buscador(filtros.q, "Cédula o nombre del paciente", etiqueta="Paciente") }}
+  {{ filtro_select("estado", "Estado", opciones_estado, filtros.estado) }}
+  {{ filtro_campo("desde", "Desde", filtros.desde) }}
+  {{ filtro_campo("hasta", "Hasta", filtros.hasta) }}
+  {{ filtro_botones(url_for('consultas.mi_agenda')) }}
+</form>
+
+<section class="panel panel--sin-relleno">
+  {% if citas %}
+    {% call tabla("Mis consultas", ["Fecha y hora", "Paciente", "Consultorio", "Estado", "Acciones"]) %}
+      {% for c in citas %}
+      <tr>
+        <td data-etiqueta="Fecha y hora"><span class="tabla__principal">{{ c.fecha_cita|fecha }}</span><span class="tabla__secundario">{{ c.hora_inicio|hora }} – {{ c.hora_fin|hora }}</span></td>
+        <td data-etiqueta="Paciente"><span class="tabla__principal">{{ c.paciente }}</span><span class="tabla__secundario">{{ c.cedula_paciente }} · {{ c.edad }} años</span></td>
+        <td data-etiqueta="Consultorio">{{ c.consultorio }}{% if c.observacion %}<span class="tabla__secundario">{{ c.observacion }}</span>{% endif %}</td>
+        <td data-etiqueta="Estado">{{ estado_badge(c.estado) }}</td>
+        <td class="tabla__acciones" data-etiqueta="Acciones">
+          <div class="acciones-fila">
+            {% if c.puede_atender %}
+              <a class="boton boton--primario boton--pequeno" href="{{ url_for('consultas.atender', id_cita=c.id_cita) }}">Atender</a>
+            {% elif c.id_consulta %}
+              <a class="boton boton--secundario boton--pequeno" href="{{ url_for('consultas.atender', id_cita=c.id_cita) }}">Ver consulta</a>
+            {% else %}
+              <a class="boton boton--terciario boton--pequeno" href="{{ url_for('consultas.atender', id_cita=c.id_cita) }}">Ver cita</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("No tienes consultas con esos filtros", "La agenda muestra desde hoy por defecto. Prueba con otra fecha o quita los filtros.") %}{% endcall %}
+  {% endif %}
+</section>
+{{ paginacion_de(paginacion, "consultas.mi_agenda", filtros) }}
+{% endblock %}

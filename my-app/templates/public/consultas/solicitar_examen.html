@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_campo_formulario.html" import campo %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Exámenes solicitados", url_for('consultas.examenes_solicitados')), ("Solicitar examen", None)] %}
+{% set buscada = request.args.get("cedula") %}
+{% set bloques = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"] %}
+{% set nombres_area = {2: "Imagenología", 3: "Laboratorio"} %}
+{% block titulo %}Solicitar examen{% endblock %}
+{% block subtitulo %}Elige al paciente, el examen y un horario libre. El examen queda agendado a tu nombre.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/citas.css') }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/core/http.js') }}" defer></script><script src="{{ url_for('static', filename='js/modules/consultas.js') }}" defer></script>{% endblock %}
+{% block contenido %}
+<ol class="pasos">
+  <li class="paso">
+    <div class="paso__cabeza"><span class="paso__numero" aria-hidden="true">1</span><h2 class="paso__titulo">Paciente</h2></div>
+    {% if paciente %}
+      <div class="paciente-tarjeta">
+        <div>
+          <p class="paciente-tarjeta__nombre">{{ paciente.nombres }} {{ paciente.apellidos }}</p>
+          <p class="paciente-tarjeta__dato">Cédula {{ paciente.cedula_paciente }} · {{ paciente.edad }} años</p>
+        </div>
+        <a class="boton boton--secundario boton--pequeno" href="{{ url_for('consultas.solicitar_examen') }}">Cambiar paciente</a>
+      </div>
+      {% if paciente.estado != "activo" %}
+        <div class="mensaje mensaje--error" role="alert">{{ icono("error", "mensaje__icono") }}<p class="mensaje__texto">Este paciente está inactivo y no se le pueden agendar exámenes.</p></div>
+      {% endif %}
+    {% else %}
+      <form class="buscar-paciente" method="get" action="{{ url_for('consultas.solicitar_examen') }}" role="search">
+        {{ campo("cedula", "Cédula del paciente", valor=buscada or "", requerido=true, inputmode="numeric", maxlength=10, pattern="[0-9]{10}", ayuda="10 dígitos.") }}
+        <button type="submit" class="boton boton--primario">{{ icono("buscar") }}Buscar paciente</button>
+      </form>
+      {% if buscada %}
+        <div class="mensaje mensaje--aviso" role="status">{{ icono("alerta", "mensaje__icono") }}<p class="mensaje__texto">No hay un paciente registrado con esa cédula. Revisa el número o pide a recepción que lo registre.</p></div>
+      {% endif %}
+    {% endif %}
+  </li>
+
+  {% if paciente and paciente.estado == "activo" %}
+  <li class="paso">
+    <form class="formulario" method="post" action="{{ url_for('consultas.solicitar_examen') }}" autocomplete="off" data-formulario-examen data-url-horarios="{{ url_for('consultas.horarios_examen') }}" data-paciente="{{ paciente.cedula_paciente }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="cedula_paciente" value="{{ paciente.cedula_paciente }}">
+
+      <div class="paso__cuerpo">
+        <div class="paso__cabeza"><span class="paso__numero" aria-hidden="true">2</span><h2 class="paso__titulo">Examen</h2></div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="id_subtipo">Examen<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+          <select class="campo__control" id="id_subtipo" name="id_subtipo" required data-campo-examen>
+            <option value="">Elige un examen…</option>
+            {% for area_id, area_nombre in nombres_area.items() %}
+            <optgroup label="{{ area_nombre }}">
+              {% for x in examenes if x.id_area == area_id %}<option value="{{ x.id_subtipo }}" data-area="{{ x.id_area }}" data-costo="{{ x.costo }}"{% if form.get("id_subtipo") == x.id_subtipo %} selected{% endif %}>{{ x.tipo }} · {{ x.nombre }}</option>{% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="id_recurso">Equipo o puesto</label>
+          <select class="campo__control" id="id_recurso" name="id_recurso" data-campo-recurso aria-describedby="ayuda-recurso">
+            <option value="" data-fijo>Asignar automáticamente</option>
+            {% for r in recursos %}<option value="{{ r.id_recurso }}" data-area="{{ r.id_area }}"{% if form.get("id_recurso") == r.id_recurso|string %} selected{% endif %}>{{ nombres_area[r.id_area] }} · {{ r.nombre_recurso }}</option>{% endfor %}
+          </select>
+          <p class="campo__ayuda" id="ayuda-recurso">En imagenología debes elegir el equipo, porque cada uno hace estudios distintos. En laboratorio se asigna un puesto libre.</p>
+        </div>
+        <div class="resumen-costo" data-resumen-costo hidden>
+          <span>Costo estimado</span><span class="resumen-costo__valor" data-costo-valor></span>
+          <span class="resumen-costo__nota">El sistema fija el valor definitivo al guardar.</span>
+        </div>
+      </div>
+
+      <div class="paso__cuerpo">
+        <div class="paso__cabeza"><span class="paso__numero" aria-hidden="true">3</span><h2 class="paso__titulo">Fecha y hora</h2></div>
+        <div class="formulario__rejilla">
+          {{ campo("fecha_cita", "Fecha", valor=form.get("fecha_cita", ""), tipo="date", requerido=true, ayuda="Solo de lunes a viernes.") }}
+          <div class="campo">
+            <label class="campo__etiqueta" for="hora_inicio">Hora<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+            <select class="campo__control" id="hora_inicio" name="hora_inicio" required data-campo-hora aria-describedby="estado-horarios">
+              <option value="">Elige una hora…</option>
+              {% for b in bloques %}<option value="{{ b }}"{% if form.get("hora_inicio", "")[:5] == b %} selected{% endif %}>{{ b }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <p class="horarios-estado" id="estado-horarios" role="status" aria-live="polite" data-estado-horarios>Elige el examen y la fecha para ver los horarios libres.</p>
+        <div class="campo">
+          <label class="campo__etiqueta" for="observacion">Observación</label>
+          <textarea class="campo__control" id="observacion" name="observacion" maxlength="255" rows="2">{{ form.get("observacion", "") }}</textarea>
+        </div>
+      </div>
+
+      <div class="formulario__acciones">
+        <a class="boton boton--secundario" href="{{ url_for('consultas.examenes_solicitados') }}">Cancelar</a>
+        <button type="submit" class="boton boton--primario">{{ icono("check") }}Solicitar examen</button>
+      </div>
+    </form>
+  </li>
+  {% endif %}
+</ol>
+{% endblock %}

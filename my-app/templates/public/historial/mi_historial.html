@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import vacio %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Mi historial", None)] %}
+{% block titulo %}Mi historial{% endblock %}
+{% block subtitulo %}Tus consultas atendidas, con su motivo y diagnósticos.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/atencion.css') }}">{% endblock %}
+{% block contenido %}
+{% if consultas %}
+<ol class="registros">
+  {% for c in consultas %}
+  <li class="registro">
+    <div class="registro__cabeza"><span class="registro__fecha">{{ c.fecha_hora_atencion|fechahora }}</span><span class="registro__meta">{{ c.especialidad }} · {{ c.medico }}</span></div>
+    <p class="registro__titulo">{{ c.motivo_consulta }}</p>
+    {% if c.diagnosticos %}
+      <p class="registro__etiqueta">Diagnóstico</p>
+      <ul class="registro__lista">{% for d in c.diagnosticos %}<li>{{ d }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if c.observaciones %}<p class="registro__etiqueta">Observaciones del médico</p><p class="texto-clinico">{{ c.observaciones }}</p>{% endif %}
+  </li>
+  {% endfor %}
+</ol>
+{{ paginacion_de(paginacion, "historial.mi_historial", {}) }}
+{% else %}
+<section class="panel">{% call vacio("Aún no tienes consultas registradas", "Cuando seas atendido, tu consulta y sus diagnósticos aparecerán aquí.") %}{% endcall %}</section>
+{% endif %}
+{% endblock %}

@@ -2,40 +2,70 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block titulo %}Medimagen{% endblock %} | Medimagen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B2D5B">
+  <meta name="color-scheme" content="light">
+  <title>{% block titulo %}Inicio{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
+  {% block css %}{% endblock %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}" media="print">
+  {# Pequeño y sin defer a propósito: marca <html class="js"> antes de pintar para que el menú no parpadee #}
+  <script src="{{ url_for('static', filename='js/core/ui.js') }}"></script>
 </head>
-<body>
+<body class="{% block clase_cuerpo %}{% endblock %}">
+  {% include "layout/_iconos.html" %}
+  <a class="salto" href="#contenido">Saltar al contenido</a>
+
   {% if usuario %}
-  <header>
-    <strong>Medimagen</strong>
-    <span>{{ usuario.nombres }} {{ usuario.apellidos }} ({{ usuario.rol }})</span>
-    <nav>
-      {% for item in menu %}
-        <a href="{{ item.url }}">{{ item.titulo }}</a>
-      {% endfor %}
-      <a href="{{ url_for('perfil.mi_perfil') }}">Mi perfil</a>
-    </nav>
-    <form method="post" action="{{ url_for('auth.logout') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit">Cerrar sesión</button>
-    </form>
-  </header>
+  <div class="app">
+    {% include "layout/_sidebar.html" %}
+    <div class="app__principal">
+      {% include "layout/_navbar.html" %}
+      <main class="contenido" id="contenido" tabindex="-1">
+        {% block mensajes %}{% include "layout/_mensajes.html" %}{% endblock %}
+        {% block encabezado %}
+        <div class="pagina-cabecera">
+          <div class="pagina-cabecera__texto">
+            {% if migas %}
+            <nav class="migas" aria-label="Ruta de navegación">
+              <ol>
+                {% for texto, enlace in migas %}
+                <li>{% if enlace %}<a href="{{ enlace }}">{{ texto }}</a>{% else %}<span aria-current="page">{{ texto }}</span>{% endif %}</li>
+                {% endfor %}
+              </ol>
+            </nav>
+            {% endif %}
+            <h1 class="pagina-cabecera__titulo">{{ self.titulo() }}</h1>
+            {% set sub %}{% block subtitulo %}{% endblock %}{% endset %}
+            {% if sub|trim %}<p class="pagina-cabecera__subtitulo">{{ sub }}</p>{% endif %}
+          </div>
+          <div class="pagina-cabecera__acciones">{% block acciones %}{% endblock %}</div>
+        </div>
+        {% endblock %}
+        {% block contenido %}{% endblock %}
+      </main>
+      {% include "layout/_footer.html" %}
+    </div>
+  </div>
+  {% else %}
+  <div class="publico">
+    <main class="publico__principal" id="contenido" tabindex="-1">
+      {% block contenido_publico %}
+        {% include "layout/_mensajes.html" %}
+        {{ self.contenido() }}
+      {% endblock %}
+    </main>
+  </div>
   {% endif %}
 
-  {% with mensajes = get_flashed_messages(with_categories=true) %}
-    {% if mensajes %}
-      <ul>
-        {% for categoria, mensaje in mensajes %}
-          <li class="mensaje {{ categoria }}">{{ mensaje }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
-
-  <main>
-    {% block contenido %}{% endblock %}
-  </main>
+  {% include "components/_modal_confirmar.html" %}
+  {% block scripts %}{% endblock %}
+  <script src="{{ url_for('static', filename='js/core/interfaz.js') }}" defer></script>
 </body>
 </html>

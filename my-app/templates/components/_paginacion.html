@@ -1,0 +1,45 @@
+{# Dos versiones:
+   paginacion(pagina, total_paginas, endpoint, filtros)  → solo enlaces.
+   paginacion_de(pag, endpoint, filtros)                  → "Mostrando 1–10 de 25" + enlaces; recibe el diccionario `paginacion` del backend.
+   Conservan los filtros de la búsqueda (solo los que tienen valor); el parámetro de página es ?pagina= #}
+{% macro paginacion(pagina, total_paginas, endpoint, filtros={}) -%}
+{%- if total_paginas and total_paginas > 1 %}
+{%- set f = {} %}{% for k, v in filtros.items() %}{% if v %}{% set _ = f.update({k: v}) %}{% endif %}{% endfor %}
+<nav class="paginacion" aria-label="Paginación">
+  <p>Página {{ pagina }} de {{ total_paginas }}</p>
+  <ul class="paginacion__lista">
+    {% if pagina > 1 %}
+    <li><a class="paginacion__enlace" href="{{ url_for(endpoint, pagina=pagina - 1, **f) }}" rel="prev">Anterior</a></li>
+    {% endif %}
+    {% for n in range([pagina - 2, 1]|max, [pagina + 2, total_paginas]|min + 1) %}
+    <li><a class="paginacion__enlace" href="{{ url_for(endpoint, pagina=n, **f) }}"{% if n == pagina %} aria-current="page"{% endif %}>{{ n }}</a></li>
+    {% endfor %}
+    {% if pagina < total_paginas %}
+    <li><a class="paginacion__enlace" href="{{ url_for(endpoint, pagina=pagina + 1, **f) }}" rel="next">Siguiente</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{%- endmacro %}
+
+{% macro paginacion_de(pag, endpoint, filtros={}) -%}
+{%- if pag.total %}
+{%- set f = {} %}{% for k, v in filtros.items() %}{% if v %}{% set _ = f.update({k: v}) %}{% endif %}{% endfor %}
+<nav class="paginacion" aria-label="Paginación">
+  <p>Mostrando {{ pag.desde }}–{{ pag.hasta }} de {{ pag.total }}</p>
+  {% if pag.paginas > 1 %}
+  <ul class="paginacion__lista">
+    {% if pag.pagina > 1 %}
+    <li><a class="paginacion__enlace" href="{{ url_for(endpoint, pagina=pag.pagina - 1, **f) }}" rel="prev">Anterior</a></li>
+    {% endif %}
+    {% for n in range([pag.pagina - 2, 1]|max, [pag.pagina + 2, pag.paginas]|min + 1) %}
+    <li><a class="paginacion__enlace" href="{{ url_for(endpoint, pagina=n, **f) }}"{% if n == pag.pagina %} aria-current="page"{% endif %}>{{ n }}</a></li>
+    {% endfor %}
+    {% if pag.pagina < pag.paginas %}
+    <li><a class="paginacion__enlace" href="{{ url_for(endpoint, pagina=pag.pagina + 1, **f) }}" rel="next">Siguiente</a></li>
+    {% endif %}
+  </ul>
+  {% endif %}
+</nav>
+{% endif %}
+{%- endmacro %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import vacio %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Mis resultados", None)] %}
+{% block titulo %}Mis resultados{% endblock %}
+{% block subtitulo %}Resultados de laboratorio y estudios de imagenología realizados.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/atencion.css') }}">{% endblock %}
+{% block contenido %}
+<div class="pila">
+  <section class="pila" aria-labelledby="titulo-lab">
+    <h2 class="panel__titulo" id="titulo-lab">Laboratorio</h2>
+    {% if laboratorio %}
+    <ol class="registros">
+      {% for r in laboratorio %}
+      <li class="registro">
+        <div class="registro__cabeza"><span class="registro__fecha">{{ r.examen }}</span><span class="registro__meta">Resultado del {{ r.fecha_resultado|fecha }}</span></div>
+        <p class="registro__meta">Realizado el {{ r.fecha_realizacion|fecha }} · Solicitado por {{ r.medico_solicitante }}</p>
+        <div class="resultado-caja"><p class="texto-clinico">{{ r.resultado }}</p></div>
+        {% if r.observaciones %}<p class="registro__etiqueta">Observaciones</p><p class="texto-clinico">{{ r.observaciones }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    {{ paginacion_de(paginacion, "historial.mis_resultados", {}) }}
+    {% else %}
+    <section class="panel">{% call vacio("Sin resultados de laboratorio", "Cuando el laboratorio registre un resultado, aparecerá aquí.") %}{% endcall %}</section>
+    {% endif %}
+  </section>
+
+  <section class="pila" aria-labelledby="titulo-img">
+    <h2 class="panel__titulo" id="titulo-img">Imagenología</h2>
+    {% if imagenologia %}
+    <ol class="registros">
+      {% for i in imagenologia %}
+      <li class="registro registro--compacto">
+        <div class="registro__cabeza"><span class="registro__fecha">{{ i.subtipo }}</span><span class="registro__meta">{{ i.fecha_realizacion|fecha }}</span></div>
+        <p class="registro__meta">{{ i.tipo }} · {{ i.equipo }} · Solicitado por {{ i.medico_solicitante }}</p>
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="nota">El informe del estudio te lo entrega el médico que lo solicitó.</p>
+    {% else %}
+    <section class="panel">{% call vacio("Sin estudios de imagenología", "Los estudios realizados aparecerán aquí.") %}{% endcall %}</section>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

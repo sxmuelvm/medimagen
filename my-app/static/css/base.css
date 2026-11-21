@@ -1,0 +1,300 @@
+/* Medimagen Cuenca · base: fuente, variables de diseño, reinicio, tipografía y utilidades.
+   Dirección visual: minimalista y clínica. Lienzo casi blanco, superficies blancas con borde fino,
+   azul marino del logo para títulos, turquesa del logo como acción y acento, menta como tinte suave. */
+
+/* Figtree (variable, licencia OFL) alojada en el propio servidor: sin CDN. */
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("../fonts/figtree-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("../fonts/figtree-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  color-scheme: light;
+
+  /* Marca (tomada del logo: marino #0B2D5B y turquesa #00A7B5) */
+  --azul-900: #0b2d5b;
+  --azul-800: #17407d;
+  --primario: #007c89;          /* acción principal: blanco sobre este color = 4.95:1 */
+  --primario-hover: #006a75;
+  --turquesa: #00a7b5;          /* acento decorativo (no para texto) */
+  --turquesa-700: #006e79;      /* texto y enlaces sobre blanco = 6:1 */
+  --turquesa-100: #c9ecef;
+  --celeste: #7ec8e3;
+  --celeste-50: #eaf6f7;        /* tinte menta suave: hover, activo, cabeceras */
+  --gris-600: #4a5a70;
+  --gris-500: #5b6b7f;
+
+  /* Superficies, bordes y texto */
+  --blanco: #fff;
+  --fondo: #f5f7f9;
+  --borde: #e2e8ee;
+  --borde-fuerte: #cbd5df;
+  --borde-control: #8795a8;     /* 3:1 sobre blanco, exigido a los controles */
+  --fila-alterna: #f8fafb;
+  --texto: #172033;
+  --texto-suave: var(--gris-500);
+
+  /* Estados (texto sobre fondo, contraste mínimo 4.5:1) */
+  --exito: #17653f;
+  --exito-fondo: #e4f4ea;
+  --exito-borde: #b4dcc4;
+  --aviso: #8a4b00;
+  --aviso-fondo: #fff1d6;
+  --aviso-borde: #f0d594;
+  --error: #b42318;
+  --error-fondo: #fde8e6;
+  --error-borde: #f2b8b2;
+  --info: #1d4f91;
+  --info-fondo: #e5eefb;
+  --info-borde: #b3cdee;
+
+  /* Tipografía */
+  --fuente-titulo: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --fuente-texto: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --texto-xs: 0.8125rem;
+  --texto-sm: 0.875rem;
+  --texto-md: 1rem;
+  --texto-lg: 1.125rem;
+
+  /* Espaciado (escala de 4 px) */
+  --e1: 0.25rem;
+  --e2: 0.5rem;
+  --e3: 0.75rem;
+  --e4: 1rem;
+  --e5: 1.25rem;
+  --e6: 1.5rem;
+  --e8: 2rem;
+  --e10: 2.5rem;
+  --e12: 3rem;
+
+  /* Forma */
+  --radio: 0.625rem;
+  --radio-grande: 0.875rem;
+  --radio-pastilla: 999px;
+  --sombra: 0 1px 2px rgb(23 32 51 / 0.06), 0 12px 32px rgb(23 32 51 / 0.12);
+
+  /* Medidas */
+  --alto-barra: 3.5rem;
+  --ancho-lateral: 16rem;
+  --ancho-maximo: 78rem;
+  --objetivo-tactil: 2.75rem;
+  --transicion: 150ms ease;
+
+  /* Motivo de marca: latido del logo */
+  --latido: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='24' viewBox='0 0 240 24'%3E%3Cpath d='M0 12H92l4-4 4 4h6l4-9 5 18 5-9h7l3-3 3 3H240' fill='none' stroke='%2300A7B5' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --latido-tenue: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='24' viewBox='0 0 240 24'%3E%3Cpath d='M0 12H92l4-4 4 4h6l4-9 5 18 5-9h7l3-3 3 3H240' fill='none' stroke='%237EC8E3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--turquesa-100);
+  color: var(--texto);
+}
+
+/* Reinicio */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scrollbar-gutter: stable;
+  scroll-padding-top: calc(var(--alto-barra) + var(--e4));
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: var(--fuente-texto);
+  font-size: var(--texto-md);
+  line-height: 1.55;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: rgb(0 124 137 / 0.15);
+}
+
+body.sin-desplazamiento {
+  overflow: hidden;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+[hidden] {
+  display: none !important; /* el atributo hidden debe ganar siempre a cualquier display */
+}
+
+/* Tipografía */
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: var(--azul-900);
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+h1 {
+  font-size: clamp(1.5rem, 1.3rem + 0.9vw, 1.875rem);
+  letter-spacing: -0.022em;
+}
+
+h2 {
+  font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
+}
+
+h3 {
+  font-size: var(--texto-lg);
+}
+
+h4 {
+  font-size: var(--texto-md);
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--turquesa-700);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+strong {
+  font-weight: 650;
+}
+
+small {
+  font-size: var(--texto-xs);
+}
+
+code {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.9em;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Foco visible (teclado) */
+:focus-visible {
+  outline: 3px solid var(--turquesa-700);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Iconos SVG en línea */
+.icono {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Utilidades */
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.salto {
+  position: fixed;
+  top: var(--e2);
+  left: var(--e2);
+  z-index: 100;
+  padding: var(--e3) var(--e4);
+  background: var(--azul-900);
+  color: var(--blanco);
+  border-radius: var(--radio);
+  transform: translateY(-200%);
+}
+
+.salto:focus-visible {
+  transform: none;
+}
+
+.cifra {
+  font-variant-numeric: tabular-nums;
+}
+
+.texto-suave {
+  color: var(--texto-suave);
+}
+
+.solo-impresion {
+  display: none;
+}
+
+/* Motivo de marca: línea de latido */
+.latido {
+  height: 1.5rem;
+  background: var(--latido) repeat-x center / 15rem 1.5rem;
+}
+
+.latido--tenue {
+  background-image: var(--latido-tenue);
+}

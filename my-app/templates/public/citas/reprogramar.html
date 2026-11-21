@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_campo_formulario.html" import campo %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Agenda de citas", url_for('citas.agenda')), ("Cita " ~ cita.id_cita, url_for('citas.detalle', id_cita=cita.id_cita)), ("Reprogramar", None)] %}
+{% set bloques = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"] %}
+{% set recurso_actual = form.get("id_recurso", cita.id_recurso|string if cita.id_area == 2 else "") %}
+{% block titulo %}Reprogramar cita{% endblock %}
+{% block subtitulo %}Cambia la fecha, la hora o el lugar. Para cambiar de médico o de examen, cancela la cita y registra otra.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/citas.css') }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/modules/citas.js') }}" defer></script>{% endblock %}
+{% block contenido %}
+<div class="pila">
+  <section class="cita-actual" aria-label="Cita actual">
+    <h2 class="cita-actual__titulo">{{ cita.paciente }}</h2>
+    <p>{{ cita.area }} · {{ cita.detalle or "—" }}{% if cita.medico %} · {{ cita.medico }}{% endif %}</p>
+    <p>Ahora: <strong>{{ cita.fecha_cita|fecha }}, {{ cita.hora_inicio|hora }}</strong> en {{ cita.recurso }} {{ estado_badge(cita.estado) }}</p>
+  </section>
+
+  <section class="panel panel--medio">
+    <form class="formulario" method="post" action="{{ url_for('citas.reprogramar', id_cita=cita.id_cita) }}" autocomplete="off" data-formulario-cita data-url-horarios="{{ url_for('citas.horarios') }}" data-area="{{ cita.id_area }}" data-medico="{{ cita.id_medico or '' }}" data-paciente="{{ cita.cedula_paciente }}" data-excluir="{{ cita.id_cita }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="formulario__rejilla">
+        {{ campo("fecha_cita", "Nueva fecha", valor=form.get("fecha_cita", ""), tipo="date", requerido=true, ayuda="Solo de lunes a viernes.") }}
+        <div class="campo">
+          <label class="campo__etiqueta" for="hora_inicio">Nueva hora<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+          <select class="campo__control" id="hora_inicio" name="hora_inicio" required data-campo-hora aria-describedby="estado-horarios">
+            <option value="">Elige una hora…</option>
+            {% for b in bloques %}<option value="{{ b }}"{% if form.get("hora_inicio", "")[:5] == b %} selected{% endif %}>{{ b }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <p class="horarios-estado" id="estado-horarios" role="status" aria-live="polite" data-estado-horarios>Elige una fecha para ver los horarios libres.</p>
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="id_recurso">{{ "Equipo" if cita.id_area == 2 else ("Puesto" if cita.id_area == 3 else "Consultorio") }}</label>
+        <select class="campo__control" id="id_recurso" name="id_recurso" data-campo-recurso>
+          {% if cita.id_area != 2 %}<option value="">Asignar automáticamente</option>{% endif %}
+          {% for r in recursos if r.id_area == cita.id_area %}<option value="{{ r.id_recurso }}"{% if recurso_actual|string == r.id_recurso|string %} selected{% endif %}>{{ r.nombre_recurso }}</option>{% endfor %}
+        </select>
+      </div>
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="observacion">Observación</label>
+        <textarea class="campo__control" id="observacion" name="observacion" maxlength="255" rows="2">{{ form.get("observacion", cita.observacion or "") }}</textarea>
+      </div>
+
+      <div class="formulario__acciones">
+        <a class="boton boton--secundario" href="{{ url_for('citas.detalle', id_cita=cita.id_cita) }}">Cancelar</a>
+        <button type="submit" class="boton boton--primario">Guardar cambios</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

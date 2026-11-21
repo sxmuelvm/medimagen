@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_acciones.html" import boton_post %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Usuarios", url_for('usuarios.lista')), (usuario.nombres ~ " " ~ usuario.apellidos, None)] %}
+{% set v = form if form else usuario %}
+{% set es_yo = usuario.id_usuario == session.id_usuario %}
+{% block titulo %}Editar usuario{% endblock %}
+{% block subtitulo %}{{ usuario.nombres }} {{ usuario.apellidos }} · {{ usuario.cedula }}{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+<div class="pagina-dividida pagina-dividida--lateral">
+  <div class="pila">
+    <section class="panel">
+      <div class="panel__cabecera"><h2 class="panel__titulo">Datos de la cuenta</h2></div>
+      <form class="formulario" method="post" action="{{ url_for('usuarios.editar', id_usuario=usuario.id_usuario) }}" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="formulario__rejilla">
+          <div class="campo">
+            <label class="campo__etiqueta" for="nombre_usuario">Nombre de usuario<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+            <input class="campo__control" id="nombre_usuario" name="nombre_usuario" type="text" value="{{ v.get('nombre_usuario', '') }}" maxlength="30" required autocapitalize="none" spellcheck="false">
+          </div>
+          <div class="campo">
+            <label class="campo__etiqueta" for="correo">Correo<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+            <input class="campo__control" id="correo" name="correo" type="email" value="{{ v.get('correo', '') or '' }}" maxlength="120" required inputmode="email" autocapitalize="none">
+          </div>
+          <div class="campo formulario__completo">
+            <label class="campo__etiqueta" for="id_rol">Rol<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+            <select class="campo__control" id="id_rol" name="id_rol" required{% if es_yo %} aria-describedby="ayuda-rol"{% endif %}>
+              {% for r in roles %}
+              <option value="{{ r.id_rol }}"{% if (v.get('id_rol')|string) == (r.id_rol|string) %} selected{% endif %}>{{ r.nombre|replace("_", " ")|capitalize }}</option>
+              {% endfor %}
+            </select>
+            <p class="campo__ayuda" id="ayuda-rol">{% if es_yo %}No puedes cambiar tu propio rol.{% else %}Solo se puede cambiar a un rol del mismo tipo de perfil ({{ usuario.tipo_perfil }}).{% endif %}</p>
+          </div>
+        </div>
+        <div class="formulario__acciones">
+          <a class="boton boton--secundario" href="{{ url_for('usuarios.lista') }}">Volver</a>
+          <button type="submit" class="boton boton--primario">Guardar cambios</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel panel--sin-relleno">
+      <div class="panel__cabecera"><h2 class="panel__titulo">Últimos accesos</h2></div>
+      {% if accesos %}
+        {% call tabla("Últimos accesos de este usuario", ["Fecha", "Resultado", "Dirección IP", "Navegador"]) %}
+          {% for a in accesos %}
+          <tr>
+            <td data-etiqueta="Fecha">{{ a.fecha|fechahora }}</td>
+            <td data-etiqueta="Resultado">{{ estado_badge(a.resultado) }}</td>
+            <td data-etiqueta="Dirección IP">{{ a.ip or "—" }}</td>
+            <td data-etiqueta="Navegador"><span class="registro-detalle">{{ a.navegador or "—" }}</span></td>
+          </tr>
+          {% endfor %}
+        {% endcall %}
+      {% else %}
+        {% call vacio("Sin accesos registrados", "Esta cuenta todavía no ha iniciado sesión.") %}{% endcall %}
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="pila" aria-label="Estado y acciones">
+    <section class="panel">
+      <div class="panel__cabecera"><h2 class="panel__titulo">Estado</h2>
+        {% if usuario.bloqueo_temporal %}<span class="insignia insignia--error">Bloqueo temporal</span>{% else %}{{ estado_badge(usuario.estado) }}{% endif %}
+      </div>
+      <dl class="ficha">
+        <div class="ficha__dato"><dt>Tipo de perfil</dt><dd>{{ usuario.tipo_perfil|capitalize }}</dd></div>
+        <div class="ficha__dato"><dt>Creado</dt><dd>{{ usuario.fecha_creacion|fechahora }}</dd></div>
+        <div class="ficha__dato"><dt>Último acceso</dt><dd>{% if usuario.ultimo_acceso %}{{ usuario.ultimo_acceso|fechahora }}{% else %}Nunca{% endif %}</dd></div>
+        <div class="ficha__dato"><dt>Intentos fallidos</dt><dd>{{ usuario.intentos_fallidos }}</dd></div>
+        {% if usuario.cambio_clave_obligatorio %}<div class="ficha__dato"><dt>Contraseña</dt><dd>Debe cambiarla al entrar</dd></div>{% endif %}
+      </dl>
+    </section>
+
+    <section class="panel">
+      <div class="panel__cabecera"><h2 class="panel__titulo">Acciones</h2></div>
+      <div class="lista-acciones">
+        {% if usuario.bloqueo_temporal %}
+          {{ boton_post(url_for('usuarios.desbloquear', id_usuario=usuario.id_usuario), "Quitar el bloqueo", "boton--primario") }}
+        {% endif %}
+        {% if usuario.estado != "activo" %}
+          {{ boton_post(url_for('usuarios.estado', id_usuario=usuario.id_usuario), "Activar cuenta", "boton--primario", campos={"estado": "activo"}) }}
+        {% endif %}
+        {% if not es_yo %}
+          <a class="boton boton--secundario" href="{{ url_for('usuarios.restablecer_clave', id_usuario=usuario.id_usuario) }}">{{ icono("candado") }}Restablecer contraseña</a>
+          {% if usuario.estado == "activo" %}
+            {{ boton_post(url_for('usuarios.estado', id_usuario=usuario.id_usuario), "Desactivar cuenta", "boton--peligro-suave", confirmar="¿Desactivar a " ~ usuario.nombres ~ " " ~ usuario.apellidos ~ "? No podrá iniciar sesión.", boton_texto="Desactivar", campos={"estado": "inactivo"}) }}
+          {% endif %}
+          {% if usuario.estado != "bloqueado" %}
+            {{ boton_post(url_for('usuarios.estado', id_usuario=usuario.id_usuario), "Bloquear cuenta", "boton--peligro-suave", confirmar="¿Bloquear esta cuenta? Solo un administrador podrá activarla de nuevo.", boton_texto="Bloquear", campos={"estado": "bloqueado"}) }}
+          {% endif %}
+          {{ boton_post(url_for('usuarios.eliminar', id_usuario=usuario.id_usuario), "Eliminar usuario", "boton--peligro-suave", confirmar="¿Eliminar este usuario? Solo es posible si nunca tuvo actividad. Esta acción no se puede deshacer.", boton_texto="Eliminar") }}
+        {% else %}
+          <p class="nota">Esta es tu propia cuenta: para cambiar tu contraseña usa tu perfil.</p>
+        {% endif %}
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

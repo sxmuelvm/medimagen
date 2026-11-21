@@ -1,0 +1,133 @@
+/* Medimagen Cuenca · adaptación transversal: pantallas extremas, entrada táctil, orientación y
+   preferencias del sistema (movimiento, contraste, colores forzados). Se carga al final. */
+
+/* Pantallas muy estrechas (plegables cerrados, 280 px) */
+@media (max-width: 22.5rem) {
+  :root {
+    --e4: 0.875rem;
+    --e5: 1rem;
+  }
+
+  .boton {
+    padding-inline: var(--e4);
+  }
+
+  .cifras {
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  }
+
+  .cifra-bloque__valor {
+    font-size: 1.625rem;
+  }
+
+  .tabla:not(.tabla--desplazable) td {
+    grid-template-columns: minmax(4rem, 5rem) minmax(0, 1fr);
+  }
+}
+
+/* Móviles en horizontal: poca altura útil */
+@media (max-height: 30rem) and (orientation: landscape) {
+  :root {
+    --alto-barra: 3rem;
+  }
+
+  .contenido {
+    padding-top: var(--e4);
+  }
+
+  .pagina-cabecera {
+    margin-bottom: var(--e4);
+  }
+
+  .dialogo {
+    max-height: calc(100dvh - 1rem);
+    overflow-y: auto;
+  }
+}
+
+/* Monitores grandes: texto y espacios un poco mayores, contenido siempre centrado */
+@media (min-width: 120rem) {
+  html {
+    font-size: 106.25%;
+  }
+}
+
+@media (min-width: 160rem) {
+  html {
+    font-size: 112.5%;
+  }
+}
+
+/* Entrada táctil: objetivos de al menos 44 px también en los botones pequeños */
+@media (pointer: coarse) {
+  .boton--pequeno {
+    min-height: var(--objetivo-tactil);
+  }
+
+  .mensaje__cerrar {
+    width: var(--objetivo-tactil);
+    height: var(--objetivo-tactil);
+    margin: calc(var(--e2) * -1) calc(var(--e3) * -1) calc(var(--e2) * -1) 0;
+  }
+
+  .acciones-fila {
+    gap: var(--e3);
+  }
+}
+
+/* Movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important; /* debe ganar a las animaciones de cada componente */
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Más contraste */
+@media (prefers-contrast: more) {
+  :root {
+    --borde: #5a6e8a;
+    --borde-fuerte: #4b607f;
+    --texto-suave: #3b4d68;
+  }
+}
+
+/* Colores forzados de Windows: se conservan bordes, foco y estados sin depender de fondos */
+@media (forced-colors: active) {
+  .boton,
+  .boton-icono,
+  .insignia,
+  .mensaje,
+  .panel,
+  .cifras,
+  .filtros,
+  .tabla-contenedor,
+  .campo__control,
+  .paginacion__enlace,
+  .dialogo {
+    border: 1px solid CanvasText;
+  }
+
+  .menu__enlace--activo,
+  .paginacion__enlace[aria-current="page"] {
+    border: 2px solid Highlight;
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  :focus-visible {
+    outline: 3px solid Highlight;
+  }
+
+  .insignia::before {
+    background: CanvasText;
+  }
+}

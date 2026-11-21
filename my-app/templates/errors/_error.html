@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% set titulos = {400: "Solicitud no válida", 403: "Acceso denegado", 404: "Página no encontrada",
+                  429: "Demasiados intentos", 500: "Algo salió mal"} %}
+{% set consejos = {
+  400: "Revisa los datos e inténtalo otra vez. Si el formulario estuvo abierto mucho tiempo, recarga la página.",
+  403: "Tu perfil no tiene acceso a esta sección. Si lo necesitas, pídeselo a la persona que administra el sistema.",
+  404: "Puede que el enlace esté desactualizado o que el registro ya no exista.",
+  429: "Por seguridad bloqueamos temporalmente los intentos repetidos. Espera un minuto y vuelve a intentarlo.",
+  500: "No es tu culpa: el error quedó registrado para revisarlo. Intenta de nuevo en unos minutos."} %}
+{% block titulo %}{{ titulos.get(codigo, "Error") }}{% endblock %}
+{% block encabezado %}{% endblock %}
+{% block contenido_publico %}
+  <div class="error-pagina">{{ self.contenido() }}</div>
+{% endblock %}
+{% block contenido %}
+<section class="error">
+  <div class="error__latido latido" aria-hidden="true"></div>
+  <p class="error__codigo">Error {{ codigo }}</p>
+  <h1 class="error__titulo">{{ titulos.get(codigo, "Error") }}</h1>
+  <p class="error__mensaje">{{ mensaje }}</p>
+  <p class="error__consejo">{{ consejos.get(codigo, consejos[500]) }}</p>
+  <div class="fila error__acciones">
+    {% if usuario %}
+      <a class="boton boton--primario" href="{{ url_for('dashboard.inicio') }}">{{ icono("panel") }}Ir al panel</a>
+    {% else %}
+      <a class="boton boton--primario" href="{{ url_for('auth.login') }}">{{ icono("flecha-izq") }}Ir al inicio de sesión</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

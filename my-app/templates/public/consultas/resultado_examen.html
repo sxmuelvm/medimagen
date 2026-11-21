@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Exámenes solicitados", url_for('consultas.examenes_solicitados')), ("Resultado", None)] %}
+{% block titulo %}Resultado del examen{% endblock %}
+{% block subtitulo %}{% if resultado %}{{ resultado.paciente }} · {{ resultado.examen }}{% else %}Examen de laboratorio{% endif %}{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/atencion.css') }}">{% endblock %}
+{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('consultas.examenes_solicitados') }}">{{ icono("flecha-izq") }}Exámenes solicitados</a>{% endblock %}
+{% block contenido %}
+{% if resultado %}
+<section class="panel panel--medio">
+  <dl class="ficha">
+    <div class="ficha__dato"><dt>Paciente</dt><dd>{{ resultado.paciente }}<br><span class="nota">{{ resultado.cedula_paciente }}</span></dd></div>
+    <div class="ficha__dato"><dt>Examen</dt><dd>{{ resultado.examen }}</dd></div>
+    <div class="ficha__dato"><dt>Realizado</dt><dd>{{ resultado.fecha_realizacion|fecha }}</dd></div>
+    <div class="ficha__dato"><dt>Resultado emitido</dt><dd>{{ resultado.fecha_resultado|fecha }}</dd></div>
+  </dl>
+  <h2 class="panel__titulo">Resultado</h2>
+  <div class="resultado-caja"><p class="texto-clinico">{{ resultado.resultado }}</p></div>
+  {% if resultado.observaciones %}<h2 class="panel__titulo">Observaciones</h2><p class="texto-clinico">{{ resultado.observaciones }}</p>{% endif %}
+</section>
+{% else %}
+<div class="mensaje mensaje--aviso" role="status">{{ icono("reloj", "mensaje__icono") }}<p class="mensaje__texto">Este examen todavía no tiene resultado. Cuando el laboratorio lo registre lo verás aquí.</p></div>
+{% endif %}
+{% endblock %}

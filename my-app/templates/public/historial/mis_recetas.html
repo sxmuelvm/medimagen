@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import vacio %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Mis recetas", None)] %}
+{% block titulo %}Mis recetas{% endblock %}
+{% block subtitulo %}Los medicamentos que te han recetado, con su dosis y duración.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/atencion.css') }}">{% endblock %}
+{% block acciones %}<button type="button" class="boton boton--secundario" data-imprimir hidden>{{ icono("imprimir") }}Imprimir</button>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/modules/imprimir.js') }}" defer></script>{% endblock %}
+{% block contenido %}
+{% if recetas %}
+<ol class="registros">
+  {% for r in recetas %}
+  <li class="registro">
+    <div class="registro__cabeza"><span class="registro__fecha">Receta del {{ r.fecha_prescripcion|fecha }}</span><span class="registro__meta">{{ r.medico }}</span></div>
+    <ul class="medicamentos">
+      {% for m in r.medicamentos %}
+      <li class="medicamento">
+        <span class="medicamento__nombre">{{ m.medicamento }} <span class="registro__meta">{{ m.presentacion }} {{ m.concentracion }}</span></span>
+        <span class="medicamento__pauta">{{ m.dosis }} · {{ m.frecuencia }} · {{ m.duracion }}</span>
+        {% if m.indicaciones %}<span class="medicamento__nota">{{ m.indicaciones }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </li>
+  {% endfor %}
+</ol>
+{{ paginacion_de(paginacion, "historial.mis_recetas", {}) }}
+{% else %}
+<section class="panel">{% call vacio("No tienes recetas registradas", "Cuando un médico te recete medicamentos, los verás aquí.") %}{% endcall %}</section>
+{% endif %}
+{% endblock %}

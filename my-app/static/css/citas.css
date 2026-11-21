@@ -1,0 +1,222 @@
+/* Medimagen Cuenca · citas (agenda, nueva, detalle y reprogramar) */
+
+/* Pasos del formulario de nueva cita */
+.pasos {
+  display: grid;
+  gap: var(--e5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paso {
+  display: grid;
+  gap: var(--e4);
+  padding: var(--e5);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--blanco);
+}
+
+.paso__cabeza {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+}
+
+.paso__numero {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 50%;
+  background: var(--primario);
+  color: var(--blanco);
+  font-size: var(--texto-sm);
+  font-weight: 700;
+}
+
+.paso__titulo {
+  font-size: var(--texto-lg);
+}
+
+.paso__cuerpo {
+  display: grid;
+  gap: var(--e4);
+  min-width: 0;
+}
+
+.paso__cuerpo + .paso__cuerpo {
+  padding-top: var(--e5);
+  border-top: 1px solid var(--borde);
+}
+
+/* Paciente encontrado */
+.paciente-tarjeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3) var(--e5);
+  padding: var(--e4);
+  border: 1px solid var(--turquesa-100);
+  border-radius: var(--radio);
+  background: var(--celeste-50);
+}
+
+.paciente-tarjeta__nombre {
+  color: var(--azul-900);
+  font-size: var(--texto-lg);
+  font-weight: 700;
+}
+
+.paciente-tarjeta__dato {
+  color: var(--texto-suave);
+  font-size: var(--texto-sm);
+}
+
+.buscar-paciente {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e3);
+}
+
+.buscar-paciente .campo {
+  flex: 1 1 14rem;
+}
+
+/* Área: tres opciones grandes */
+.areas-opciones {
+  display: grid;
+  gap: var(--e3);
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.area-opcion {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.area-opcion input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.area-opcion__cuerpo {
+  display: grid;
+  gap: var(--e1);
+  height: 100%;
+  padding: var(--e4);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio);
+  background: var(--blanco);
+  transition: border-color var(--transicion), background-color var(--transicion);
+}
+
+.area-opcion__titulo {
+  color: var(--azul-900);
+  font-weight: 700;
+}
+
+.area-opcion__detalle {
+  color: var(--texto-suave);
+  font-size: var(--texto-sm);
+}
+
+.area-opcion input:checked + .area-opcion__cuerpo {
+  border-color: var(--azul-900);
+  background: var(--celeste-50);
+  box-shadow: inset 0 0 0 1px var(--azul-900);
+}
+
+.area-opcion input:focus-visible + .area-opcion__cuerpo {
+  outline: 3px solid var(--turquesa);
+  outline-offset: 2px;
+}
+
+/* Horarios y costo */
+.horarios-estado {
+  min-height: 1.5rem;
+  color: var(--texto-suave);
+  font-size: var(--texto-sm);
+}
+
+.horarios-estado--vacio {
+  color: var(--aviso);
+  font-weight: 600;
+}
+
+.resumen-costo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e2) var(--e3);
+  padding: var(--e3) var(--e4);
+  border-radius: var(--radio);
+  background: var(--celeste-50);
+  color: var(--azul-900);
+}
+
+.resumen-costo__valor {
+  font-family: var(--fuente-titulo);
+  font-size: 1.375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.resumen-costo__nota {
+  color: var(--texto-suave);
+  font-size: var(--texto-xs);
+}
+
+/* Reprogramar: la cita actual */
+.cita-actual {
+  display: grid;
+  gap: var(--e2);
+  padding: var(--e4);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--turquesa);
+  border-radius: var(--radio);
+  background: var(--blanco);
+}
+
+.cita-actual__titulo {
+  color: var(--azul-900);
+  font-size: var(--texto-lg);
+}
+
+/* Agenda: fila destacada y datos secundarios */
+.agenda-dia {
+  display: block;
+  color: var(--texto-suave);
+  font-size: var(--texto-xs);
+}
+
+@media (min-width: 40rem) {
+  .areas-opciones {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .area-opcion:hover .area-opcion__cuerpo {
+    border-color: var(--azul-900);
+  }
+}
+
+@media (forced-colors: active) {
+  .area-opcion input:checked + .area-opcion__cuerpo {
+    outline: 2px solid Highlight;
+  }
+}

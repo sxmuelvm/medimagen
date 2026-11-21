@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_campo_formulario.html" import campo, campo_select %}
+{% from "components/_acciones.html" import boton_post %}
+{% from "public/catalogos/_subnav.html" import subnav %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Catálogos", url_for('catalogos.index')), ("Tipos de examen", None)] %}
+{% set v = form if form else (editando if editando else {}) %}
+{% block titulo %}Tipos de examen{% endblock %}
+{% block subtitulo %}Agrupan los exámenes de imagenología y de laboratorio.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+{{ subnav("catalogos.tipos_examen") }}
+<div class="pagina-dividida pagina-dividida--lateral">
+  <section class="panel panel--sin-relleno">
+    {% if tipos %}
+      {% call tabla("Tipos de examen", ["Tipo", "Área", "Exámenes", "Acciones"]) %}
+        {% for t in tipos %}
+        <tr>
+          <td data-etiqueta="Tipo"><span class="tabla__principal">{{ t.nombre }}</span><span class="tabla__secundario">{{ t.id_tipo }}</span></td>
+          <td data-etiqueta="Área">{{ t.area }}</td>
+          <td class="tabla__numero" data-etiqueta="Exámenes">{{ t.examenes }}</td>
+          <td class="tabla__acciones" data-etiqueta="Acciones">
+            <div class="acciones-fila">
+              <a class="boton boton--secundario boton--pequeno" href="{{ url_for('catalogos.tipos_examen', editar=t.id_tipo) }}">Editar</a>
+              {{ boton_post(url_for('catalogos.tipo_eliminar', id_tipo=t.id_tipo), "Eliminar", clase="boton--peligro boton--pequeno", confirmar="¿Eliminar el tipo " ~ t.nombre ~ "? Solo se puede si no tiene exámenes.", boton_texto="Eliminar") }}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      {% endcall %}
+    {% else %}
+      {% call vacio("No hay tipos de examen", "Registra el primero con el formulario.") %}{% endcall %}
+    {% endif %}
+  </section>
+  <section class="panel" aria-labelledby="titulo-form">
+    <h2 class="panel__titulo" id="titulo-form">{{ "Editar tipo" if editando else "Nuevo tipo" }}</h2>
+    <form class="formulario" method="post" action="{{ url_for('catalogos.tipo_guardar', id_tipo=editando.id_tipo) if editando else url_for('catalogos.tipo_crear') }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if not editando %}
+        {{ campo("id_tipo", "Código", v.get('id_tipo'), requerido=true, maxlength=5, pattern="[A-Za-z0-9]{2,5}", ayuda="De 2 a 5 letras o números, por ejemplo RX o LAB.") }}
+        {% call campo_select("id_area", "Área", requerido=true) %}
+          <option value="">Elige un área</option>
+          {% for a in areas %}<option value="{{ a.id_area }}"{% if v.get('id_area')|string == a.id_area|string %} selected{% endif %}>{{ a.nombre }}</option>{% endfor %}
+        {% endcall %}
+      {% endif %}
+      {{ campo("nombre", "Nombre", v.get('nombre'), requerido=true, maxlength=60) }}
+      <div class="formulario__acciones">
+        {% if editando %}<a class="boton boton--secundario" href="{{ url_for('catalogos.tipos_examen') }}">Cancelar</a>{% endif %}
+        <button type="submit" class="boton boton--primario">{{ "Guardar cambios" if editando else "Registrar tipo" }}</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

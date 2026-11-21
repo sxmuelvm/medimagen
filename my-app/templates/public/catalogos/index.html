@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "public/catalogos/_subnav.html" import subnav %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Catálogos", None)] %}
+{% block titulo %}Catálogos{% endblock %}
+{% block subtitulo %}Datos de referencia que usan las citas, los exámenes y las recetas.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+{{ subnav("catalogos.index") }}
+{% set secciones = [
+  ("catalogos.areas", "Áreas", "Consulta, imagenología y laboratorio.", resumen.areas),
+  ("catalogos.recursos", "Recursos de atención", "Consultorios, equipos y puestos de laboratorio.", resumen.recursos),
+  ("catalogos.tipos_examen", "Tipos de examen", "Agrupan los exámenes por área.", resumen.tipos_examen),
+  ("catalogos.subtipos_examen", "Exámenes", "Cada estudio con su costo.", resumen.subtipos_examen),
+  ("catalogos.medicamentos", "Medicamentos", "Lista que usa el médico al recetar.", resumen.medicamentos),
+  ("catalogos.bloques_horario", "Bloques horarios", "Franjas de la jornada, solo lectura.", resumen.bloques_horario)] %}
+<div class="catalogos">
+  {% for endpoint, titulo, detalle, cantidad in secciones %}
+  <a class="catalogos__item" href="{{ url_for(endpoint) }}">
+    <span class="catalogos__titulo">{{ titulo }}</span>
+    <span class="catalogos__detalle">{{ detalle }}</span>
+    <span class="catalogos__cantidad">{{ cantidad }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

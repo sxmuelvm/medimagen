@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_acciones.html" import boton_post %}
+{% from "components/_filtros.html" import buscador, filtro_select, filtro_botones %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Médicos", None)] %}
+{% block titulo %}Médicos{% endblock %}
+{% block subtitulo %}Cada especialidad debe tener siempre al menos un médico activo.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block acciones %}<a class="boton boton--primario" href="{{ url_for('medicos.crear') }}">{{ icono("mas") }}Nuevo médico</a>{% endblock %}
+{% block contenido %}
+{% set opciones_esp = [] %}{% for e in especialidades %}{% set _ = opciones_esp.append((e.id_especialidad, e.nombre)) %}{% endfor %}
+<form class="filtros" method="get" action="{{ url_for('medicos.lista') }}" role="search">
+  {{ buscador(filtros.q, "Cédula, nombre o correo") }}
+  {{ filtro_select("id_especialidad", "Especialidad", opciones_esp, filtros.id_especialidad, "Todas las especialidades") }}
+  {{ filtro_select("estado", "Estado", [("activo", "Activo"), ("inactivo", "Inactivo")], filtros.estado) }}
+  {{ filtro_botones(url_for('medicos.lista')) }}
+</form>
+
+<section class="panel panel--sin-relleno">
+  {% if medicos %}
+    {% call tabla("Médicos del centro", ["Médico", "Especialidad", "Contacto", "Usuario", "Estado", "Acciones"]) %}
+      {% for m in medicos %}
+      <tr>
+        <td data-etiqueta="Médico"><span class="tabla__principal">{{ m.nombres }} {{ m.apellidos }}</span><span class="tabla__secundario">{{ m.cedula }}</span></td>
+        <td data-etiqueta="Especialidad">{{ m.especialidad }}</td>
+        <td data-etiqueta="Contacto">{{ m.telefono or "—" }}{% if m.correo %}<span class="tabla__secundario">{{ m.correo }}</span>{% endif %}</td>
+        <td data-etiqueta="Usuario">{% if m.nombre_usuario %}{{ m.nombre_usuario }}{% else %}<span class="sin-dato">Sin usuario</span>{% endif %}</td>
+        <td data-etiqueta="Estado">{{ estado_badge(m.estado) }}</td>
+        <td class="tabla__acciones" data-etiqueta="Acciones">
+          <div class="acciones-fila">
+            <a class="boton boton--secundario boton--pequeno" href="{{ url_for('medicos.horario', id_medico=m.id_medico) }}">Horario</a>
+            <a class="boton boton--secundario boton--pequeno" href="{{ url_for('medicos.editar', id_medico=m.id_medico) }}">Editar</a>
+            {% if m.estado == "activo" %}
+              {{ boton_post(url_for('medicos.estado', id_medico=m.id_medico), "Desactivar", confirmar="¿Desactivar a " ~ m.nombres ~ " " ~ m.apellidos ~ "? No podrá recibir citas nuevas.", boton_texto="Desactivar", campos={"estado": "inactivo"}) }}
+            {% else %}
+              {{ boton_post(url_for('medicos.estado', id_medico=m.id_medico), "Activar", campos={"estado": "activo"}) }}
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("No se encontraron médicos", "Prueba con otra búsqueda o quita los filtros.") %}<a class="boton boton--secundario" href="{{ url_for('medicos.lista') }}">Quitar filtros</a>{% endcall %}
+  {% endif %}
+</section>
+{{ paginacion_de(paginacion, "medicos.lista", filtros) }}
+{% endblock %}

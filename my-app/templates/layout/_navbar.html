@@ -1,0 +1,10 @@
+{% from "components/_icono.html" import icono %}
+{# Barra superior: solo se ve en móvil y tableta estrecha. El botón solo funciona con JavaScript. #}
+<header class="barra">
+  <a class="barra__marca" href="{{ url_for('dashboard.inicio') }}" aria-label="Ir al panel">
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Medimagen Cuenca" width="89" height="36">
+  </a>
+  <button type="button" class="boton-icono barra__menu" data-abrir-menu aria-controls="menu-principal" aria-expanded="false" aria-label="Abrir el menú">
+    {{ icono("menu") }}
+  </button>
+</header>

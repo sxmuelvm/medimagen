@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_acciones.html" import boton_post %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Agenda de citas", url_for('citas.agenda')), ("Cita " ~ cita.id_cita, None)] %}
+{% set etiquetas_accion = {"confirmada": "Confirmar cita", "cancelada": "Cancelar cita", "no_asistio": "Marcar como no asistió", "pendiente": "Reactivar cita"} %}
+{% block titulo %}Cita {{ cita.id_cita }}{% endblock %}
+{% block subtitulo %}{{ cita.paciente }} · {{ cita.fecha_cita|fecha }}, {{ cita.hora_inicio|hora }}{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/citas.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('citas.agenda') }}">{{ icono("flecha-izq") }}Volver a la agenda</a>{% endblock %}
+{% block contenido %}
+<div class="pagina-dividida pagina-dividida--lateral">
+  <div class="pila">
+    <section class="panel">
+      <div class="panel__cabecera"><h2 class="panel__titulo">Datos de la cita</h2>{{ estado_badge(cita.estado) }}</div>
+      <dl class="ficha">
+        <div class="ficha__dato"><dt>Paciente</dt><dd><a href="{{ url_for('pacientes.ficha', cedula=cita.cedula_paciente) }}">{{ cita.paciente }}</a><br><span class="nota">{{ cita.cedula_paciente }}</span></dd></div>
+        <div class="ficha__dato"><dt>Fecha</dt><dd>{{ cita.fecha_cita|fecha }}</dd></div>
+        <div class="ficha__dato"><dt>Hora</dt><dd>{{ cita.hora_inicio|hora }} – {{ cita.hora_fin|hora }}</dd></div>
+        <div class="ficha__dato"><dt>Área</dt><dd>{{ cita.area }}</dd></div>
+        {% if cita.medico %}<div class="ficha__dato"><dt>Médico</dt><dd>{{ cita.medico }}<br><span class="nota">{{ cita.especialidad }}</span></dd></div>{% endif %}
+        {% if cita.examen %}<div class="ficha__dato"><dt>Examen</dt><dd>{{ cita.examen }}{% if cita.estado_examen %}<br>{{ estado_badge(cita.estado_examen) }}{% endif %}</dd></div>{% endif %}
+        {% if cita.medico_solicitante %}<div class="ficha__dato"><dt>Solicitado por</dt><dd>{{ cita.medico_solicitante }}</dd></div>{% endif %}
+        <div class="ficha__dato"><dt>Lugar</dt><dd>{{ cita.recurso }}</dd></div>
+        <div class="ficha__dato"><dt>Costo</dt><dd>{{ cita.costo_aplicado|dinero }}</dd></div>
+        <div class="ficha__dato"><dt>Registrada</dt><dd>{{ cita.fecha_registro|fechahora }}</dd></div>
+        <div class="ficha__dato"><dt>Observación</dt><dd>{{ cita.observacion or "—" }}</dd></div>
+      </dl>
+    </section>
+
+    {% if session.cuenta == "administrador" %}
+    <section class="panel panel--sin-relleno">
+      <div class="panel__cabecera"><h2 class="panel__titulo">Historial de cambios</h2></div>
+      {% if historial %}
+        {% call tabla("Historial de cambios de la cita", ["Fecha del cambio", "Estado", "Fecha y hora", "Cuenta"]) %}
+          {% for h in historial %}
+          <tr>
+            <td data-etiqueta="Fecha del cambio">{{ h.fecha_cambio|fechahora }}</td>
+            <td data-etiqueta="Estado">{% if h.estado_anterior and h.estado_anterior != h.estado_nuevo %}{{ estado_badge(h.estado_anterior) }} <span aria-hidden="true">→</span> <span class="visualmente-oculto">a</span>{% endif %}{{ estado_badge(h.estado_nuevo) }}</td>
+            <td data-etiqueta="Fecha y hora">{% if h.fecha_nueva %}{{ h.fecha_nueva|fecha }} · {{ h.hora_nueva|hora }}{% else %}<span class="sin-dato">—</span>{% endif %}{% if h.fecha_anterior and (h.fecha_anterior != h.fecha_nueva or h.hora_anterior != h.hora_nueva) %}<span class="tabla__secundario">Antes: {{ h.fecha_anterior|fecha }} · {{ h.hora_anterior|hora }}</span>{% endif %}</td>
+            <td data-etiqueta="Cuenta"><span class="tabla__secundario">{{ h.usuario_bd }}</span></td>
+          </tr>
+          {% endfor %}
+        {% endcall %}
+      {% else %}
+        {% call vacio("Sin cambios registrados", "Esta cita no ha cambiado desde que se creó.") %}{% endcall %}
+      {% endif %}
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="panel" aria-label="Acciones de la cita">
+    <div class="panel__cabecera"><h2 class="panel__titulo">Acciones</h2></div>
+    <div class="lista-acciones">
+      {% if cita.modificable %}
+        <a class="boton boton--primario" href="{{ url_for('citas.reprogramar', id_cita=cita.id_cita) }}">{{ icono("reloj") }}Reprogramar</a>
+      {% endif %}
+      {% for destino in cita.transiciones %}
+        {% if destino == "cancelada" %}
+          {{ boton_post(url_for('citas.estado', id_cita=cita.id_cita), etiquetas_accion[destino], "boton--peligro-suave", confirmar="¿Cancelar esta cita? El horario quedará libre.", boton_texto="Cancelar cita", campos={"estado": destino}) }}
+        {% else %}
+          {{ boton_post(url_for('citas.estado', id_cita=cita.id_cita), etiquetas_accion[destino], "boton--primario" if destino == "confirmada" else "boton--secundario", campos={"estado": destino}) }}
+        {% endif %}
+      {% endfor %}
+      {% if cita.eliminable %}
+        {{ boton_post(url_for('citas.eliminar', id_cita=cita.id_cita), "Eliminar cita", "boton--peligro-suave", confirmar="¿Eliminar esta cita? Solo se hace con citas registradas por error. No se puede deshacer.", boton_texto="Eliminar") }}
+      {% endif %}
+      {% if not cita.modificable and not cita.transiciones and not cita.eliminable %}
+        <p class="nota">Esta cita ya está cerrada ({{ "atendida" if cita.estado == "atendida" else cita.estado|replace("_", " ") }}) y no admite cambios.</p>
+      {% elif cita.estado == "pendiente" and not cita.ya_inicio %}
+        <p class="nota">Cuando el paciente llegue, el médico o el personal de examen la marca como atendida.</p>
+      {% endif %}
+    </div>
+  </aside>
+</div>
+{% endblock %}

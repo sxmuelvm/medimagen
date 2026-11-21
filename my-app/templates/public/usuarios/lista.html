@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_filtros.html" import buscador, filtro_select, filtro_botones %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Usuarios", None)] %}
+{% block titulo %}Usuarios{% endblock %}
+{% block subtitulo %}Cuentas con acceso al sistema. Las cuentas no se borran: se desactivan o se bloquean.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block acciones %}<a class="boton boton--primario" href="{{ url_for('usuarios.crear') }}">{{ icono("mas") }}Nuevo usuario</a>{% endblock %}
+{% block contenido %}
+{% set opciones_rol = [] %}{% for r in roles %}{% set _ = opciones_rol.append((r.nombre, r.nombre|replace("_", " ")|capitalize)) %}{% endfor %}
+<form class="filtros" method="get" action="{{ url_for('usuarios.lista') }}" role="search">
+  {{ buscador(filtros.q, "Cédula, nombre, usuario o correo") }}
+  {{ filtro_select("rol", "Rol", opciones_rol, filtros.rol, "Todos los roles") }}
+  {{ filtro_select("estado", "Estado", [("activo", "Activo"), ("inactivo", "Inactivo"), ("bloqueado", "Bloqueado")], filtros.estado) }}
+  {{ filtro_botones(url_for('usuarios.lista')) }}
+</form>
+
+<section class="panel panel--sin-relleno">
+  {% if usuarios %}
+    {% call tabla("Lista de usuarios", ["Persona", "Cédula", "Rol", "Estado", "Último acceso", "Acciones"]) %}
+      {% for u in usuarios %}
+      <tr>
+        <td data-etiqueta="Persona"><span class="tabla__principal">{{ u.nombres }} {{ u.apellidos }}</span><span class="tabla__secundario">{{ u.nombre_usuario }}{% if u.correo %} · {{ u.correo }}{% endif %}</span></td>
+        <td data-etiqueta="Cédula">{{ u.cedula }}</td>
+        <td data-etiqueta="Rol">{{ {"recepcion": "Recepción", "medico": "Médico", "imagenologia": "Personal de imagenología", "laboratorio": "Personal de laboratorio"}.get(u.rol, u.rol|replace("_", " ")|capitalize) }}</td>
+        <td data-etiqueta="Estado">{% if u.bloqueo_temporal %}<span class="insignia insignia--error">Bloqueo temporal</span>{% else %}{{ estado_badge(u.estado) }}{% endif %}</td>
+        <td data-etiqueta="Último acceso">{% if u.ultimo_acceso %}{{ u.ultimo_acceso|fechahora }}{% else %}<span class="sin-dato">Nunca</span>{% endif %}</td>
+        <td class="tabla__acciones" data-etiqueta="Acciones"><div class="acciones-fila"><a class="boton boton--secundario boton--pequeno" href="{{ url_for('usuarios.editar', id_usuario=u.id_usuario) }}">Editar</a></div></td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("No se encontraron usuarios", "Prueba con otra búsqueda o quita los filtros.") %}<a class="boton boton--secundario" href="{{ url_for('usuarios.lista') }}">Quitar filtros</a>{% endcall %}
+  {% endif %}
+</section>
+{{ paginacion_de(paginacion, "usuarios.lista", filtros) }}
+{% endblock %}

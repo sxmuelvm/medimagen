@@ -1,0 +1,36 @@
+{% from "components/_icono.html" import icono %}
+{# Piezas de la barra de filtros (formulario GET). Los nombres de los parámetros son los que lee el backend. #}
+{% macro buscador(valor, placeholder="Buscar", nombre="q", etiqueta="Buscar") -%}
+<div class="campo campo--ancho">
+  <label class="campo__etiqueta" for="filtro-{{ nombre }}">{{ etiqueta }}</label>
+  <div class="buscador">
+    {{ icono("buscar") }}
+    <input class="campo__control" id="filtro-{{ nombre }}" name="{{ nombre }}" type="search" value="{{ valor or '' }}" placeholder="{{ placeholder }}" maxlength="80" autocomplete="off">
+  </div>
+</div>
+{%- endmacro %}
+
+{# opciones: lista de pares (valor, texto) #}
+{% macro filtro_select(nombre, etiqueta, opciones, actual, todos="Todos") -%}
+<div class="campo">
+  <label class="campo__etiqueta" for="filtro-{{ nombre }}">{{ etiqueta }}</label>
+  <select class="campo__control" id="filtro-{{ nombre }}" name="{{ nombre }}">
+    <option value="">{{ todos }}</option>
+    {% for valor, texto in opciones %}<option value="{{ valor }}"{% if actual|string == valor|string %} selected{% endif %}>{{ texto }}</option>{% endfor %}
+  </select>
+</div>
+{%- endmacro %}
+
+{% macro filtro_campo(nombre, etiqueta, valor, tipo="date") -%}
+<div class="campo">
+  <label class="campo__etiqueta" for="filtro-{{ nombre }}">{{ etiqueta }}</label>
+  <input class="campo__control" id="filtro-{{ nombre }}" name="{{ nombre }}" type="{{ tipo }}" value="{{ valor or '' }}">
+</div>
+{%- endmacro %}
+
+{% macro filtro_botones(url_limpiar) -%}
+<div class="filtros__acciones">
+  <button type="submit" class="boton boton--primario">Filtrar</button>
+  <a class="boton boton--terciario" href="{{ url_limpiar }}">Limpiar</a>
+</div>
+{%- endmacro %}

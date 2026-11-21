@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_acciones.html" import boton_post %}
+{% from "components/_filtros.html" import buscador, filtro_select, filtro_botones %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Pacientes", None)] %}
+{% block titulo %}Pacientes{% endblock %}
+{% block subtitulo %}Registro de pacientes del centro.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block acciones %}<a class="boton boton--primario" href="{{ url_for('pacientes.crear') }}">{{ icono("mas") }}Nuevo paciente</a>{% endblock %}
+{% block contenido %}
+<form class="filtros" method="get" action="{{ url_for('pacientes.lista') }}" role="search">
+  {{ buscador(filtros.q, "Cédula, nombre o correo") }}
+  {{ filtro_select("estado", "Estado", [("activo", "Activo"), ("inactivo", "Inactivo")], filtros.estado) }}
+  {{ filtro_botones(url_for('pacientes.lista')) }}
+</form>
+
+<section class="panel panel--sin-relleno">
+  {% if pacientes %}
+    {% call tabla("Pacientes", ["Paciente", "Edad", "Contacto", "Estado", "Acciones"]) %}
+      {% for p in pacientes %}
+      <tr>
+        <td data-etiqueta="Paciente"><span class="tabla__principal">{{ p.nombres }} {{ p.apellidos }}</span><span class="tabla__secundario">{{ p.cedula_paciente }}</span></td>
+        <td class="tabla__numero" data-etiqueta="Edad">{{ p.edad }} años</td>
+        <td data-etiqueta="Contacto">{{ p.telefono or "—" }}{% if p.correo %}<span class="tabla__secundario">{{ p.correo }}</span>{% endif %}</td>
+        <td data-etiqueta="Estado">{{ estado_badge(p.estado) }}</td>
+        <td class="tabla__acciones" data-etiqueta="Acciones">
+          <div class="acciones-fila">
+            <a class="boton boton--secundario boton--pequeno" href="{{ url_for('pacientes.ficha', cedula=p.cedula_paciente) }}">Ver ficha</a>
+            <a class="boton boton--secundario boton--pequeno" href="{{ url_for('pacientes.editar', cedula=p.cedula_paciente) }}">Editar</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("No se encontraron pacientes", "Prueba con otra búsqueda o registra un paciente nuevo.") %}<a class="boton boton--primario" href="{{ url_for('pacientes.crear') }}">Registrar paciente</a>{% endcall %}
+  {% endif %}
+</section>
+{{ paginacion_de(paginacion, "pacientes.lista", filtros) }}
+{% endblock %}

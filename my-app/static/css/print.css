@@ -1,0 +1,100 @@
+/* Medimagen Cuenca · impresión: recetas, resultados y comprobantes (texto negro sobre blanco, sin menús ni botones) */
+
+@page {
+  margin: 16mm;
+}
+
+body {
+  background: #fff;
+  color: #000;
+  font-size: 11pt;
+  line-height: 1.4;
+}
+
+.barra,
+.lateral,
+.pie,
+.salto,
+.migas,
+.mensajes,
+.filtros,
+.paginacion,
+.boton,
+.boton-icono,
+.acciones-fila,
+.pagina-cabecera__acciones,
+.dialogo {
+  display: none !important; /* la impresión nunca debe mostrar controles interactivos */
+}
+
+.app {
+  display: block;
+}
+
+.contenido {
+  max-width: none;
+  padding: 0;
+}
+
+.solo-impresion {
+  display: block;
+}
+
+.imprimir-cabecera {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12mm;
+  margin-bottom: 8mm;
+  padding-bottom: 4mm;
+  border-bottom: 1px solid #000;
+}
+
+.imprimir-cabecera img {
+  width: auto;
+  height: 14mm;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: #000;
+  break-after: avoid;
+}
+
+.panel,
+.tabla-contenedor,
+.cifras {
+  border: 1px solid #666;
+  background: #fff;
+  break-inside: avoid;
+}
+
+.tabla-contenedor {
+  overflow: visible;
+}
+
+.tabla th {
+  background: #eee;
+  color: #000;
+}
+
+.tabla tr {
+  break-inside: avoid;
+}
+
+.tabla tbody tr:nth-child(even) {
+  background: #fff;
+}
+
+.insignia {
+  border: 1px solid #000;
+  background: #fff;
+  color: #000;
+}
+
+a {
+  color: #000;
+  text-decoration: none;
+}

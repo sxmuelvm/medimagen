@@ -1,0 +1,21 @@
+{# {{ campo("cedula", "Cédula", valor=cedula, inputmode="numeric", maxlength=10, pattern="[0-9]{10}", requerido=true, ayuda="10 dígitos", error=error) }}
+   Para listas: {% call campo_select("id_x", "Etiqueta", requerido=true) %}<option…>{% endcall %}  #}
+{% macro campo(nombre, etiqueta, valor="", tipo="text", requerido=false, ayuda="", error="", autocomplete="off", inputmode="", maxlength="", pattern="", minimo="", maximo="", paso="", solo_lectura=false, placeholder="") -%}
+<div class="campo{% if error %} campo--error{% endif %}">
+  <label class="campo__etiqueta" for="{{ nombre }}">{{ etiqueta }}{% if requerido %}<span class="campo__obligatorio" aria-hidden="true">*</span>{% endif %}</label>
+  <input class="campo__control" id="{{ nombre }}" name="{{ nombre }}" type="{{ tipo }}" value="{{ valor if valor is not none else '' }}"
+    autocomplete="{{ autocomplete }}"{% if inputmode %} inputmode="{{ inputmode }}"{% endif %}{% if maxlength %} maxlength="{{ maxlength }}"{% endif %}{% if pattern %} pattern="{{ pattern }}"{% endif %}{% if minimo != "" %} min="{{ minimo }}"{% endif %}{% if maximo != "" %} max="{{ maximo }}"{% endif %}{% if paso %} step="{{ paso }}"{% endif %}{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if requerido %} required{% endif %}{% if solo_lectura %} readonly{% endif %}
+    {% if ayuda or error %} aria-describedby="{{ nombre }}-ayuda"{% endif %}{% if error %} aria-invalid="true"{% endif %}>
+  {% if error %}<p class="campo__error" id="{{ nombre }}-ayuda">{{ error }}</p>{% elif ayuda %}<p class="campo__ayuda" id="{{ nombre }}-ayuda">{{ ayuda }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro campo_select(nombre, etiqueta, requerido=false, ayuda="", error="") -%}
+<div class="campo{% if error %} campo--error{% endif %}">
+  <label class="campo__etiqueta" for="{{ nombre }}">{{ etiqueta }}{% if requerido %}<span class="campo__obligatorio" aria-hidden="true">*</span>{% endif %}</label>
+  <select class="campo__control" id="{{ nombre }}" name="{{ nombre }}"{% if requerido %} required{% endif %}{% if ayuda or error %} aria-describedby="{{ nombre }}-ayuda"{% endif %}{% if error %} aria-invalid="true"{% endif %}>
+    {{ caller() }}
+  </select>
+  {% if error %}<p class="campo__error" id="{{ nombre }}-ayuda">{{ error }}</p>{% elif ayuda %}<p class="campo__ayuda" id="{{ nombre }}-ayuda">{{ ayuda }}</p>{% endif %}
+</div>
+{%- endmacro %}

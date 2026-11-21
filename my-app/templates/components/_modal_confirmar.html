@@ -1,0 +1,12 @@
+{# Diálogo compartido de confirmación. Los formularios con data-confirmar="¿Texto?" lo abren antes de enviarse.
+   Sin JavaScript el formulario se envía directamente (el servidor sigue siendo quien decide). #}
+<dialog class="dialogo" id="dialogo-confirmar" aria-labelledby="dialogo-titulo" aria-describedby="dialogo-texto" data-dialogo>
+  <form method="dialog" class="dialogo__contenido">
+    <h2 id="dialogo-titulo">Confirmar acción</h2>
+    <p class="dialogo__texto" id="dialogo-texto" data-dialogo-texto></p>
+    <div class="dialogo__acciones">
+      <button type="submit" value="cancelar" class="boton boton--secundario" data-dialogo-cancelar>Cancelar</button>
+      <button type="submit" value="aceptar" class="boton boton--peligro" data-dialogo-aceptar>Confirmar</button>
+    </div>
+  </form>
+</dialog>

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_campo_formulario.html" import campo %}
+{% from "components/_acciones.html" import boton_post %}
+{% from "components/_filtros.html" import buscador, filtro_select, filtro_botones %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% from "public/catalogos/_subnav.html" import subnav %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Catálogos", url_for('catalogos.index')), ("Medicamentos", None)] %}
+{% set v = form if form else (editando if editando else {}) %}
+{% block titulo %}Medicamentos{% endblock %}
+{% block subtitulo %}Lista que el médico usa al emitir una receta.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+{{ subnav("catalogos.medicamentos") }}
+<div class="pagina-dividida pagina-dividida--lateral">
+  <div>
+    <form class="filtros" method="get" action="{{ url_for('catalogos.medicamentos') }}" role="search">
+      {{ buscador(filtros.q, "Nombre del medicamento") }}
+      {{ filtro_select("estado", "Estado", [("activo", "Activo"), ("inactivo", "Inactivo")], filtros.estado) }}
+      {{ filtro_botones(url_for('catalogos.medicamentos')) }}
+    </form>
+    <section class="panel panel--sin-relleno">
+      {% if medicamentos %}
+        {% call tabla("Medicamentos", ["Medicamento", "Presentación", "Concentración", "Estado", "Acciones"]) %}
+          {% for m in medicamentos %}
+          <tr>
+            <td data-etiqueta="Medicamento"><span class="tabla__principal">{{ m.nombre }}</span></td>
+            <td data-etiqueta="Presentación">{{ m.presentacion or "—" }}</td>
+            <td data-etiqueta="Concentración">{{ m.concentracion or "—" }}</td>
+            <td data-etiqueta="Estado">{{ estado_badge(m.estado) }}</td>
+            <td class="tabla__acciones" data-etiqueta="Acciones">
+              <div class="acciones-fila">
+                <a class="boton boton--secundario boton--pequeno" href="{{ url_for('catalogos.medicamentos', editar=m.id_medicamento) }}">Editar</a>
+                {{ boton_post(url_for('catalogos.medicamento_eliminar', id_medicamento=m.id_medicamento), "Eliminar", clase="boton--peligro boton--pequeno", confirmar="¿Eliminar el medicamento " ~ m.nombre ~ "? Esta acción no se puede deshacer.", boton_texto="Eliminar") }}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% endcall %}
+      {% else %}
+        {% call vacio("No se encontraron medicamentos", "Prueba con otra búsqueda o registra uno nuevo.") %}{% endcall %}
+      {% endif %}
+    </section>
+    {{ paginacion_de(paginacion, "catalogos.medicamentos", filtros) }}
+  </div>
+  <section class="panel" aria-labelledby="titulo-form">
+    <h2 class="panel__titulo" id="titulo-form">{{ "Editar medicamento" if editando else "Nuevo medicamento" }}</h2>
+    <form class="formulario" method="post" action="{{ url_for('catalogos.medicamento_guardar', id_medicamento=editando.id_medicamento) if editando else url_for('catalogos.medicamento_crear') }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ campo("nombre", "Nombre", v.get('nombre'), requerido=true, maxlength=100) }}
+      {{ campo("presentacion", "Presentación", v.get('presentacion'), maxlength=60, placeholder="Tabletas, jarabe, ampolla…") }}
+      {{ campo("concentracion", "Concentración", v.get('concentracion'), maxlength=60, placeholder="500 mg") }}
+      {% if editando %}
+      <div class="campo">
+        <label class="campo__etiqueta" for="estado">Estado</label>
+        <select class="campo__control" id="estado" name="estado">
+          <option value="activo"{% if v.get('estado') == "activo" %} selected{% endif %}>Activo</option>
+          <option value="inactivo"{% if v.get('estado') == "inactivo" %} selected{% endif %}>Inactivo</option>
+        </select>
+      </div>
+      {% endif %}
+      <div class="formulario__acciones">
+        {% if editando %}<a class="boton boton--secundario" href="{{ url_for('catalogos.medicamentos') }}">Cancelar</a>{% endif %}
+        <button type="submit" class="boton boton--primario">{{ "Guardar cambios" if editando else "Registrar medicamento" }}</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

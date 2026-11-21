@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
+{% block titulo %}Panel{% endblock %}
+{% block subtitulo %}Hola, {{ usuario.nombres }}. Este es el estado del centro hoy.{% endblock %}
+{% block acciones %}
+  <a class="boton boton--primario" href="{{ url_for('usuarios.crear') }}">{{ icono("mas") }}Nuevo usuario</a>
+  <a class="boton boton--secundario" href="{{ url_for('reportes.ingresos') }}">{{ icono("reportes") }}Reporte de ingresos</a>
+{% endblock %}
+{% block contenido %}
+{% set i = datos.indicadores %}
+<div class="pila">
+  <div class="cifras" role="group" aria-label="Indicadores del sistema">
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.citas_hoy }}</span><span class="cifra-bloque__etiqueta">Citas activas de hoy</span><span class="cifra-bloque__detalle">{{ i.citas_pendientes }} pendientes en total</span></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.pacientes }}</span><span class="cifra-bloque__etiqueta">Pacientes activos</span></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.medicos }}</span><span class="cifra-bloque__etiqueta">Médicos activos</span></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.usuarios_activos }}</span><span class="cifra-bloque__etiqueta">Usuarios activos</span></div>
+    <div class="cifra-bloque{% if i.usuarios_bloqueados %} cifra-bloque--alerta{% endif %}"><span class="cifra-bloque__valor">{{ i.usuarios_bloqueados }}</span><span class="cifra-bloque__etiqueta">Usuarios bloqueados o inactivos</span></div>
+    <div class="cifra-bloque{% if i.accesos_fallidos_24h %} cifra-bloque--alerta{% endif %}"><span class="cifra-bloque__valor">{{ i.accesos_fallidos_24h }}</span><span class="cifra-bloque__etiqueta">Accesos fallidos (24 h)</span></div>
+  </div>
+
+  <div class="rejilla rejilla--principal">
+    <section class="panel">
+      <div class="panel__cabecera">
+        <h2 class="panel__titulo">Ingresos recientes por área</h2>
+        <a class="boton boton--terciario boton--pequeno" href="{{ url_for('reportes.ingresos') }}">Ver reporte completo</a>
+      </div>
+      {% if datos.ingresos %}
+        {% call tabla("Ingresos recientes por área y mes", ["Mes", "Área", "Citas atendidas", "Ingresos"]) %}
+          {% for f in datos.ingresos %}
+          <tr>
+            <td data-etiqueta="Mes">{{ f.mes }}</td>
+            <td data-etiqueta="Área"><span class="tabla__principal">{{ f.area }}</span></td>
+            <td class="tabla__numero" data-etiqueta="Citas atendidas">{{ f.citas_atendidas }}</td>
+            <td class="tabla__numero" data-etiqueta="Ingresos">{{ f.ingresos|dinero }}</td>
+          </tr>
+          {% endfor %}
+        {% endcall %}
+      {% else %}
+        {% call vacio("Aún no hay ingresos registrados", "Aparecerán cuando se atiendan las primeras citas.") %}{% endcall %}
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel__cabecera">
+        <h2 class="panel__titulo">Últimos accesos</h2>
+        <a class="boton boton--terciario boton--pequeno" href="{{ url_for('auditoria.accesos') }}">Ver todos</a>
+      </div>
+      {% if datos.ultimos_accesos %}
+      <ul class="lista-simple">
+        {% for a in datos.ultimos_accesos %}
+        <li class="lista-simple__item">
+          <span>
+            <span class="lista-simple__titulo">{{ a.nombre_usuario or a.cedula_intento }}</span>
+            <span class="lista-simple__detalle">{{ a.fecha|fechahora }}</span>
+          </span>
+          {{ estado_badge(a.resultado) }}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {% call vacio("Sin accesos registrados") %}{% endcall %}
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

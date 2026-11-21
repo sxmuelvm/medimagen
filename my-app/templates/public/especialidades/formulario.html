@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "components/_campo_formulario.html" import campo %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Especialidades", url_for('especialidades.lista')), ("Editar" if especialidad else "Nueva", None)] %}
+{% set v = form if form else (especialidad if especialidad else {}) %}
+{% block titulo %}{{ "Editar especialidad" if especialidad else "Nueva especialidad" }}{% endblock %}
+{% block subtitulo %}{% if especialidad %}Código {{ especialidad.id_especialidad }}{% else %}El código se genera a partir del nombre.{% endif %}{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+<section class="panel panel--medio">
+  <form class="formulario" method="post" action="{{ url_for('especialidades.editar', codigo=especialidad.id_especialidad) if especialidad else url_for('especialidades.crear') }}" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {{ campo("nombre", "Nombre", v.get('nombre'), requerido=true, maxlength=60) }}
+    <div class="campo">
+      <label class="campo__etiqueta" for="descripcion">Descripción</label>
+      <textarea class="campo__control" id="descripcion" name="descripcion" maxlength="255" rows="3">{{ v.get('descripcion', '') or '' }}</textarea>
+    </div>
+    {{ campo("costo_consulta", "Costo de la consulta (USD)", v.get('costo_consulta'), tipo="number", requerido=true, inputmode="decimal", minimo="0", paso="0.01", ayuda="Se cobra al agendar una cita con esta especialidad.") }}
+    <div class="formulario__acciones">
+      <a class="boton boton--secundario" href="{{ url_for('especialidades.lista') }}">Cancelar</a>
+      <button type="submit" class="boton boton--primario">{{ "Guardar cambios" if especialidad else "Registrar especialidad" }}</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

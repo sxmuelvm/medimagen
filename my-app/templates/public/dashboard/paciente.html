@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
+{% block titulo %}Panel{% endblock %}
+{% block subtitulo %}Hola, {{ usuario.nombres }}. Aquí tienes tus citas y tu información médica.{% endblock %}
+{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('historial.mis_citas') }}">{{ icono("citas") }}Todas mis citas</a>{% endblock %}
+{% block contenido %}
+{% set i = datos.indicadores %}
+<div class="pila">
+  <div class="cifras" role="group" aria-label="Resumen de tu información">
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.proximas_citas }}</span><span class="cifra-bloque__etiqueta">Próximas citas</span></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.consultas_realizadas }}</span><span class="cifra-bloque__etiqueta">Consultas realizadas</span><a class="cifra-bloque__enlace" href="{{ url_for('historial.mi_historial') }}">Ver historial</a></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.recetas }}</span><span class="cifra-bloque__etiqueta">Recetas</span><a class="cifra-bloque__enlace" href="{{ url_for('historial.mis_recetas') }}">Ver recetas</a></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.resultados }}</span><span class="cifra-bloque__etiqueta">Resultados de laboratorio</span><a class="cifra-bloque__enlace" href="{{ url_for('historial.mis_resultados') }}">Ver resultados</a></div>
+  </div>
+
+  <section class="panel">
+    <div class="panel__cabecera"><h2 class="panel__titulo">Tus próximas citas</h2></div>
+    {% if datos.proximas %}
+    <ul>
+      {% for c in datos.proximas %}
+      <li class="cita-item">
+        <span class="cita-item__hora">{{ c.hora_inicio|hora }}</span>
+        <span class="cita-item__cuerpo">
+          <span class="cita-item__titulo">{{ c.tipo }}{% if c.detalle %} · {{ c.detalle }}{% endif %}</span>
+          <span class="cita-item__detalle">{{ c.fecha_cita|fecha }}</span>
+        </span>
+        <span class="cita-item__estado">{{ estado_badge(c.estado) }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      {% call vacio("No tienes citas próximas", "Para agendar una cita, pídela en recepción o por teléfono.") %}{% endcall %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

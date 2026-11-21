@@ -1,0 +1,169 @@
+/* Acceso: foto del equipo con el logo a un lado y el formulario al otro (franja de foto arriba en móvil). */
+
+html:has(.acceso) {
+  scrollbar-gutter: auto;
+}
+
+.acceso {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.acceso__marca {
+  position: relative;
+  min-height: 13rem;
+  overflow: hidden;
+  background: var(--turquesa-700);
+}
+
+.acceso__foto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 45%;
+}
+
+.acceso__logo {
+  position: absolute;
+  top: max(var(--e4), env(safe-area-inset-top));
+  left: max(var(--e4), env(safe-area-inset-left));
+  padding: var(--e2) var(--e4);
+  border-radius: var(--radio-grande);
+  background: var(--blanco);
+  box-shadow: 0 2px 12px rgb(23 32 51 / 0.18);
+  line-height: 0;
+}
+
+.acceso__logo img {
+  width: auto;
+  height: 2.25rem;
+}
+
+.acceso__formulario {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  padding: var(--e8) max(var(--e4), env(safe-area-inset-right)) max(var(--e4), env(safe-area-inset-bottom)) max(var(--e4), env(safe-area-inset-left));
+  overflow: hidden;
+  background: var(--celeste-50);
+}
+
+.acceso__formulario::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 3rem;
+  background: var(--latido-tenue) repeat-x center / 30rem 3rem;
+  opacity: 0.55;
+  content: "";
+  pointer-events: none;
+}
+
+.acceso__tarjeta {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  gap: var(--e5);
+  width: 100%;
+  max-width: 26rem;
+  margin: auto;
+  padding: var(--e8) var(--e6) var(--e6);
+  overflow: hidden;
+  border: 1px solid var(--turquesa-100);
+  border-radius: var(--radio-grande);
+  background: var(--blanco);
+  box-shadow: 0 1px 2px rgb(23 32 51 / 0.05), 0 10px 28px rgb(23 32 51 / 0.07);
+}
+
+.acceso__tarjeta::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--primario);
+  content: "";
+}
+
+.acceso__titulo {
+  font-size: 1.75rem;
+}
+
+.acceso__titulo::after {
+  display: block;
+  width: 2.5rem;
+  height: 4px;
+  margin-top: var(--e3);
+  border-radius: var(--radio-pastilla);
+  background: var(--turquesa);
+  content: "";
+}
+
+.acceso__ayuda {
+  color: var(--texto-suave);
+  font-size: var(--texto-sm);
+}
+
+.acceso__pie {
+  position: relative;
+  z-index: 1;
+  padding: var(--e6) 0 var(--e8);
+  color: var(--texto-suave);
+  font-size: var(--texto-xs);
+  text-align: center;
+}
+
+@media (max-width: 56.1875rem) {
+  .acceso__formulario {
+    padding-top: var(--e5);
+  }
+}
+
+@media (max-width: 30rem) {
+  .acceso__formulario {
+    background: var(--blanco);
+  }
+
+  .acceso__formulario::after,
+  .acceso__tarjeta::before {
+    display: none;
+  }
+
+  .acceso__tarjeta {
+    padding: var(--e4) 0 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .acceso__pie {
+    padding-bottom: var(--e2);
+  }
+}
+
+@media (min-width: 56.25rem) {
+  .acceso {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  }
+
+  .acceso__marca {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .acceso__logo {
+    top: var(--e8);
+    left: var(--e8);
+    padding: var(--e3) var(--e5);
+  }
+
+  .acceso__logo img {
+    height: 3rem;
+  }
+}
+
+@media (max-height: 30rem) and (orientation: landscape) {
+  .acceso {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_acciones.html" import boton_post %}
+{% from "components/_filtros.html" import buscador, filtro_select, filtro_botones %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Exámenes solicitados", None)] %}
+{% set recien = request.args.get("cita", "") %}
+{% block titulo %}Exámenes solicitados{% endblock %}
+{% block subtitulo %}Estudios de imagenología y laboratorio que pediste, con su estado y resultado.{% endblock %}
+{% block acciones %}<a class="boton boton--primario" href="{{ url_for('consultas.solicitar_examen') }}">{{ icono("mas") }}Solicitar examen</a>{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/atencion.css') }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/core/tablas.js') }}" defer></script>{% endblock %}
+{% block contenido %}
+<form class="filtros" method="get" action="{{ url_for('consultas.examenes_solicitados') }}" role="search" data-filtros-auto>
+  {{ buscador(filtros.q, "Cédula o nombre del paciente", etiqueta="Paciente") }}
+  {{ filtro_select("estado", "Estado del examen", [("pendiente", "Pendiente"), ("realizado", "Realizado"), ("cancelado", "Cancelado")], filtros.estado) }}
+  {{ filtro_botones(url_for('consultas.examenes_solicitados')) }}
+</form>
+
+<section class="panel panel--sin-relleno">
+  {% if examenes %}
+    {% call tabla("Exámenes solicitados", ["Fecha y hora", "Paciente", "Examen", "Estado", "Acciones"]) %}
+      {% for x in examenes %}
+      <tr{% if recien == x.id_cita|string %} class="fila-destacada"{% endif %}>
+        <td data-etiqueta="Fecha y hora"><span class="tabla__principal">{{ x.fecha_cita|fecha }}</span><span class="tabla__secundario">{{ x.hora_inicio|hora }}</span></td>
+        <td data-etiqueta="Paciente"><span class="tabla__principal">{{ x.paciente }}</span><span class="tabla__secundario">{{ x.cedula_paciente }}</span></td>
+        <td data-etiqueta="Examen"><span class="tabla__principal">{{ x.examen }}</span><span class="tabla__secundario">{{ x.area|capitalize }} · {{ x.lugar }}</span></td>
+        <td data-etiqueta="Estado">{{ estado_badge(x.estado_examen) }}{% if x.estado == "cancelada" and x.estado_examen != "cancelado" %}<span class="tabla__secundario">Cita cancelada</span>{% endif %}</td>
+        <td class="tabla__acciones" data-etiqueta="Acciones">
+          <div class="acciones-fila">
+            {% if x.id_resultado %}<a class="boton boton--secundario boton--pequeno" href="{{ url_for('consultas.resultado_examen', id_cita=x.id_cita) }}">Ver resultado</a>{% endif %}
+            {% if x.modificable %}
+              <a class="boton boton--secundario boton--pequeno" href="{{ url_for('consultas.modificar_examen', id_cita=x.id_cita) }}">Modificar</a>
+              {{ boton_post(url_for('consultas.cancelar_examen', id_cita=x.id_cita), "Cancelar", "boton--peligro-suave boton--pequeno", confirmar="¿Cancelar este examen de " ~ x.paciente ~ "?", boton_texto="Cancelar examen") }}
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("Aún no hay exámenes con esos filtros", "Cuando solicites un examen aparecerá aquí con su estado.") %}
+      <a class="boton boton--primario" href="{{ url_for('consultas.solicitar_examen') }}">Solicitar un examen</a>
+    {% endcall %}
+  {% endif %}
+</section>
+{{ paginacion_de(paginacion, "consultas.examenes_solicitados", filtros) }}
+{% endblock %}

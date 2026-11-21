@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Mi perfil", None)] %}
+{% block titulo %}Mi perfil{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
+{% block contenido %}
+<div class="perfil">
+  <section class="panel">
+    <div class="perfil__cabecera">
+      <span class="avatar perfil__avatar" aria-hidden="true">{{ ((usuario.nombres or " ")[:1] ~ (usuario.apellidos or " ")[:1])|trim|upper }}</span>
+      <div>
+        <h2 class="perfil__nombre">{{ usuario.nombres }} {{ usuario.apellidos }}</h2>
+        <p class="perfil__rol">{{ usuario.rol }}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__cabecera"><h2 class="panel__titulo">Datos de la cuenta</h2></div>
+    <dl class="ficha">
+      <div class="ficha__dato"><dt>Cédula</dt><dd>{{ usuario.cedula }}</dd></div>
+      <div class="ficha__dato"><dt>Nombre de usuario</dt><dd>{{ usuario.nombre_usuario }}</dd></div>
+      <div class="ficha__dato"><dt>Tipo de cuenta</dt><dd>{{ usuario.rol }}</dd></div>
+    </dl>
+    <p class="panel__nota">Para corregir tus nombres o tu cédula, comunícate con la persona que administra el sistema.</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel__cabecera"><h2 class="panel__titulo">Seguridad</h2></div>
+    <p class="texto-suave">Cambia tu contraseña si la compartiste o si crees que alguien más la conoce.</p>
+    <div class="atajos perfil__acciones">
+      <a class="boton boton--primario" href="{{ url_for('perfil.cambiar_clave') }}">{{ icono("candado") }}Cambiar contraseña</a>
+      {% if usuario.cuenta == "paciente" %}
+      <a class="boton boton--secundario" href="{{ url_for('historial.mis_datos') }}">{{ icono("editar") }}Actualizar mis datos de contacto</a>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

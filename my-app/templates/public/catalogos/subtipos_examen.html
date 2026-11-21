@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_campo_formulario.html" import campo, campo_select %}
+{% from "components/_acciones.html" import boton_post %}
+{% from "components/_filtros.html" import buscador, filtro_select, filtro_botones %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% from "public/catalogos/_subnav.html" import subnav %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Catálogos", url_for('catalogos.index')), ("Exámenes", None)] %}
+{% set v = form if form else (editando if editando else {}) %}
+{% block titulo %}Exámenes{% endblock %}
+{% block subtitulo %}Cada estudio de imagenología o laboratorio con su costo.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+{{ subnav("catalogos.subtipos_examen") }}
+<div class="pagina-dividida pagina-dividida--lateral">
+  <div>
+    <form class="filtros" method="get" action="{{ url_for('catalogos.subtipos_examen') }}" role="search">
+      {{ buscador(filtros.q, "Código o nombre") }}
+      {% set opciones_tipo = [] %}{% for t in tipos %}{% set _ = opciones_tipo.append((t.id_tipo, t.nombre)) %}{% endfor %}
+      {{ filtro_select("id_tipo", "Tipo", opciones_tipo, filtros.id_tipo) }}
+      {{ filtro_select("estado", "Estado", [("activo", "Activo"), ("inactivo", "Inactivo")], filtros.estado) }}
+      {{ filtro_botones(url_for('catalogos.subtipos_examen')) }}
+    </form>
+    <section class="panel panel--sin-relleno">
+      {% if subtipos %}
+        {% call tabla("Exámenes", ["Examen", "Tipo", "Costo", "Estado", "Acciones"]) %}
+          {% for s in subtipos %}
+          <tr>
+            <td data-etiqueta="Examen"><span class="tabla__principal">{{ s.nombre }}</span><span class="tabla__secundario">{{ s.id_subtipo }}</span></td>
+            <td data-etiqueta="Tipo">{{ s.tipo }}<span class="tabla__secundario">{{ s.area }}</span></td>
+            <td class="tabla__numero" data-etiqueta="Costo">{{ s.costo|dinero }}</td>
+            <td data-etiqueta="Estado">{{ estado_badge(s.estado) }}</td>
+            <td class="tabla__acciones" data-etiqueta="Acciones">
+              <div class="acciones-fila">
+                <a class="boton boton--secundario boton--pequeno" href="{{ url_for('catalogos.subtipos_examen', editar=s.id_subtipo) }}">Editar</a>
+                {{ boton_post(url_for('catalogos.subtipo_eliminar', id_subtipo=s.id_subtipo), "Eliminar", clase="boton--peligro boton--pequeno", confirmar="¿Eliminar el examen " ~ s.nombre ~ "? Esta acción no se puede deshacer.", boton_texto="Eliminar") }}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% endcall %}
+      {% else %}
+        {% call vacio("No se encontraron exámenes", "Prueba con otra búsqueda o registra uno nuevo.") %}{% endcall %}
+      {% endif %}
+    </section>
+    {{ paginacion_de(paginacion, "catalogos.subtipos_examen", filtros) }}
+  </div>
+  <section class="panel" aria-labelledby="titulo-form">
+    <h2 class="panel__titulo" id="titulo-form">{{ "Editar examen" if editando else "Nuevo examen" }}</h2>
+    <form class="formulario" method="post" action="{{ url_for('catalogos.subtipo_guardar', id_subtipo=editando.id_subtipo) if editando else url_for('catalogos.subtipo_crear') }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if not editando %}
+        {% call campo_select("id_tipo", "Tipo de examen", requerido=true) %}
+          <option value="">Elige un tipo</option>
+          {% for t in tipos %}<option value="{{ t.id_tipo }}"{% if v.get('id_tipo') == t.id_tipo %} selected{% endif %}>{{ t.nombre }} · {{ t.area }}</option>{% endfor %}
+        {% endcall %}
+      {% endif %}
+      {{ campo("nombre", "Nombre", v.get('nombre'), requerido=true, maxlength=100) }}
+      {{ campo("costo", "Costo (USD)", v.get('costo'), tipo="number", requerido=true, inputmode="decimal", minimo="0", paso="0.01") }}
+      {% if editando %}
+      <div class="campo">
+        <label class="campo__etiqueta" for="estado">Estado</label>
+        <select class="campo__control" id="estado" name="estado">
+          <option value="activo"{% if v.get('estado') == "activo" %} selected{% endif %}>Activo</option>
+          <option value="inactivo"{% if v.get('estado') == "inactivo" %} selected{% endif %}>Inactivo</option>
+        </select>
+      </div>
+      {% endif %}
+      <div class="formulario__acciones">
+        {% if editando %}<a class="boton boton--secundario" href="{{ url_for('catalogos.subtipos_examen') }}">Cancelar</a>{% endif %}
+        <button type="submit" class="boton boton--primario">{{ "Guardar cambios" if editando else "Registrar examen" }}</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

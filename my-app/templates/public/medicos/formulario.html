@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "components/_campo_formulario.html" import campo %}
+{% from "components/_acciones.html" import boton_post %}
+{% set editando = medico is not none %}
+{% set v = form if form else (medico or {}) %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Médicos", url_for('medicos.lista')), ("Editar" if editando else "Nuevo médico", None)] %}
+{% block titulo %}{% if editando %}Editar médico{% else %}Nuevo médico{% endif %}{% endblock %}
+{% block subtitulo %}{% if editando %}{{ medico.nombres }} {{ medico.apellidos }} · {{ medico.cedula }}{% else %}Registra al médico; su acceso al sistema se crea después en Usuarios.{% endif %}{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+<section class="panel panel--medio">
+  <form class="formulario" method="post" action="{% if editando %}{{ url_for('medicos.editar', id_medico=medico.id_medico) }}{% else %}{{ url_for('medicos.crear') }}{% endif %}" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="formulario__rejilla">
+      {% if editando %}
+        {{ campo("cedula", "Cédula", valor=medico.cedula, solo_lectura=true, ayuda="La cédula no se puede cambiar.") }}
+      {% else %}
+        {{ campo("cedula", "Cédula", valor=v.get("cedula", ""), requerido=true, inputmode="numeric", maxlength=10, pattern="[0-9]{10}", ayuda="10 dígitos.") }}
+      {% endif %}
+      <div class="campo">
+        <label class="campo__etiqueta" for="id_especialidad">Especialidad<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+        <select class="campo__control" id="id_especialidad" name="id_especialidad" required>
+          <option value="">Elige una especialidad…</option>
+          {% for e in especialidades %}<option value="{{ e.id_especialidad }}"{% if v.get("id_especialidad") == e.id_especialidad %} selected{% endif %}>{{ e.nombre }} · {{ e.costo_consulta|dinero }}</option>{% endfor %}
+        </select>
+      </div>
+      {{ campo("nombres", "Nombres", valor=v.get("nombres", ""), requerido=true, maxlength=80) }}
+      {{ campo("apellidos", "Apellidos", valor=v.get("apellidos", ""), requerido=true, maxlength=80) }}
+      {{ campo("telefono", "Teléfono", valor=v.get("telefono", ""), tipo="tel", inputmode="tel", maxlength=15, pattern="[0-9]{7,15}", ayuda="De 7 a 15 dígitos, sin espacios.") }}
+      {{ campo("correo", "Correo", valor=v.get("correo", ""), tipo="email", inputmode="email", maxlength=120) }}
+    </div>
+    <div class="formulario__acciones">
+      <a class="boton boton--secundario" href="{{ url_for('medicos.lista') }}">Cancelar</a>
+      <button type="submit" class="boton boton--primario">{% if editando %}Guardar cambios{% else %}Registrar médico{% endif %}</button>
+    </div>
+  </form>
+  {% if editando %}
+  <div class="panel__pie">
+    <a class="boton boton--secundario boton--pequeno" href="{{ url_for('medicos.horario', id_medico=medico.id_medico) }}">Ver horario de atención</a>
+    {{ boton_post(url_for('medicos.eliminar', id_medico=medico.id_medico), "Eliminar médico", "boton--peligro-suave boton--pequeno", confirmar="¿Eliminar a " ~ medico.nombres ~ " " ~ medico.apellidos ~ "? Solo es posible si no tiene citas ni usuario.", boton_texto="Eliminar") }}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

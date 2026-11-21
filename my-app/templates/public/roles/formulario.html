@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Roles", url_for('roles.lista')), (rol.nombre|replace("_", " ")|capitalize, None)] %}
+{% set v = form if form else rol %}
+{% block titulo %}Editar rol{% endblock %}
+{% block subtitulo %}{{ rol.nombre|replace("_", " ")|capitalize }}{% if rol.rol_mysql %} · cuenta <code>{{ rol.rol_mysql }}</code>{% endif %}{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+<section class="panel panel--medio">
+  <form class="formulario" method="post" action="{{ url_for('roles.editar', id_rol=rol.id_rol) }}" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="campo">
+      <label class="campo__etiqueta" for="nombre">Nombre</label>
+      <input class="campo__control" id="nombre" type="text" value="{{ rol.nombre|replace('_', ' ')|capitalize }}" readonly aria-describedby="ayuda-nombre">
+      <p class="campo__ayuda" id="ayuda-nombre">El nombre no se cambia: está ligado a los permisos de la base de datos.</p>
+    </div>
+    <div class="campo">
+      <label class="campo__etiqueta" for="descripcion">Descripción</label>
+      <textarea class="campo__control" id="descripcion" name="descripcion" maxlength="255" rows="3">{{ v.get('descripcion', '') or '' }}</textarea>
+    </div>
+    <div class="campo">
+      <label class="campo__etiqueta" for="estado">Estado</label>
+      <select class="campo__control" id="estado" name="estado"{% if rol.nombre == "administrador" %} aria-describedby="ayuda-estado"{% endif %}>
+        <option value="activo"{% if v.get('estado') == "activo" %} selected{% endif %}>Activo</option>
+        <option value="inactivo"{% if v.get('estado') == "inactivo" %} selected{% endif %}>Inactivo</option>
+      </select>
+      {% if rol.nombre == "administrador" %}<p class="campo__ayuda" id="ayuda-estado">El rol administrador no se puede desactivar.</p>{% else %}<p class="campo__ayuda" id="ayuda-estado">Un rol inactivo no se puede asignar a usuarios nuevos.</p>{% endif %}
+    </div>
+    <div class="formulario__acciones">
+      <a class="boton boton--secundario" href="{{ url_for('roles.lista') }}">Cancelar</a>
+      <button type="submit" class="boton boton--primario">Guardar cambios</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

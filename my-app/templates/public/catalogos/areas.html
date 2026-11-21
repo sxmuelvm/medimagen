@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_campo_formulario.html" import campo %}
+{% from "public/catalogos/_subnav.html" import subnav %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Catálogos", url_for('catalogos.index')), ("Áreas", None)] %}
+{% set v = form if form else (editando if editando else {}) %}
+{% block titulo %}Áreas{% endblock %}
+{% block subtitulo %}Las áreas son fijas; aquí se edita su descripción y estado.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+{{ subnav("catalogos.areas") }}
+<div class="pagina-dividida pagina-dividida--lateral">
+  <section class="panel panel--sin-relleno">
+    {% call tabla("Áreas de la clínica", ["Área", "Recursos", "Estado", "Acciones"]) %}
+      {% for a in areas %}
+      <tr>
+        <td data-etiqueta="Área"><span class="tabla__principal">{{ a.nombre }}</span>{% if a.descripcion %}<span class="tabla__secundario">{{ a.descripcion }}</span>{% endif %}</td>
+        <td class="tabla__numero" data-etiqueta="Recursos">{{ a.recursos }}</td>
+        <td data-etiqueta="Estado">{{ estado_badge(a.estado) }}</td>
+        <td class="tabla__acciones" data-etiqueta="Acciones"><a class="boton boton--secundario boton--pequeno" href="{{ url_for('catalogos.areas', editar=a.id_area) }}">Editar</a></td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  </section>
+  {% if editando %}
+  <section class="panel" aria-labelledby="titulo-form">
+    <h2 class="panel__titulo" id="titulo-form">Editar {{ editando.nombre }}</h2>
+    <form class="formulario" method="post" action="{{ url_for('catalogos.area_guardar', id_area=editando.id_area) }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ campo("nombre", "Nombre", v.get('nombre'), requerido=true, maxlength=60) }}
+      <div class="campo">
+        <label class="campo__etiqueta" for="descripcion">Descripción</label>
+        <textarea class="campo__control" id="descripcion" name="descripcion" maxlength="255" rows="3">{{ v.get('descripcion', '') or '' }}</textarea>
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="estado">Estado</label>
+        <select class="campo__control" id="estado" name="estado">
+          <option value="activo"{% if v.get('estado') == "activo" %} selected{% endif %}>Activa</option>
+          <option value="inactivo"{% if v.get('estado') == "inactivo" %} selected{% endif %}>Inactiva</option>
+        </select>
+      </div>
+      <div class="formulario__acciones">
+        <a class="boton boton--secundario" href="{{ url_for('catalogos.areas') }}">Cancelar</a>
+        <button type="submit" class="boton boton--primario">Guardar cambios</button>
+      </div>
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

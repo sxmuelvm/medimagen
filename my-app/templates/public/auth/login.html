@@ -1,14 +1,45 @@
 {% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
 {% block titulo %}Iniciar sesión{% endblock %}
-{% block contenido %}
-<h1>Iniciar sesión</h1>
-<form method="post" action="{{ url_for('auth.login') }}" autocomplete="off">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <label for="cedula">Cédula</label>
-  <input id="cedula" name="cedula" type="text" inputmode="numeric" maxlength="10"
-         pattern="[0-9]{10}" value="{{ cedula or '' }}" required autofocus>
-  <label for="clave">Contraseña</label>
-  <input id="clave" name="clave" type="password" maxlength="128" required autocomplete="current-password">
-  <button type="submit">Entrar</button>
-</form>
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/clave.css') }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/modules/clave.js') }}" defer></script><script src="{{ url_for('static', filename='js/modules/login.js') }}" defer></script>{% endblock %}
+{% block contenido_publico %}
+<div class="acceso">
+  <div class="acceso__marca">
+    <img class="acceso__foto" src="{{ url_for('static', filename='img/acceso.jpg') }}" alt="Equipo de la clínica reunido en la recepción" width="1264" height="842" fetchpriority="high">
+    <a class="acceso__logo" href="{{ url_for('auth.login') }}">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Medimagen Cuenca" width="200" height="81">
+    </a>
+  </div>
+
+  <main class="acceso__formulario">
+    <div class="acceso__tarjeta">
+      <div class="acceso__cabeza">
+        <h1 class="acceso__titulo" id="titulo-acceso">Iniciar sesión</h1>
+      </div>
+
+      {% include "layout/_mensajes.html" %}
+
+      <form class="formulario" method="post" action="{{ url_for('auth.login') }}" autocomplete="off" aria-labelledby="titulo-acceso">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo">
+          <label class="campo__etiqueta" for="cedula">Cédula</label>
+          <input class="campo__control" id="cedula" name="cedula" type="text" inputmode="numeric" enterkeyhint="next"
+                 maxlength="10" pattern="[0-9]{10}" value="{{ cedula or '' }}" required autofocus
+                 autocomplete="username" aria-describedby="ayuda-cedula">
+          <p class="campo__ayuda" id="ayuda-cedula">10 dígitos, sin guiones ni espacios.</p>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="clave">Contraseña</label>
+          <input class="campo__control" id="clave" name="clave" type="password" maxlength="128" enterkeyhint="go"
+                 required autocomplete="current-password">
+        </div>
+        <button type="submit" class="boton boton--primario boton--ancho">Entrar</button>
+      </form>
+
+      <p class="acceso__ayuda">¿No recuerdas tu contraseña? Pide al administrador que la restablezca.</p>
+    </div>
+    <p class="acceso__pie">© {{ anio }}</p>
+  </main>
+</div>
 {% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
+{% block titulo %}Panel{% endblock %}
+{% block subtitulo %}Hola, {{ usuario.nombres }}. Estudios de imagen por realizar.{% endblock %}
+{% block acciones %}<a class="boton boton--primario" href="{{ url_for('imagenologia.agenda') }}">{{ icono("imagen") }}Ver agenda completa</a>{% endblock %}
+{% block contenido %}
+{% set i = datos.indicadores %}
+<div class="pila">
+  <div class="cifras" role="group" aria-label="Resumen de imagenología">
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.hoy }}</span><span class="cifra-bloque__etiqueta">Estudios de hoy</span></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.pendientes }}</span><span class="cifra-bloque__etiqueta">Pendientes de realizar</span></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.realizados }}</span><span class="cifra-bloque__etiqueta">Estudios realizados</span></div>
+  </div>
+
+  <section class="panel">
+    <div class="panel__cabecera"><h2 class="panel__titulo">Próximos estudios</h2></div>
+    {% if datos.proximas %}
+      {% call tabla("Próximos estudios de imagenología", ["Fecha", "Hora", "Paciente", "Estudio", "Equipo", "Estado", "Acciones"]) %}
+        {% for c in datos.proximas %}
+        <tr>
+          <td data-etiqueta="Fecha">{{ c.fecha_cita|fecha }}</td>
+          <td class="tabla__numero" data-etiqueta="Hora">{{ c.hora_inicio|hora }}</td>
+          <td data-etiqueta="Paciente"><span class="tabla__principal">{{ c.paciente }}</span></td>
+          <td data-etiqueta="Estudio">{{ c.subtipo }}<span class="tabla__secundario">{{ c.tipo }}</span></td>
+          <td data-etiqueta="Equipo">{{ c.equipo }}</td>
+          <td data-etiqueta="Estado">{{ estado_badge(c.estado_procedimiento) }}</td>
+          <td class="tabla__acciones" data-etiqueta="Acciones"><a class="boton boton--primario boton--pequeno" href="{{ url_for('imagenologia.registrar_realizacion', id_cita=c.id_cita) }}">Registrar</a></td>
+        </tr>
+        {% endfor %}
+      {% endcall %}
+    {% else %}
+      {% call vacio("No hay estudios pendientes", "Los exámenes que soliciten los médicos aparecerán aquí.") %}{% endcall %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

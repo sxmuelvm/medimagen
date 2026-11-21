@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_campo_formulario.html" import campo %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_acciones.html" import boton_post %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Agenda de laboratorio", url_for('laboratorio.agenda')), ("Resultado", None)] %}
+{% set corrigiendo = resultado is not none %}
+{% block titulo %}{{ "Corregir resultado" if corrigiendo else "Registrar resultado" }}{% endblock %}
+{% block subtitulo %}{{ examen.paciente }} · {{ examen.examen }}{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/atencion.css') }}">{% endblock %}
+{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('laboratorio.agenda') }}">{{ icono("flecha-izq") }}Agenda</a>{% endblock %}
+{% block contenido %}
+<div class="pagina-dividida pagina-dividida--lateral">
+  <section class="panel">
+    <div class="panel__cabecera"><h2 class="panel__titulo">{{ "Resultado registrado" if corrigiendo else "Resultado del examen" }}</h2></div>
+    <form class="formulario" method="post" action="{{ url_for('laboratorio.registrar_resultado', id_cita=examen.id_cita) }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="campo">
+        <label class="campo__etiqueta" for="resultado">Resultado<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+        <textarea class="campo__control" id="resultado" name="resultado" rows="8" maxlength="5000" required autofocus>{{ form.get("resultado", "") }}</textarea>
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="observaciones">Observaciones</label>
+        <textarea class="campo__control" id="observaciones" name="observaciones" rows="3" maxlength="2000">{{ form.get("observaciones", "") or "" }}</textarea>
+      </div>
+      {{ campo("fecha_resultado", "Fecha del resultado", valor=form.get("fecha_resultado", ""), tipo="date", maximo="", ayuda="Si la dejas vacía se usa la fecha de hoy. No puede ser futura ni anterior a la cita.") }}
+      <div class="formulario__acciones">
+        <a class="boton boton--secundario" href="{{ url_for('laboratorio.agenda') }}">Cancelar</a>
+        <button type="submit" class="boton boton--primario">{{ icono("check") }}{{ "Guardar corrección" if corrigiendo else "Registrar resultado" }}</button>
+      </div>
+    </form>
+  </section>
+
+  <aside class="pila" aria-label="Datos del examen">
+    <section class="panel">
+      <div class="panel__cabecera"><h2 class="panel__titulo">Examen</h2>{{ estado_badge(examen.estado_examen) }}</div>
+      <dl class="ficha">
+        <div class="ficha__dato"><dt>Paciente</dt><dd>{{ examen.paciente }}<br><span class="nota">{{ examen.cedula_paciente }}</span></dd></div>
+        <div class="ficha__dato"><dt>Examen</dt><dd>{{ examen.examen }}</dd></div>
+        <div class="ficha__dato"><dt>Fecha y hora</dt><dd>{{ examen.fecha_cita|fecha }}, {{ examen.hora_inicio|hora }}</dd></div>
+        <div class="ficha__dato"><dt>Puesto</dt><dd>{{ examen.puesto }}</dd></div>
+        <div class="ficha__dato"><dt>Solicitado por</dt><dd>{{ examen.medico_solicitante }}</dd></div>
+      </dl>
+    </section>
+    {% if corrigiendo %}
+    <section class="panel">
+      <div class="panel__cabecera"><h2 class="panel__titulo">Eliminar resultado</h2></div>
+      <p class="nota">Solo puedes eliminar los resultados que registraste tú. El examen vuelve a quedar pendiente para registrarlo de nuevo.</p>
+      <div class="lista-acciones">{{ boton_post(url_for('laboratorio.eliminar_resultado', id_cita=examen.id_cita), "Eliminar resultado", "boton--peligro-suave", confirmar="¿Eliminar el resultado? El examen quedará pendiente.", boton_texto="Eliminar resultado") }}</div>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

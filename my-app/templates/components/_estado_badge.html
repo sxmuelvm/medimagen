@@ -1,0 +1,11 @@
+{# {{ estado_badge("confirmada") }} → insignia con texto; el color solo refuerza.
+   Acepta el valor tal como lo guarda la base (pendiente, confirmada, atendida, cancelada, no_asistio, realizado…). #}
+{% macro estado_badge(estado) -%}
+{%- set t = (estado or "")|string|lower -%}
+{%- set nombres = {"no_asistio": "No asistió"} -%}
+{%- if t in ["confirmada", "atendida", "completada", "completado", "activo", "activa", "entregado", "entregada", "realizado", "realizada", "disponible", "exitoso", "cierre_sesion"] -%}{%- set c = "exito" -%}
+{%- elif t in ["pendiente", "programada", "programado", "en proceso", "solicitado", "solicitada", "reprogramada"] -%}{%- set c = "aviso" -%}
+{%- elif t in ["cancelada", "cancelado", "inactivo", "inactiva", "fallido", "no_asistio", "bloqueado"] -%}{%- set c = "error" -%}
+{%- else -%}{%- set c = "neutra" -%}{%- endif -%}
+<span class="insignia insignia--{{ c }}">{{ nombres.get(t, (estado or "")|string|replace("_", " ")|capitalize) }}</span>
+{%- endmacro %}

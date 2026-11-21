@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_campo_formulario.html" import campo, campo_select %}
+{% from "components/_acciones.html" import boton_post %}
+{% from "components/_filtros.html" import filtro_select, filtro_botones %}
+{% from "public/catalogos/_subnav.html" import subnav %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Catálogos", url_for('catalogos.index')), ("Recursos", None)] %}
+{% set v = form if form else (editando if editando else {}) %}
+{% set tipos = [("consultorio", "Consultorio"), ("equipo", "Equipo"), ("puesto_laboratorio", "Puesto de laboratorio")] %}
+{% block titulo %}Recursos de atención{% endblock %}
+{% block subtitulo %}Consultorios, equipos y puestos donde se atiende a los pacientes.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+{{ subnav("catalogos.recursos") }}
+<div class="pagina-dividida pagina-dividida--lateral">
+  <div>
+    <form class="filtros" method="get" action="{{ url_for('catalogos.recursos') }}" role="search">
+      {% set opciones_area = [] %}{% for a in areas %}{% set _ = opciones_area.append((a.id_area, a.nombre)) %}{% endfor %}
+      {{ filtro_select("id_area", "Área", opciones_area, filtros.id_area) }}
+      {{ filtro_select("estado", "Estado", [("activo", "Activo"), ("inactivo", "Inactivo"), ("mantenimiento", "En mantenimiento")], filtros.estado) }}
+      {{ filtro_botones(url_for('catalogos.recursos')) }}
+    </form>
+    <section class="panel panel--sin-relleno">
+      {% if recursos %}
+        {% call tabla("Recursos de atención", ["Recurso", "Área", "Tipo", "Estado", "Acciones"]) %}
+          {% for r in recursos %}
+          <tr>
+            <td data-etiqueta="Recurso"><span class="tabla__principal">{{ r.nombre_recurso }}</span>{% if r.descripcion %}<span class="tabla__secundario">{{ r.descripcion }}</span>{% endif %}</td>
+            <td data-etiqueta="Área">{{ r.area }}</td>
+            <td data-etiqueta="Tipo">{{ r.tipo_recurso|replace("_", " ")|capitalize }}</td>
+            <td data-etiqueta="Estado">{{ estado_badge(r.estado) }}</td>
+            <td class="tabla__acciones" data-etiqueta="Acciones">
+              <div class="acciones-fila">
+                <a class="boton boton--secundario boton--pequeno" href="{{ url_for('catalogos.recursos', editar=r.id_recurso) }}">Editar</a>
+                {{ boton_post(url_for('catalogos.recurso_eliminar', id_recurso=r.id_recurso), "Eliminar", clase="boton--peligro boton--pequeno", confirmar="¿Eliminar el recurso " ~ r.nombre_recurso ~ "? Esta acción no se puede deshacer.", boton_texto="Eliminar") }}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% endcall %}
+      {% else %}
+        {% call vacio("No hay recursos", "Registra el primero con el formulario.") %}{% endcall %}
+      {% endif %}
+    </section>
+  </div>
+  <section class="panel" aria-labelledby="titulo-form">
+    <h2 class="panel__titulo" id="titulo-form">{{ "Editar recurso" if editando else "Nuevo recurso" }}</h2>
+    <form class="formulario" method="post" action="{{ url_for('catalogos.recurso_guardar', id_recurso=editando.id_recurso) if editando else url_for('catalogos.recurso_crear') }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if not editando %}
+        {% call campo_select("id_area", "Área", requerido=true) %}
+          <option value="">Elige un área</option>
+          {% for a in areas %}<option value="{{ a.id_area }}"{% if v.get('id_area')|string == a.id_area|string %} selected{% endif %}>{{ a.nombre }}</option>{% endfor %}
+        {% endcall %}
+        {% call campo_select("tipo_recurso", "Tipo de recurso", requerido=true) %}
+          <option value="">Elige un tipo</option>
+          {% for valor, texto in tipos %}<option value="{{ valor }}"{% if v.get('tipo_recurso') == valor %} selected{% endif %}>{{ texto }}</option>{% endfor %}
+        {% endcall %}
+      {% endif %}
+      {{ campo("nombre_recurso", "Nombre", v.get('nombre_recurso'), requerido=true, maxlength=60) }}
+      <div class="campo">
+        <label class="campo__etiqueta" for="descripcion">Descripción</label>
+        <textarea class="campo__control" id="descripcion" name="descripcion" maxlength="255" rows="2">{{ v.get('descripcion', '') or '' }}</textarea>
+      </div>
+      {% if editando %}
+      <div class="campo">
+        <label class="campo__etiqueta" for="estado">Estado</label>
+        <select class="campo__control" id="estado" name="estado">
+          {% for valor, texto in [("activo", "Activo"), ("inactivo", "Inactivo"), ("mantenimiento", "En mantenimiento")] %}<option value="{{ valor }}"{% if v.get('estado') == valor %} selected{% endif %}>{{ texto }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="formulario__acciones">
+        {% if editando %}<a class="boton boton--secundario" href="{{ url_for('catalogos.recursos') }}">Cancelar</a>{% endif %}
+        <button type="submit" class="boton boton--primario">{{ "Guardar cambios" if editando else "Registrar recurso" }}</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

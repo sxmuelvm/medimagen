@@ -1,0 +1,200 @@
+/* Medimagen Cuenca · formularios. Campos de 16 px o más (evita el zoom automático en iPhone). */
+
+.formulario {
+  display: grid;
+  gap: var(--e5);
+}
+
+.formulario__rejilla {
+  display: grid;
+  gap: var(--e5) var(--e6);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.formulario__completo {
+  grid-column: 1 / -1;
+}
+
+.formulario__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--e3);
+  padding-top: var(--e5);
+  border-top: 1px solid var(--borde);
+}
+
+.formulario__acciones .boton {
+  flex: 1 1 100%;
+}
+
+.grupo {
+  display: grid;
+  gap: var(--e4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.grupo__titulo {
+  margin-bottom: var(--e1);
+  padding: 0;
+  color: var(--azul-900);
+  font-family: var(--fuente-titulo);
+  font-size: var(--texto-lg);
+  font-weight: 700;
+}
+
+/* Campo: etiqueta + control + ayuda */
+.campo {
+  display: grid;
+  align-content: start;
+  gap: var(--e1);
+  min-width: 0;
+}
+
+.campo__etiqueta {
+  color: var(--texto);
+  font-size: var(--texto-sm);
+  font-weight: 600;
+}
+
+.campo__obligatorio {
+  margin-left: 0.2em;
+  color: var(--error);
+}
+
+.campo__control {
+  display: block;
+  width: 100%;
+  min-height: var(--objetivo-tactil);
+  padding: var(--e2) var(--e3);
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio);
+  background-color: var(--blanco);
+  color: var(--texto);
+  font-size: 1rem;
+  line-height: 1.4;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color var(--transicion), box-shadow var(--transicion);
+}
+
+.campo__control::placeholder {
+  color: var(--texto-suave);
+  opacity: 1;
+}
+
+.campo__control:focus-visible {
+  border-color: var(--turquesa-700);
+  outline: 3px solid var(--turquesa-700);
+  outline-offset: 0;
+}
+
+.campo__control:disabled,
+.campo__control[readonly] {
+  background-color: var(--fila-alterna);
+  color: var(--gris-600);
+}
+
+.campo__control:disabled {
+  cursor: not-allowed;
+}
+
+select.campo__control {
+  padding-right: var(--e10);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230B2D5B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right var(--e3) center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  text-overflow: ellipsis;
+}
+
+textarea.campo__control {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+input[type="date"].campo__control,
+input[type="time"].campo__control {
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+
+input[type="date"].campo__control::-webkit-date-and-time-value,
+input[type="time"].campo__control::-webkit-date-and-time-value {
+  min-height: 1.4em;
+  text-align: left;
+}
+
+.campo__ayuda {
+  color: var(--texto-suave);
+  font-size: var(--texto-xs);
+}
+
+.campo--error .campo__control,
+.campo__control[aria-invalid="true"] {
+  border-color: var(--error);
+}
+
+.campo__error {
+  color: var(--error);
+  font-size: var(--texto-xs);
+  font-weight: 600;
+}
+
+@supports selector(:user-invalid) {
+  .campo__control:user-invalid {
+    border-color: var(--error);
+  }
+}
+
+/* Casillas y opciones */
+.opcion {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e3);
+  min-height: var(--objetivo-tactil);
+  padding: var(--e2) 0;
+  cursor: pointer;
+}
+
+.opcion input {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.15rem 0 0;
+  accent-color: var(--primario);
+}
+
+/* Buscador con icono */
+.buscador {
+  position: relative;
+}
+
+.buscador .icono {
+  position: absolute;
+  top: 50%;
+  left: var(--e3);
+  color: var(--texto-suave);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.buscador .campo__control {
+  padding-left: var(--e10);
+}
+
+/* Autocompletado del navegador legible */
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--blanco) inset;
+  -webkit-text-fill-color: var(--texto);
+}
+
+@media (min-width: 40rem) {
+  .formulario__acciones .boton {
+    flex: 0 0 auto;
+  }
+}

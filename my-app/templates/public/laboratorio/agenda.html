@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_filtros.html" import buscador, filtro_select, filtro_campo, filtro_botones %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Agenda de laboratorio", None)] %}
+{% block titulo %}Agenda de laboratorio{% endblock %}
+{% block subtitulo %}Exámenes agendados desde la fecha elegida. El resultado se registra el día de la cita.{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/core/tablas.js') }}" defer></script>{% endblock %}
+{% block contenido %}
+{% set opciones_estado = [] %}{% for e in estados %}{% set _ = opciones_estado.append((e, e|capitalize)) %}{% endfor %}
+<form class="filtros" method="get" action="{{ url_for('laboratorio.agenda') }}" role="search" data-filtros-auto>
+  {{ buscador(filtros.q, "Cédula o nombre del paciente", etiqueta="Paciente") }}
+  {{ filtro_select("estado", "Estado del examen", opciones_estado, filtros.estado) }}
+  {{ filtro_campo("desde", "Desde", filtros.desde) }}
+  {{ filtro_campo("hasta", "Hasta", filtros.hasta) }}
+  {{ filtro_botones(url_for('laboratorio.agenda')) }}
+</form>
+
+<section class="panel panel--sin-relleno">
+  {% if examenes %}
+    {% call tabla("Exámenes de laboratorio", ["Fecha y hora", "Paciente", "Examen", "Estado", "Acciones"]) %}
+      {% for x in examenes %}
+      <tr>
+        <td data-etiqueta="Fecha y hora"><span class="tabla__principal">{{ x.fecha_cita|fecha }}</span><span class="tabla__secundario">{{ x.hora_inicio|hora }} – {{ x.hora_fin|hora }}</span></td>
+        <td data-etiqueta="Paciente"><span class="tabla__principal">{{ x.paciente }}</span><span class="tabla__secundario">{{ x.cedula_paciente }}</span></td>
+        <td data-etiqueta="Examen"><span class="tabla__principal">{{ x.examen }}</span><span class="tabla__secundario">{{ x.puesto }} · Pide: {{ x.medico_solicitante }}</span></td>
+        <td data-etiqueta="Estado">{{ estado_badge(x.estado_examen) }}{% if x.id_resultado %}<span class="tabla__secundario">Con resultado</span>{% endif %}</td>
+        <td class="tabla__acciones" data-etiqueta="Acciones">
+          <div class="acciones-fila">
+            {% if x.puede_registrar %}<a class="boton boton--primario boton--pequeno" href="{{ url_for('laboratorio.registrar_resultado', id_cita=x.id_cita) }}">Registrar resultado</a>{% endif %}
+            {% if x.puede_corregir %}<a class="boton boton--secundario boton--pequeno" href="{{ url_for('laboratorio.registrar_resultado', id_cita=x.id_cita) }}">Ver o corregir</a>{% endif %}
+            {% if not x.puede_registrar and not x.puede_corregir %}<span class="sin-dato">—</span>{% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("No hay exámenes con esos filtros", "La agenda muestra desde hoy por defecto. Prueba con otra fecha o quita los filtros.") %}{% endcall %}
+  {% endif %}
+</section>
+{{ paginacion_de(paginacion, "laboratorio.agenda", filtros) }}
+{% endblock %}

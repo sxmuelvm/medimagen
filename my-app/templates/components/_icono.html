@@ -1,0 +1,4 @@
+{# Macro de iconos: {% from "components/_icono.html" import icono %}  {{ icono("citas") }} #}
+{% macro icono(nombre, clase="") -%}
+<svg class="icono{% if clase %} {{ clase }}{% endif %}" aria-hidden="true" focusable="false"><use href="#i-{{ nombre }}"></use></svg>
+{%- endmacro %}

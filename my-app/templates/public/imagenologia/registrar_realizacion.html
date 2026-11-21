@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Agenda de imagenología", url_for('imagenologia.agenda')), ("Registrar estudio", None)] %}
+{% block titulo %}Registrar estudio realizado{% endblock %}
+{% block subtitulo %}Confirma que el estudio se hizo. Se guardan la fecha, la hora actual y tu usuario.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+<section class="panel panel--medio">
+  <div class="panel__cabecera"><h2 class="panel__titulo">Datos del estudio</h2>{{ estado_badge(examen.estado_procedimiento) }}</div>
+  <dl class="ficha">
+    <div class="ficha__dato"><dt>Paciente</dt><dd>{{ examen.paciente }}<br><span class="nota">{{ examen.cedula_paciente }}</span></dd></div>
+    <div class="ficha__dato"><dt>Estudio</dt><dd>{{ examen.subtipo }}<br><span class="nota">{{ examen.tipo }}</span></dd></div>
+    <div class="ficha__dato"><dt>Equipo</dt><dd>{{ examen.equipo }}</dd></div>
+    <div class="ficha__dato"><dt>Fecha y hora</dt><dd>{{ examen.fecha_cita|fecha }}, {{ examen.hora_inicio|hora }} – {{ examen.hora_fin|hora }}</dd></div>
+    <div class="ficha__dato"><dt>Solicitado por</dt><dd>{{ examen.medico_solicitante }}</dd></div>
+  </dl>
+  <div class="mensaje mensaje--aviso" role="note">{{ icono("alerta", "mensaje__icono") }}<p class="mensaje__texto">Al confirmar, el estudio queda como realizado y la cita como atendida. Esta acción no se puede deshacer desde aquí.</p></div>
+  <form class="formulario" method="post" action="{{ url_for('imagenologia.confirmar_realizacion', id_cita=examen.id_cita) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="formulario__acciones">
+      <a class="boton boton--secundario" href="{{ url_for('imagenologia.agenda') }}">Volver</a>
+      <button type="submit" class="boton boton--primario">{{ icono("check") }}Confirmar estudio realizado</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

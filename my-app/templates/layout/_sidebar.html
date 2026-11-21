@@ -1,0 +1,53 @@
+{% from "components/_icono.html" import icono %}
+{% set iconos = {
+  "dashboard.inicio": "panel", "usuarios.lista": "usuarios", "roles.lista": "roles", "personal.lista": "personal",
+  "medicos.lista": "medico", "pacientes.lista": "pacientes", "especialidades.lista": "especialidades",
+  "catalogos.index": "catalogos", "citas.agenda": "citas", "citas.nueva": "cita-nueva", "reportes.ingresos": "reportes",
+  "auditoria.lista": "auditoria", "auditoria.accesos": "accesos", "consultas.mi_agenda": "citas",
+  "consultas.examenes_solicitados": "examenes", "imagenologia.agenda": "imagen", "laboratorio.agenda": "examenes",
+  "historial.mis_citas": "citas", "historial.mi_historial": "historial", "historial.mis_recetas": "receta",
+  "historial.mis_resultados": "examenes"
+} %}
+{# Se lee de la sesión (no de `usuario`): algunas pantallas de administración pasan su propio `usuario` (la persona que se edita) #}
+{% set etiquetas = {"administrador": "Administrador", "recepcion": "Recepción", "medico": "Médico",
+                    "imagenologia": "Personal de imagenología", "laboratorio": "Personal de laboratorio", "paciente": "Paciente"} %}
+{% set iniciales = ((session.nombres or " ")[:1] ~ (session.apellidos or " ")[:1])|trim|upper %}
+<aside class="lateral" id="menu-principal" aria-label="Menú principal" data-menu>
+  <div class="lateral__cabeza">
+    <a class="lateral__marca" href="{{ url_for('dashboard.inicio') }}" aria-label="Ir al panel">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Medimagen Cuenca" width="136" height="55">
+    </a>
+    <button type="button" class="boton-icono lateral__cerrar" data-cerrar-menu aria-label="Cerrar el menú">
+      {{ icono("cerrar") }}
+    </button>
+  </div>
+
+  <nav aria-label="Secciones">
+    <ul class="menu">
+      {% for item in menu %}
+      <li>
+        <a class="menu__enlace{% if item.activo %} menu__enlace--activo{% endif %}" href="{{ item.url }}"{% if item.activo %} aria-current="page"{% endif %}>
+          {{ icono(iconos.get(item.endpoint, "panel")) }}<span>{{ item.titulo }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </nav>
+
+  <div class="lateral__usuario">
+    <div class="usuario">
+      <span class="avatar" aria-hidden="true">{{ iniciales }}</span>
+      <span class="usuario__datos">
+        <span class="usuario__nombre">{{ session.nombres }} {{ session.apellidos }}</span>
+        <span class="usuario__rol">{{ etiquetas.get(session.cuenta, session.cuenta) }}</span>
+      </span>
+    </div>
+    <div class="usuario__acciones">
+      <a class="boton boton--secundario boton--pequeno" href="{{ url_for('perfil.mi_perfil') }}">{{ icono("pacientes") }}Mi perfil</a>
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="boton boton--terciario boton--pequeno boton--ancho">{{ icono("salir") }}Cerrar sesión</button>
+      </form>
+    </div>
+  </div>
+</aside>

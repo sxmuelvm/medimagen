@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Roles", None)] %}
+{% block titulo %}Roles{% endblock %}
+{% block subtitulo %}Cada rol del sistema corresponde a una cuenta de base de datos con sus propios permisos. Aquí solo se edita la descripción y el estado.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block contenido %}
+<section class="panel panel--sin-relleno">
+  {% if roles %}
+    {% call tabla("Roles del sistema", ["Rol", "Descripción", "Cuenta de base de datos", "Usuarios", "Estado", "Acciones"]) %}
+      {% for r in roles %}
+      <tr>
+        <td data-etiqueta="Rol"><span class="tabla__principal">{{ r.nombre|replace("_", " ")|capitalize }}</span></td>
+        <td data-etiqueta="Descripción">{{ r.descripcion or "—" }}</td>
+        <td data-etiqueta="Cuenta de base de datos">{% if r.rol_mysql %}<code>{{ r.rol_mysql }}</code>{% else %}<span class="sin-dato">Sin acceso al sistema</span>{% endif %}</td>
+        <td class="tabla__numero" data-etiqueta="Usuarios">{{ r.usuarios }}<span class="tabla__secundario">{{ r.usuarios_activos }} activos</span></td>
+        <td data-etiqueta="Estado">{{ estado_badge(r.estado) }}</td>
+        <td class="tabla__acciones" data-etiqueta="Acciones"><div class="acciones-fila"><a class="boton boton--secundario boton--pequeno" href="{{ url_for('roles.editar', id_rol=r.id_rol) }}">Editar</a></div></td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("No hay roles registrados") %}{% endcall %}
+  {% endif %}
+</section>
+{% endblock %}

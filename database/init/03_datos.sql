@@ -137,6 +137,9 @@ INSERT INTO usuario (cedula, id_rol, id_medico, cedula_paciente, id_personal, no
 ('0000000022',6,NULL,'0000000022',NULL,'María','Vintimilla Cueva','mvintimilla','maria.vintimilla@mail.com',@hash),
 ('0000000024',6,NULL,'0000000024',NULL,'Ana','Cordero Ríos','acordero','ana.cordero@mail.com',@hash);
 
+-- Las cuentas de ejemplo nacen con la clave inicial: obligar a cambiarla en el primer ingreso
+UPDATE usuario SET cambio_clave_obligatorio = 1;
+
 INSERT INTO recurso_atencion (id_area, nombre_recurso, tipo_recurso, descripcion) VALUES
 (1,'Consultorio 1','consultorio','Planta baja'),
 (1,'Consultorio 2','consultorio','Planta baja'),

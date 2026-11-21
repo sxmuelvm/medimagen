@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_acciones.html" import boton_post %}
+{% from "components/_filtros.html" import buscador, filtro_select, filtro_campo, filtro_botones %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Agenda de imagenología", None)] %}
+{% block titulo %}Agenda de imagenología{% endblock %}
+{% block subtitulo %}Estudios agendados desde la fecha elegida. Se registran como realizados el día de la cita.{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/core/tablas.js') }}" defer></script>{% endblock %}
+{% block contenido %}
+{% set opciones_estado = [] %}{% for e in estados %}{% set _ = opciones_estado.append((e, e|capitalize)) %}{% endfor %}
+<form class="filtros" method="get" action="{{ url_for('imagenologia.agenda') }}" role="search" data-filtros-auto>
+  {{ buscador(filtros.q, "Cédula o nombre del paciente", etiqueta="Paciente") }}
+  {{ filtro_select("estado", "Estado del estudio", opciones_estado, filtros.estado) }}
+  {{ filtro_campo("desde", "Desde", filtros.desde) }}
+  {{ filtro_campo("hasta", "Hasta", filtros.hasta) }}
+  {{ filtro_botones(url_for('imagenologia.agenda')) }}
+</form>
+
+<section class="panel panel--sin-relleno">
+  {% if examenes %}
+    {% call tabla("Estudios de imagenología", ["Fecha y hora", "Paciente", "Estudio", "Estado", "Acciones"]) %}
+      {% for x in examenes %}
+      <tr>
+        <td data-etiqueta="Fecha y hora"><span class="tabla__principal">{{ x.fecha_cita|fecha }}</span><span class="tabla__secundario">{{ x.hora_inicio|hora }} – {{ x.hora_fin|hora }}</span></td>
+        <td data-etiqueta="Paciente"><span class="tabla__principal">{{ x.paciente }}</span><span class="tabla__secundario">{{ x.cedula_paciente }}</span></td>
+        <td data-etiqueta="Estudio"><span class="tabla__principal">{{ x.subtipo }}</span><span class="tabla__secundario">{{ x.tipo }} · {{ x.equipo }} · Pide: {{ x.medico_solicitante }}</span></td>
+        <td data-etiqueta="Estado">{{ estado_badge(x.estado_procedimiento) }}{% if x.fecha_realizacion %}<span class="tabla__secundario">{{ x.fecha_realizacion|fechahora }}</span>{% endif %}</td>
+        <td class="tabla__acciones" data-etiqueta="Acciones">
+          <div class="acciones-fila">
+            {% if x.puede_registrar %}<a class="boton boton--primario boton--pequeno" href="{{ url_for('imagenologia.registrar_realizacion', id_cita=x.id_cita) }}">Registrar realizado</a>{% endif %}
+            {% if x.puede_cancelar %}{{ boton_post(url_for('imagenologia.cancelar', id_cita=x.id_cita), "Cancelar", "boton--peligro-suave boton--pequeno", confirmar="¿Cancelar el estudio de " ~ x.paciente ~ "?", boton_texto="Cancelar estudio") }}{% endif %}
+            {% if not x.puede_registrar and not x.puede_cancelar %}<span class="sin-dato">—</span>{% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("No hay estudios con esos filtros", "La agenda muestra desde hoy por defecto. Prueba con otra fecha o quita los filtros.") %}{% endcall %}
+  {% endif %}
+</section>
+{{ paginacion_de(paginacion, "imagenologia.agenda", filtros) }}
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% from "components/_filtros.html" import filtro_select, filtro_campo, filtro_botones, buscador %}
+{% from "components/_paginacion.html" import paginacion_de %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Auditoría de citas", None)] %}
+{% block titulo %}Auditoría de citas{% endblock %}
+{% block subtitulo %}Cada cambio de estado, fecha u hora queda registrado automáticamente por la base de datos.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('auditoria.accesos') }}">Ver accesos al sistema</a>{% endblock %}
+{% block contenido %}
+<form class="filtros" method="get" action="{{ url_for('auditoria.lista') }}" role="search">
+  <div class="campo">
+    <label class="campo__etiqueta" for="filtro-id_cita">N.º de cita</label>
+    <input class="campo__control" id="filtro-id_cita" name="id_cita" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="9" value="{{ filtros.id_cita }}">
+  </div>
+  {% set opciones_estado = [] %}{% for e in estados %}{% set _ = opciones_estado.append((e, e|replace("_", " ")|capitalize)) %}{% endfor %}
+  {{ filtro_select("estado", "Estado nuevo", opciones_estado, filtros.estado) }}
+  {{ buscador(filtros.cuenta_bd, "recepcion, medico…", nombre="cuenta_bd", etiqueta="Cuenta de base de datos") }}
+  {{ filtro_campo("desde", "Desde", filtros.desde) }}
+  {{ filtro_campo("hasta", "Hasta", filtros.hasta) }}
+  {{ filtro_botones(url_for('auditoria.lista')) }}
+</form>
+
+<section class="panel panel--sin-relleno">
+  {% if cambios %}
+    {% call tabla("Cambios registrados en las citas", ["Fecha del cambio", "Cita", "Cambio de estado", "Fecha y hora", "Quién lo hizo"]) %}
+      {% for c in cambios %}
+      <tr>
+        <td data-etiqueta="Fecha del cambio">{{ c.fecha_cambio|fechahora }}</td>
+        <td class="tabla__numero" data-etiqueta="Cita">{{ c.id_cita }}</td>
+        <td data-etiqueta="Cambio de estado">
+          {% if c.estado_anterior %}{{ estado_badge(c.estado_anterior) }} <span aria-hidden="true">→</span> <span class="visualmente-oculto">a</span>{% endif %}{{ estado_badge(c.estado_nuevo) }}
+        </td>
+        <td data-etiqueta="Fecha y hora">
+          {% if c.fecha_nueva %}{{ c.fecha_nueva|fecha }} · {{ c.hora_nueva|hora }}{% else %}<span class="sin-dato">—</span>{% endif %}
+          {% if c.fecha_anterior and (c.fecha_anterior != c.fecha_nueva or c.hora_anterior != c.hora_nueva) %}<span class="tabla__secundario">Antes: {{ c.fecha_anterior|fecha }} · {{ c.hora_anterior|hora }}</span>{% endif %}
+        </td>
+        <td data-etiqueta="Quién lo hizo">
+          {% if c.persona or c.nombre_usuario %}<span class="tabla__principal">{{ c.persona or c.nombre_usuario }}</span>{% endif %}
+          <span class="tabla__secundario">Cuenta {{ c.usuario_bd }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  {% else %}
+    {% call vacio("No hay cambios con esos filtros", "Prueba con otro número de cita o amplía las fechas.") %}<a class="boton boton--secundario" href="{{ url_for('auditoria.lista') }}">Quitar filtros</a>{% endcall %}
+  {% endif %}
+</section>
+{{ paginacion_de(paginacion, "auditoria.lista", filtros) }}
+{% endblock %}

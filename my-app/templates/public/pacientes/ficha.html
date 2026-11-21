@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Pacientes", url_for('pacientes.lista')), (paciente.nombres ~ " " ~ paciente.apellidos, None)] %}
+{% block titulo %}Ficha del paciente{% endblock %}
+{% block subtitulo %}{{ paciente.nombres }} {{ paciente.apellidos }} · {{ paciente.cedula_paciente }}{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block acciones %}
+  <a class="boton boton--primario" href="{{ url_for('citas.nueva', cedula=paciente.cedula_paciente) }}">{{ icono("cita-nueva") }}Agendar cita</a>
+  <a class="boton boton--secundario" href="{{ url_for('pacientes.editar', cedula=paciente.cedula_paciente) }}">{{ icono("editar") }}Editar datos</a>
+{% endblock %}
+{% block contenido %}
+<div class="pagina-dividida pagina-dividida--lateral">
+  <section class="panel panel--sin-relleno">
+    <div class="panel__cabecera"><h2 class="panel__titulo">Citas</h2></div>
+    {% if citas %}
+      {% call tabla("Citas del paciente", ["Fecha", "Hora", "Tipo", "Detalle", "Estado", "Acciones"]) %}
+        {% for c in citas %}
+        <tr>
+          <td data-etiqueta="Fecha">{{ c.fecha_cita|fecha }}</td>
+          <td class="tabla__numero" data-etiqueta="Hora">{{ c.hora_inicio|hora }}</td>
+          <td data-etiqueta="Tipo">{{ c.tipo }}</td>
+          <td data-etiqueta="Detalle">{{ c.detalle or "—" }}</td>
+          <td data-etiqueta="Estado">{{ estado_badge(c.estado) }}</td>
+          <td class="tabla__acciones" data-etiqueta="Acciones"><div class="acciones-fila"><a class="boton boton--secundario boton--pequeno" href="{{ url_for('citas.detalle', id_cita=c.id_cita) }}">Ver cita</a></div></td>
+        </tr>
+        {% endfor %}
+      {% endcall %}
+    {% else %}
+      {% call vacio("Este paciente aún no tiene citas", "Agenda la primera desde el botón de arriba.") %}{% endcall %}
+    {% endif %}
+  </section>
+
+  <aside class="panel" aria-label="Datos del paciente">
+    <div class="panel__cabecera"><h2 class="panel__titulo">Datos personales</h2>{{ estado_badge(paciente.estado) }}</div>
+    <dl class="ficha">
+      <div class="ficha__dato"><dt>Edad</dt><dd>{{ paciente.edad }} años</dd></div>
+      <div class="ficha__dato"><dt>Nacimiento</dt><dd>{{ paciente.fecha_nacimiento|fecha }}</dd></div>
+      <div class="ficha__dato"><dt>Sexo</dt><dd>{{ "Femenino" if paciente.sexo == "F" else "Masculino" }}</dd></div>
+      <div class="ficha__dato"><dt>Teléfono</dt><dd>{{ paciente.telefono or "—" }}</dd></div>
+      <div class="ficha__dato"><dt>Correo</dt><dd>{{ paciente.correo or "—" }}</dd></div>
+      <div class="ficha__dato"><dt>Dirección</dt><dd>{{ paciente.direccion or "—" }}</dd></div>
+      <div class="ficha__dato"><dt>Registrado</dt><dd>{{ paciente.fecha_registro|fecha }}</dd></div>
+      {% if paciente.usuario is defined %}<div class="ficha__dato"><dt>Usuario</dt><dd>{{ paciente.usuario or "Sin usuario" }}</dd></div>{% endif %}
+    </dl>
+  </aside>
+</div>
+{% endblock %}

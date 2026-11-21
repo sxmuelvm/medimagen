@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_filtros.html" import filtro_select, filtro_campo, filtro_botones %}
+{% from "components/_icono.html" import icono %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Reportes de ingresos", None)] %}
+{% set meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"] %}
+{% block titulo %}Reportes de ingresos{% endblock %}
+{% block subtitulo %}Solo cuentan las citas atendidas, agrupadas por área y por mes.{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/modules/imprimir.js') }}" defer></script>{% endblock %}
+{% block acciones %}<button type="button" class="boton boton--secundario" data-imprimir>{{ icono("imprimir") }}Imprimir</button>{% endblock %}
+{% block contenido %}
+<form class="filtros" method="get" action="{{ url_for('reportes.ingresos') }}" role="search">
+  {{ filtro_campo("desde", "Desde (mes)", filtros.desde, tipo="month") }}
+  {{ filtro_campo("hasta", "Hasta (mes)", filtros.hasta, tipo="month") }}
+  {% set opciones_area = [] %}{% for a in areas %}{% set _ = opciones_area.append((a, a)) %}{% endfor %}
+  {{ filtro_select("area", "Área", opciones_area, filtros.area) }}
+  {{ filtro_botones(url_for('reportes.ingresos')) }}
+</form>
+
+<div class="cifras" role="group" aria-label="Totales del periodo">
+  <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ total.ingresos|dinero }}</span><span class="cifra-bloque__etiqueta">Ingresos del periodo</span></div>
+  <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ total.citas }}</span><span class="cifra-bloque__etiqueta">Citas atendidas</span></div>
+</div>
+
+{% if filas %}
+<div class="totales">
+  <section class="panel panel--sin-relleno" aria-labelledby="t-area">
+    <h2 class="panel__titulo panel__titulo--tabla" id="t-area">Por área</h2>
+    {% call tabla("Ingresos por área", ["Área", "Citas", "Ingresos"]) %}
+      {% for a in por_area %}
+      <tr>
+        <td data-etiqueta="Área"><span class="tabla__principal">{{ a.area }}</span></td>
+        <td class="tabla__numero" data-etiqueta="Citas">{{ a.citas }}</td>
+        <td class="tabla__numero" data-etiqueta="Ingresos">{{ a.ingresos|dinero }}</td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  </section>
+  <section class="panel panel--sin-relleno" aria-labelledby="t-mes">
+    <h2 class="panel__titulo panel__titulo--tabla" id="t-mes">Por mes</h2>
+    {% call tabla("Ingresos por mes", ["Mes", "Citas", "Ingresos"]) %}
+      {% for m in por_mes|reverse %}
+      <tr>
+        <td data-etiqueta="Mes"><span class="tabla__principal">{{ meses[m.mes[5:7]|int - 1]|capitalize }} {{ m.mes[:4] }}</span></td>
+        <td class="tabla__numero" data-etiqueta="Citas">{{ m.citas }}</td>
+        <td class="tabla__numero" data-etiqueta="Ingresos">{{ m.ingresos|dinero }}</td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  </section>
+</div>
+
+<section class="panel panel--sin-relleno" aria-labelledby="t-detalle">
+  <h2 class="panel__titulo panel__titulo--tabla" id="t-detalle">Detalle por mes y área</h2>
+  {% call tabla("Detalle de ingresos", ["Mes", "Área", "Citas atendidas", "Ingresos"]) %}
+    {% for f in filas %}
+    <tr>
+      <td data-etiqueta="Mes">{{ meses[f.mes[5:7]|int - 1]|capitalize }} {{ f.mes[:4] }}</td>
+      <td data-etiqueta="Área">{{ f.area }}</td>
+      <td class="tabla__numero" data-etiqueta="Citas atendidas">{{ f.citas_atendidas }}</td>
+      <td class="tabla__numero" data-etiqueta="Ingresos">{{ f.ingresos|dinero }}</td>
+    </tr>
+    {% endfor %}
+  {% endcall %}
+</section>
+{% else %}
+<section class="panel panel--sin-relleno">
+  {% call vacio("Sin ingresos en este periodo", "No hay citas atendidas con esos filtros. Amplía el rango de meses.") %}<a class="boton boton--secundario" href="{{ url_for('reportes.ingresos') }}">Quitar filtros</a>{% endcall %}
+</section>
+{% endif %}
+{% endblock %}

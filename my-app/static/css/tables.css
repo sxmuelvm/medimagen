@@ -1,0 +1,136 @@
+/* Medimagen Cuenca · tablas. En pantallas estrechas cada fila pasa a ser una ficha con su etiqueta
+   (atributo data-etiqueta de cada celda). Con .tabla--desplazable se mantiene la tabla y se desplaza
+   dentro de su propio contenedor. */
+
+.tabla-contenedor {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-grande);
+  background: var(--blanco);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9375rem;
+}
+
+.tabla caption {
+  padding: var(--e3) var(--e4);
+  color: var(--texto-suave);
+  font-size: var(--texto-sm);
+  text-align: left;
+}
+
+.tabla th {
+  padding: var(--e3) var(--e4);
+  border-bottom: 1px solid var(--borde);
+  background: #f1f4f7;
+  color: var(--gris-600);
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: var(--e3) var(--e4);
+  border-bottom: 1px solid var(--borde);
+  vertical-align: middle;
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla tbody tr:nth-child(even) {
+  background: transparent;
+}
+
+.tabla__principal {
+  color: var(--azul-900);
+  font-weight: 650;
+}
+
+.tabla__secundario {
+  display: block;
+  color: var(--texto-suave);
+  font-size: var(--texto-xs);
+  font-weight: 400;
+}
+
+.tabla__numero {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tabla__acciones {
+  text-align: right;
+}
+
+.tabla--desplazable {
+  min-width: 40rem;
+}
+
+/* Ficha por fila en pantallas estrechas */
+@media (max-width: 47.9375rem) {
+  .tabla:not(.tabla--desplazable),
+  .tabla:not(.tabla--desplazable) tbody,
+  .tabla:not(.tabla--desplazable) tr,
+  .tabla:not(.tabla--desplazable) td {
+    display: block;
+  }
+
+  .tabla:not(.tabla--desplazable) thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .tabla:not(.tabla--desplazable) tbody tr {
+    padding: var(--e2) var(--e4);
+    border-bottom: 1px solid var(--borde-fuerte);
+  }
+
+  .tabla:not(.tabla--desplazable) tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .tabla:not(.tabla--desplazable) td {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 6.5rem) minmax(0, 1fr);
+    gap: var(--e3);
+    padding: var(--e2) 0;
+    border-bottom: 0;
+    text-align: left;
+  }
+
+  .tabla:not(.tabla--desplazable) td::before {
+    color: var(--texto-suave);
+    font-size: var(--texto-xs);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    content: attr(data-etiqueta);
+  }
+
+  .tabla:not(.tabla--desplazable) td.tabla__acciones .acciones-fila {
+    justify-content: flex-start;
+  }
+
+  .tabla:not(.tabla--desplazable) .tabla__numero {
+    text-align: left;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tabla tbody tr:hover {
+    background: var(--celeste-50);
+  }
+}

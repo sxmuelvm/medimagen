@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% from "components/_tabla.html" import tabla, vacio %}
+{% from "components/_estado_badge.html" import estado_badge %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
+{% block titulo %}Panel{% endblock %}
+{% block subtitulo %}Hola, {{ usuario.nombres }}. Esto es lo que tienes por atender.{% endblock %}
+{% block acciones %}
+  <a class="boton boton--primario" href="{{ url_for('consultas.mi_agenda') }}">{{ icono("citas") }}Mi agenda</a>
+  <a class="boton boton--secundario" href="{{ url_for('consultas.examenes_solicitados') }}">{{ icono("examenes") }}Exámenes solicitados</a>
+{% endblock %}
+{% block contenido %}
+{% set i = datos.indicadores %}
+<div class="pila">
+  <div class="cifras" role="group" aria-label="Resumen de tu actividad">
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.citas_hoy }}</span><span class="cifra-bloque__etiqueta">Citas de hoy</span></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.citas_por_atender }}</span><span class="cifra-bloque__etiqueta">Por atender</span><span class="cifra-bloque__detalle">de hoy en adelante</span></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.atendidas }}</span><span class="cifra-bloque__etiqueta">Consultas atendidas</span></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.imagenes_pendientes }}</span><span class="cifra-bloque__etiqueta">Imágenes pendientes</span></div>
+    <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.laboratorios_pendientes }}</span><span class="cifra-bloque__etiqueta">Laboratorios pendientes</span></div>
+  </div>
+
+  <section class="panel">
+    <div class="panel__cabecera"><h2 class="panel__titulo">Próximas consultas</h2></div>
+    {% if datos.proximas %}
+      {% call tabla("Próximas consultas", ["Fecha", "Hora", "Paciente", "Consultorio", "Estado", "Acciones"]) %}
+        {% for c in datos.proximas %}
+        <tr>
+          <td data-etiqueta="Fecha">{{ c.fecha_cita|fecha }}</td>
+          <td class="tabla__numero" data-etiqueta="Hora">{{ c.hora_inicio|hora }}</td>
+          <td data-etiqueta="Paciente"><span class="tabla__principal">{{ c.paciente }}</span></td>
+          <td data-etiqueta="Consultorio">{{ c.consultorio }}</td>
+          <td data-etiqueta="Estado">{{ estado_badge(c.estado) }}</td>
+          <td class="tabla__acciones" data-etiqueta="Acciones"><a class="boton boton--primario boton--pequeno" href="{{ url_for('consultas.atender', id_cita=c.id_cita) }}">Atender</a></td>
+        </tr>
+        {% endfor %}
+      {% endcall %}
+    {% else %}
+      {% call vacio("No tienes consultas pendientes", "Las nuevas citas que te asignen aparecerán aquí.") %}{% endcall %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
