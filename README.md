@@ -20,7 +20,7 @@ Requisitos: Docker Desktop (o Docker + Compose) y Git.
 
 1. Clonar el proyecto y entrar a la carpeta:
    ```
-   git clone <url-del-repositorio> medimagen
+   git clone https://github.com/sxmuelvm/medimagen.git
    cd medimagen
    git checkout medimagen2
    ```
