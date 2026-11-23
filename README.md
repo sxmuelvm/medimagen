@@ -60,16 +60,36 @@ docker compose down -v        apagar y borrar la base (se recrea al volver a enc
 ```
 
 ## Usuarios de ejemplo
-Clave inicial `uno234cinco` (el sistema obliga a cambiarla al primer ingreso).
+Todos tienen la clave inicial `uno234cinco`. El sistema obliga a cambiarla al primer ingreso. El usuario se genera solo a partir del nombre; cuando hay homónimos se agrega un número (`cmarin`, `cmarin01`…).
 
-| Usuario | Rol |
-|---|---|
-| `admin` | Administrador |
-| `ccriollo` | Recepción |
-| `cmarin` | Médico |
-| `mbajana` | Imagenología |
-| `asornoza` | Laboratorio |
-| `candrade` | Paciente |
+| Rol | Usuario | Nombre | Cédula |
+|---|---|---|---|
+| Administrador | `admin` | Samuel Felipe Vallejo Morales | 0000000001 |
+| Recepción | `ccriollo` | Christian David Criollo Lucero | 0000000002 |
+| Recepción | `mvargas` | Mónica Vargas Ruiz | 0000000004 |
+| Recepción | `mvargas01` | María Fernanda Vargas Salinas | 0000000057 |
+| Recepción | `ecalle` | Esteban Calle Paredes | 0000000005 |
+| Recepción | `jortega` | Juan Pablo Ortega Salas | 0000000058 |
+| Médico | `cmarin` | Cristian Teodoro Marin Guachichullca | 0000000003 |
+| Médico | `gmora` | Gabriela Mora Ullauri | 0000000014 |
+| Médico | `mjaramillo` | Mónica Jaramillo Heredia | 0000000019 |
+| Médico | `pcrespo` | Patricia Alejandra Crespo Vélez | 0000000012 |
+| Médico | `mtello` | Marcelo Andrés Tello Bravo | 0000000016 |
+| Imagenología | `mbajana` | Michael Jose Bajaña Espinoza | 0000000006 |
+| Imagenología | `dochoa` | Diego Ochoa Brito | 0000000007 |
+| Imagenología | `lparedes` | Lucas Paredes Soto | 0000000008 |
+| Laboratorio | `asornoza` | Andrea Sornoza Viteri | 0000000009 |
+| Laboratorio | `erojas` | Elena Rojas Cabrera | 0000000010 |
+| Laboratorio | `ntapia` | Nelson Tapia Ullauri | 0000000011 |
+| Laboratorio | `cmarin01` | Camila Andrea Marín Cuesta | 0000000059 |
+| Paciente | `candrade` | Carlos Andrade Pinos | 0000000021 |
+| Paciente | `mvintimilla` | María Vintimilla Cueva | 0000000022 |
+| Paciente | `mvintimilla01` | María José Vintimilla Cueva | 0000000051 |
+| Paciente | `acordero` | Ana Cordero Ríos | 0000000024 |
+| Paciente | `acordero01` | Ana Lucía Cordero Ríos | 0000000053 |
+| Paciente | `cmarin02` | Carlos Eduardo Marín Torres | 0000000049 |
+| Paciente | `cmarin03` | Camila Fernanda Marín Loja | 0000000050 |
+| Paciente | `jperez` | Juan Carlos Pérez Andrade | 0000000052 |
 
 ## Qué se hizo
 
