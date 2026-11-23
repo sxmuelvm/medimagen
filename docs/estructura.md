@@ -10,12 +10,13 @@ medimagen/
 │   │   ├── 06_consultas.sql
 │   │   ├── 07_verificacion.sql
 │   │   └── 08_consultas_avanzadas.sql
-│   └── init/
-│       ├── 01_tablas_vistas.sql
-│       ├── 02_triggers.sql
-│       ├── 03_datos.sql
-│       ├── 04_roles.sql
-│       └── 05_usuarios.sql
+│   ├── init/
+│   │   ├── 01_tablas_vistas.sql
+│   │   ├── 02_triggers.sql
+│   │   ├── 03_datos.sql
+│   │   ├── 04_roles.sql
+│   │   └── 05_usuarios.sql
+│   └── Dockerfile
 ├── docs/
 │   ├── despliegue_docker.md
 │   ├── diseno_pantallas.md
@@ -197,34 +198,6 @@ medimagen/
 │   │   │       ├── lista.html
 │   │   │       └── restablecer_clave.html
 │   │   └── base.html
-│   ├── tests/
-│   │   ├── conftest.py
-│   │   ├── test_auth.py
-│   │   ├── test_calendario.py
-│   │   ├── test_citas.py
-│   │   ├── test_documento.py
-│   │   ├── test_especialidades.py
-│   │   ├── test_historial.py
-│   │   ├── test_permisos.py
-│   │   ├── test_privilegios.py
-│   │   ├── test_seguridad.py
-│   │   └── test_usuarios.py
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── constants.py
-│   │   ├── context.py
-│   │   ├── decorators.py
-│   │   ├── errors.py
-│   │   ├── helpers.py
-│   │   ├── logger.py
-│   │   ├── menu.py
-│   │   ├── security.py
-│   │   └── validators.py
-│   ├── app.py
-│   ├── config.py
-│   ├── extensions.py
-│   ├── pytest.ini
-│   └── run.py
 ├── .dockerignore
 ├── .env
 ├── .env.example
@@ -240,8 +213,11 @@ medimagen/
 | Carpeta / archivo | Función |
 |---|---|
 | `database/init` | Scripts que crean la base `medimagen2`: tablas y vistas (01), triggers y procedimientos (02), datos de ejemplo (03), roles de MySQL (04) y cuentas (05). Son los que ejecuta Docker. |
+| `database/Dockerfile` | Imagen de MySQL para Docker: copia `database/init` para que se ejecute al crear el volumen. |
 | `database/extras` | Scripts de apoyo que no ejecuta Docker: limpieza (00), consultas del proyecto (06), verificación de reglas (07) y consultas avanzadas (08). |
 | `backups` | Destino de `scripts/respaldo_bd.py`. Los respaldos nuevos (`.sql`) no se suben a Git. |
+| `Dockerfile`, `docker-compose.yml`, `.dockerignore` | Despliegue con Docker (ver `docs/despliegue_docker.md`). |
+| `requirements.txt` | Dependencias de la aplicación. |
 | `docs` | Documentación del proyecto. |
 | `my-app/app.py`, `run.py`, `config.py`, `extensions.py` | Fábrica de la aplicación Flask, arranque local, configuración (lee `.env`) y extensiones (CSRF, limitador). |
 | `my-app/conexion` | Conexión a MySQL con una reserva de conexiones por cuenta (`usr_*`). |
@@ -251,7 +227,6 @@ medimagen/
 | `my-app/templates` | Páginas Jinja. `layout` y `components` son piezas reutilizables; `public/<módulo>` tiene las pantallas; `dashboard/<rol>.html` y `errors/<código>.html` se eligen por nombre al responder. |
 | `my-app/static` | CSS, JavaScript (`core` comparte funciones; `modules` es por pantalla), fuentes, logo e imagen de ingreso. Sin estilos ni scripts en línea (lo exige la política de seguridad). |
 | `my-app/scripts` | Herramientas de apoyo: generar un hash de clave, probar las conexiones y hacer respaldos. |
-| `my-app/tests` | Pruebas automáticas con `pytest`. |
 | `my-app/logs` | Registro de la aplicación (no se sube a Git). |
 | `env/` | Entorno virtual de Python (solo local, no se sube a Git). |
 

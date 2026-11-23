@@ -1,3 +1,4 @@
+# Imagen de la aplicación Medimagen (Flask + gunicorn)
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -5,11 +6,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Primero las dependencias (se reutiliza la capa si requirements.txt no cambia)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY my-app/ .
 
+# Usuario sin privilegios; solo puede escribir en /app/logs
 RUN useradd --system --no-create-home --shell /usr/sbin/nologin appuser \
     && mkdir -p /app/logs \
     && chown -R appuser:appuser /app/logs

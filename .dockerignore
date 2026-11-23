@@ -9,8 +9,11 @@ venv
 **/*.pyc
 database
 docs
+backups
 my-app/logs
 my-app/tests
+my-app/pytest.ini
+my-app/scripts
 .pytest_cache
 .vscode
 .idea

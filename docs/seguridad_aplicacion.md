@@ -40,9 +40,8 @@ Resumen de lo que protege a Medimagen Cuenca desde el código Flask. La justific
 - Cada dato se valida en el servidor (cédula de 10 dígitos, correo, teléfono, fechas laborables, horas en bloques de una hora) y los mensajes de error se muestran sin detalles técnicos.
 - Los errores de MySQL se traducen a mensajes claros; el detalle técnico solo queda en el registro (`my-app/logs`).
 
-## 7. Registro y pruebas
-- Se registran inicios y cierres de sesión, fallos, bloqueos y cambios importantes, sin guardar nunca claves.
-- La carpeta `my-app/tests` tiene pruebas automáticas de permisos, privilegios de MySQL, seguridad, citas, calendario y usuarios. Se ejecutan con `pytest` dentro de `my-app`.
+## 7. Registro
+- Se registran inicios y cierres de sesión, fallos, bloqueos y cambios importantes, sin guardar nunca claves. Los registros quedan en `my-app/logs` (o en el volumen `app_logs` de Docker).
 
 ## 8. Pendientes conocidos
 - `SESSION_COOKIE_SECURE` está en `False` porque aún no hay HTTPS. Debe pasar a `True` cuando se publique detrás de un certificado.

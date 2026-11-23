@@ -1,6 +1,13 @@
+# Medimagen Cuenca: base de datos MySQL + aplicación Flask.
+#   Levantar:            docker compose up --build -d
+#   Ver el estado:       docker compose ps
+#   Ver los registros:   docker compose logs -f web
+#   Detener:             docker compose down
+#   Empezar de cero:     docker compose down -v   (borra la base; al volver a levantar se recrea con database/init)
 services:
   db:
-    image: mysql:8.0
+    build: ./database
+    image: medimagen_db:1.0
     container_name: medimagen_db
     restart: unless-stopped
     environment:
@@ -11,23 +18,23 @@ services:
       - --default-time-zone=-05:00
       - --log-bin-trust-function-creators=1
     ports:
-      - "127.0.0.1:3007:3306"
+      - "127.0.0.1:3007:3306"          # solo para Workbench desde este computador
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d:ro
     security_opt:
       - no-new-privileges:true
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 10s
       timeout: 5s
-      retries: 12
-      start_period: 40s
+      retries: 20
+      start_period: 60s
     networks:
       - medimagen_net
 
   web:
     build: .
+    image: medimagen_web:1.0
     container_name: medimagen_web
     restart: unless-stopped
     environment:
@@ -36,7 +43,7 @@ services:
       APP_PORT: "5001"
       DB_HOST: db
       DB_PORT: "3306"
-      DB_NAME: "${DB_NAME:-medimagen}"
+      DB_NAME: "${DB_NAME:-medimagen2}"
       DB_POOL_SIZE: "${DB_POOL_SIZE:-3}"
       DB_PASS_LOGIN: "${DB_PASS_LOGIN:?falta DB_PASS_LOGIN en .env}"
       DB_PASS_ADMINISTRADOR: "${DB_PASS_ADMINISTRADOR:?falta DB_PASS_ADMINISTRADOR en .env}"
@@ -46,7 +53,7 @@ services:
       DB_PASS_LABORATORIO: "${DB_PASS_LABORATORIO:?falta DB_PASS_LABORATORIO en .env}"
       DB_PASS_PACIENTE: "${DB_PASS_PACIENTE:?falta DB_PASS_PACIENTE en .env}"
     ports:
-      - "127.0.0.1:5001:5001"
+      - "5001:5001"                    # accesible desde celulares en la misma red: http://IP_DEL_PC:5001
     depends_on:
       db:
         condition: service_healthy
@@ -59,12 +66,13 @@ services:
       - no-new-privileges:true
     mem_limit: 512m
     volumes:
-      - ./my-app/logs:/app/logs
+      - app_logs:/app/logs
     networks:
       - medimagen_net
 
 volumes:
   mysql_data:
+  app_logs:
 
 networks:
   medimagen_net:
