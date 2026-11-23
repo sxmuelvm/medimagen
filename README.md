@@ -1,89 +1,115 @@
 # Medimagen Cuenca
 
-Sistema de gestión y agendamiento de citas médicas para un centro de consultas, imagenología y laboratorio. Proyecto de la materia Gestión de Bases de Datos.
+Sistema web para la gestión y el agendamiento de citas médicas de un centro de consultas, imagenología y laboratorio. Proyecto de la materia Gestión de Bases de Datos.
 
-- **Tecnología:** Flask + Jinja, HTML/CSS/JavaScript simples, MySQL 8, Docker.
-- **Roles:** administrador, recepción, médico, personal de imagenología, personal de laboratorio y paciente.
-- **Base de datos:** `medimagen2` (17 tablas, 9 vistas, triggers, procedimientos, roles y cuentas de MySQL por rol).
+**Tecnología:** Flask + Jinja, HTML/CSS/JavaScript, MySQL 8 y Docker.
+**Roles:** administrador, recepción, médico, imagenología, laboratorio y paciente.
+**Base de datos:** `medimagen2` (17 tablas, 9 vistas, triggers, procedimientos y una cuenta de MySQL por rol).
 
-## Qué incluye el sistema
-- **Usuarios:** una sola cédula por persona (`usuario.cedula`, única). El usuario de acceso se genera solo (`cmarin`, `cmarin01`…). Cada rol de la aplicación tiene su rol y cuenta propia en MySQL (`rol_*` / `usr_*`) con privilegios mínimos.
-- **Citas:** agendar, reprogramar y cancelar. Se puede volver a agendar un horario cancelado y las canceladas se ven en el calendario. El equipo/puesto del examen se asigna automáticamente según el tipo de examen.
-- **Médico:** busca pacientes (por cédula o nombre), solicita exámenes, registra consultas y resultados.
-- **Calendario semanal** por rol y reportes de gestión.
-- **Seguridad:** sesiones, bloqueo por intentos fallidos, cambio de clave obligatorio, CSRF, CSP estricta, validaciones en la base (triggers y restricciones) y en la aplicación.
-- **Consultas SQL:** `database/extras/06_consultas.sql` (CRUD), `08_consultas_avanzadas.sql` (10 consultas de nivel medio-avanzado, solo SELECT) y `07_verificacion.sql` (comprueba las reglas de la base).
-- **Docker:** dos contenedores (base de datos y aplicación) con volúmenes, healthchecks y la base creada automáticamente.
+## Instalación con Docker
 
-## Instalación con Docker (recomendada)
-Requisitos: Docker Desktop (o Docker + Compose) y Git.
+Solo se necesita [Docker Desktop](https://www.docker.com/products/docker-desktop/) y Git. No hace falta instalar Python ni MySQL.
 
-1. Clonar el proyecto y entrar a la carpeta:
-   ```
-   git clone <url-del-repositorio> medimagen
-   cd medimagen
-   git checkout medimagen2
-   ```
-2. Crear el archivo `.env` a partir del ejemplo (`copy .env.example .env` en Windows, `cp .env.example .env` en Linux/Mac) y completarlo:
-   ```
-   SECRET_KEY=una_clave_larga_y_aleatoria
-   MYSQL_ROOT_PASSWORD=clave_del_root
-   DB_PASS_LOGIN=uno234cinco
-   DB_PASS_ADMINISTRADOR=uno234cinco
-   DB_PASS_RECEPCION=uno234cinco
-   DB_PASS_MEDICO=uno234cinco
-   DB_PASS_IMAGENOLOGIA=uno234cinco
-   DB_PASS_LABORATORIO=uno234cinco
-   DB_PASS_PACIENTE=uno234cinco
-   ```
-   Las claves `DB_PASS_*` deben ser iguales a las de `database/init/05_usuarios.sql` (`uno234cinco`).
-3. Construir y levantar:
-   ```
-   docker compose up --build -d
-   ```
-   La primera vez crea la base `medimagen2` ejecutando `database/init/01` a `05` (tarda ~1 minuto).
-4. Comprobar que ambos contenedores estén `healthy`:
-   ```
-   docker compose ps
-   ```
-5. Abrir la aplicación: **http://localhost:5001**
-
-**Desde un celular (misma red Wi-Fi):** averiguar la IPv4 del computador con `ipconfig` y abrir `http://IP:5001`. Si no carga, permitir el puerto 5001 en el Firewall de Windows.
-**MySQL Workbench:** host `127.0.0.1`, puerto `3007`, usuario `root` (solo accesible desde el mismo computador).
-
-Comandos útiles:
+**1. Descargar el proyecto**
 ```
-docker compose logs -f web      ver los registros de la aplicación
-docker compose logs db          ver los registros de la base
-docker compose down             detener (los datos se conservan)
-docker compose down -v          detener y borrar la base (se recrea al volver a levantar)
+git clone https://github.com/sxmuelvm/medimagen.git
+cd medimagen
+git checkout medimagen2
+```
+
+**2. Crear el archivo `.env`** en la carpeta `medimagen` (junto a `docker-compose.yml`) con este contenido:
+```
+SECRET_KEY=cambia_esta_clave_por_una_larga_y_aleatoria
+MYSQL_ROOT_PASSWORD=Root12345
+DB_NAME=medimagen2
+DB_PASS_LOGIN=uno234cinco
+DB_PASS_ADMINISTRADOR=uno234cinco
+DB_PASS_RECEPCION=uno234cinco
+DB_PASS_MEDICO=uno234cinco
+DB_PASS_IMAGENOLOGIA=uno234cinco
+DB_PASS_LABORATORIO=uno234cinco
+DB_PASS_PACIENTE=uno234cinco
+```
+Las claves `DB_PASS_*` deben ser `uno234cinco`, porque así se crean las cuentas de MySQL en `database/init/05_usuarios.sql`. El archivo `.env` no se sube a Git (tiene claves); por eso cada persona lo crea.
+
+**3. Construir y encender**
+```
+docker compose up --build -d
+```
+La primera vez tarda unos minutos: descarga las imágenes y crea la base `medimagen2` ejecutando `database/init/01` a `05`.
+
+**4. Comprobar** que los dos contenedores estén `healthy`:
+```
+docker compose ps
+```
+
+**5. Abrir** http://localhost:5001
+
+| Para | Dirección |
+|---|---|
+| Aplicación | http://localhost:5001 |
+| Desde un celular (mismo Wi-Fi) | `http://IP_DEL_PC:5001` (la IP sale con `ipconfig`; permitir el puerto 5001 en el Firewall de Windows) |
+| MySQL Workbench | host `127.0.0.1`, puerto `3007`, usuario `root`, clave `MYSQL_ROOT_PASSWORD` |
+
+**Comandos útiles**
+```
+docker compose logs -f web    registros de la aplicación
+docker compose logs db        registros de la base de datos
+docker compose down           apagar (los datos se conservan)
+docker compose down -v        apagar y borrar la base (se recrea al volver a encender)
 ```
 
 ## Usuarios de ejemplo
-Clave inicial `uno234cinco` (se debe cambiar al entrar): `admin`, `ccriollo` (recepción), `cmarin` (médico), `mbajana` (imagenología), `asornoza` (laboratorio), `candrade` (paciente).
+Clave inicial `uno234cinco` (el sistema obliga a cambiarla al primer ingreso).
 
-## Instalación manual (sin Docker)
-Base de datos: ejecutar con `root` en MySQL Workbench, en este orden:
-1. `database/extras/00_limpieza.sql` (borra la base anterior)
-2. `database/init/01_tablas_vistas.sql`
-3. `database/init/02_triggers.sql`
-4. `database/init/03_datos.sql`
-5. `database/init/04_roles.sql`
-6. `database/init/05_usuarios.sql`
+| Usuario | Rol |
+|---|---|
+| `admin` | Administrador |
+| `ccriollo` | Recepción |
+| `cmarin` | Médico |
+| `mbajana` | Imagenología |
+| `asornoza` | Laboratorio |
+| `candrade` | Paciente |
 
-Aplicación (en `.env` usar `DB_HOST=localhost` y `DB_PORT=3306`, o 3007 si la base está en Docker):
-```
-python -m venv env
-env\Scripts\activate
-pip install -r requirements-dev.txt
-copy .env.example .env
-cd my-app
-python run.py
-```
-Aplicación: http://localhost:5001 · Pruebas automáticas (solo local, no van a Docker): `cd my-app` y `pytest`.
+## Qué se hizo
+
+**Base de datos**
+- Una sola cédula por persona (`usuario.cedula`, única y validada con 10 dígitos); `paciente` y `medico` la comparten.
+- Triggers y procedimientos que validan perfiles, impiden borrados incoherentes y mantienen los datos sincronizados.
+- Usuario de acceso automático a partir del nombre (`cmarin`, `cmarin01`…).
+- Citas con una columna generada (`activa`) para que un horario cancelado pueda volver a agendarse sin chocar con la restricción de unicidad.
+- Roles `rol_*` y cuentas `usr_*` con privilegios mínimos por tipo de usuario.
+- Datos de ejemplo con dos nombres y dos apellidos.
+
+**Aplicación**
+- **Citas:** agendar, reprogramar y cancelar; las canceladas se ven en el calendario. El equipo o puesto se asigna solo según el tipo de examen.
+- **Médico:** busca pacientes por cédula o nombre, solicita y modifica exámenes, registra consultas y resultados.
+- **Calendario semanal** y horarios disponibles por especialidad o equipo.
+- **Seguridad:** sesiones con tiempo de inactividad, bloqueo por intentos fallidos, cambio de clave obligatorio, protección CSRF, política CSP estricta y validaciones tanto en la aplicación como en la base.
+
+**Consultas SQL** (`database/extras/`)
+- `06_consultas.sql`: consultas de gestión (CRUD).
+- `08_consultas_avanzadas.sql`: 10 consultas de nivel medio-avanzado, solo `SELECT`.
+- `07_verificacion.sql`: comprueba las reglas de la base.
+
+**Docker**
+- Dos contenedores: base de datos (con la base creada automáticamente) y aplicación (con gunicorn).
+- Volúmenes para los datos, comprobaciones de salud y contenedor de la aplicación en modo solo lectura y sin privilegios extra.
+
+## Instalación sin Docker (opcional)
+1. En MySQL Workbench, con `root`, ejecutar en orden: `database/extras/00_limpieza.sql` y luego `database/init/01_tablas_vistas.sql`, `02_triggers.sql`, `03_datos.sql`, `04_roles.sql`, `05_usuarios.sql`.
+2. En la carpeta del proyecto:
+   ```
+   python -m venv env
+   env\Scripts\activate
+   pip install -r requirements.txt
+   cd my-app
+   python run.py
+   ```
+   Se usa el mismo `.env`, pero con `DB_HOST=localhost`, `DB_PORT=3306` y `APP_PORT=5001`.
 
 ## Documentación
-- `docs/estructura.md`: carpetas y archivos del proyecto.
+- `docs/estructura.md`: carpetas y archivos.
 - `docs/diseno_pantallas.md`: diseño y pantallas por rol.
 - `docs/seguridad_aplicacion.md` y `docs/justificacion_seguridad.md`: seguridad.
-- `docs/despliegue_docker.md`: despliegue con Docker.
+- `docs/despliegue_docker.md`: detalles del despliegue.
