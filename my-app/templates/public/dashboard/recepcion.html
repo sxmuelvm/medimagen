@@ -7,7 +7,7 @@
 {% block subtitulo %}Hola, {{ usuario.nombres }}. Estas son las citas que vienen.{% endblock %}
 {% block acciones %}
   <a class="boton boton--primario" href="{{ url_for('citas.nueva') }}">{{ icono("cita-nueva") }}Nueva cita</a>
-  <a class="boton boton--secundario" href="{{ url_for('citas.agenda') }}">{{ icono("citas") }}Ver agenda</a>
+  <a class="boton boton--secundario" href="{{ url_for('calendario.semana') }}">{{ icono("citas") }}Ver calendario</a>
 {% endblock %}
 {% block contenido %}
 {% set i = datos.indicadores %}

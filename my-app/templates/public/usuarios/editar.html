@@ -7,7 +7,7 @@
 {% set v = form if form else usuario %}
 {% set es_yo = usuario.id_usuario == session.id_usuario %}
 {% block titulo %}Editar usuario{% endblock %}
-{% block subtitulo %}{{ usuario.nombres }} {{ usuario.apellidos }} · {{ usuario.cedula }}{% endblock %}
+{% block subtitulo %}{{ usuario.nombres }} {{ usuario.apellidos }} · {{ usuario.nombre_usuario }}{% endblock %}
 {% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
 {% block contenido %}
 <div class="pagina-dividida pagina-dividida--lateral">
@@ -19,7 +19,8 @@
         <div class="formulario__rejilla">
           <div class="campo">
             <label class="campo__etiqueta" for="nombre_usuario">Nombre de usuario<span class="campo__obligatorio" aria-hidden="true">*</span></label>
-            <input class="campo__control" id="nombre_usuario" name="nombre_usuario" type="text" value="{{ v.get('nombre_usuario', '') }}" maxlength="30" required autocapitalize="none" spellcheck="false">
+            <input class="campo__control" id="nombre_usuario" type="text" value="{{ usuario.nombre_usuario }}" readonly aria-describedby="ayuda-usuario">
+            <p class="campo__ayuda" id="ayuda-usuario">Se genera solo y no se cambia.</p>
           </div>
           <div class="campo">
             <label class="campo__etiqueta" for="correo">Correo<span class="campo__obligatorio" aria-hidden="true">*</span></label>
@@ -29,7 +30,7 @@
             <label class="campo__etiqueta" for="id_rol">Rol<span class="campo__obligatorio" aria-hidden="true">*</span></label>
             <select class="campo__control" id="id_rol" name="id_rol" required{% if es_yo %} aria-describedby="ayuda-rol"{% endif %}>
               {% for r in roles %}
-              <option value="{{ r.id_rol }}"{% if (v.get('id_rol')|string) == (r.id_rol|string) %} selected{% endif %}>{{ r.nombre|replace("_", " ")|capitalize }}</option>
+              <option value="{{ r.id_rol }}"{% if (v.get('id_rol')|string) == (r.id_rol|string) %} selected{% endif %}>{{ {"recepcion": "Recepción", "medico": "Médico", "personal_imagenologia": "Personal de imagenología", "personal_laboratorio": "Personal de laboratorio"}.get(r.nombre, r.nombre|replace("_", " ")|capitalize) }}</option>
               {% endfor %}
             </select>
             <p class="campo__ayuda" id="ayuda-rol">{% if es_yo %}No puedes cambiar tu propio rol.{% else %}Solo se puede cambiar a un rol del mismo tipo de perfil ({{ usuario.tipo_perfil }}).{% endif %}</p>
@@ -42,23 +43,6 @@
       </form>
     </section>
 
-    <section class="panel panel--sin-relleno">
-      <div class="panel__cabecera"><h2 class="panel__titulo">Últimos accesos</h2></div>
-      {% if accesos %}
-        {% call tabla("Últimos accesos de este usuario", ["Fecha", "Resultado", "Dirección IP", "Navegador"]) %}
-          {% for a in accesos %}
-          <tr>
-            <td data-etiqueta="Fecha">{{ a.fecha|fechahora }}</td>
-            <td data-etiqueta="Resultado">{{ estado_badge(a.resultado) }}</td>
-            <td data-etiqueta="Dirección IP">{{ a.ip or "—" }}</td>
-            <td data-etiqueta="Navegador"><span class="registro-detalle">{{ a.navegador or "—" }}</span></td>
-          </tr>
-          {% endfor %}
-        {% endcall %}
-      {% else %}
-        {% call vacio("Sin accesos registrados", "Esta cuenta todavía no ha iniciado sesión.") %}{% endcall %}
-      {% endif %}
-    </section>
   </div>
 
   <aside class="pila" aria-label="Estado y acciones">

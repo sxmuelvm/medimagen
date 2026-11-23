@@ -20,11 +20,12 @@ def test_crear_usuario_con_datos_invalidos_no_crea_nada(entrar):
     admin = entrar("admin")
     antes = sql("SELECT COUNT(*) AS n FROM usuario", uno=True)["n"]
     casos = [
-        {"id_rol": "999", "id_perfil": "1", "nombre_usuario": "pruebaxx"},                 # rol inexistente
-        {"id_rol": "abc", "id_perfil": "1", "nombre_usuario": "pruebaxx"},                 # rol no numerico
-        {"id_rol": "1", "id_perfil": "99999", "nombre_usuario": "pruebaxx"},               # perfil inexistente
-        {"id_rol": "1", "id_perfil": "", "nombre_usuario": ""},                            # vacio
-        {"id_rol": "6", "id_perfil": "0000000021", "nombre_usuario": "otro_nombre"},       # el paciente ya tiene usuario
+        {"id_rol": "999", "id_perfil": "1"},                                       # rol inexistente
+        {"id_rol": "abc", "id_perfil": "1"},                                       # rol no numerico
+        {"id_rol": "6", "id_perfil": "0000099999"},                     # paciente inexistente
+        {"id_rol": "2", "cedula": "", "nombres": "", "apellidos": ""},      # vacio
+        {"id_rol": "2", "cedula": "12345", "nombres": "Ana", "apellidos": "Perez", "correo": "a@b.ec"},   # cedula corta
+        {"id_rol": "6", "id_perfil": "0000000021"},                     # el paciente ya tiene usuario
     ]
     for datos in casos:
         assert admin.post("/usuarios/nuevo", datos).status_code == 400, datos
@@ -50,7 +51,7 @@ def test_estado_invalido_se_rechaza(entrar):
     admin = entrar("admin")
     r = admin.post(f"/usuarios/{id_usuario('victima')}/estado", {"estado": "super"}, follow_redirects=True)
     assert "no es válido" in texto(r)
-    assert sql("SELECT estado FROM usuario WHERE cedula = %s", (USUARIOS["victima"],), uno=True)["estado"] == "activo"
+    assert sql("SELECT estado FROM usuario WHERE nombre_usuario = %s", (USUARIOS["victima"],), uno=True)["estado"] == "activo"
 
 
 def test_desactivar_y_reactivar_un_usuario(entrar, anonimo, restablecer):
@@ -97,7 +98,7 @@ def test_restablecer_clave_genera_una_temporal_que_obliga_a_cambiarla(entrar, an
         assert entrada.status_code == 302 and entrada.headers["Location"].endswith("/perfil/clave")
         assert sql("SELECT cambio_clave_obligatorio AS c FROM usuario WHERE id_usuario = %s", (objetivo,), uno=True)["c"] == 1
         # y la clave generada no queda guardada en texto
-        assert temporal not in sql("SELECT password_hash FROM usuario WHERE id_usuario = %s", (objetivo,), uno=True)["password_hash"]
+        assert temporal not in sql("SELECT password FROM usuario WHERE id_usuario = %s", (objetivo,), uno=True)["password"]
     finally:
         restablecer("victima")
 
@@ -115,6 +116,52 @@ def test_clave_manual_debe_ser_segura(entrar, restablecer):
 def test_editar_con_datos_invalidos(entrar):
     admin = entrar("admin")
     objetivo = id_usuario("victima")
-    r = admin.post(f"/usuarios/{objetivo}/editar", {"nombre_usuario": "x", "correo": "no-es-correo", "id_rol": "6"})
+    r = admin.post(f"/usuarios/{objetivo}/editar", {"correo": "no-es-correo", "id_rol": "6"})
     assert r.status_code == 400
     assert admin.get("/usuarios/99999/editar").status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Nombre de usuario automatico: inicial del nombre + primer apellido; si existe, 01, 02...
+# ---------------------------------------------------------------------------
+def _crear_personal(admin, nombres, apellidos, cedula, correo):
+    r = admin.post("/usuarios/nuevo", {"id_rol": str(sql("SELECT id_rol FROM rol WHERE nombre = 'recepcion'", uno=True)["id_rol"]),
+                                       "cedula": cedula, "nombres": nombres, "apellidos": apellidos, "correo": correo})
+    assert r.status_code == 200, texto(r)[:300]
+    return sql("SELECT nombre_usuario FROM usuario WHERE cedula = %s", (cedula,), uno=True)["nombre_usuario"]
+
+
+def test_el_nombre_de_usuario_se_genera_y_agrega_numero_si_se_repite(entrar):
+    from conftest import sql_escribir
+    admin = entrar("admin")
+    cedulas = ("0000099001", "0000099002", "0000099003")
+    try:
+        # dos nombres y dos apellidos, con tilde y enie: solo cuenta la inicial del primer nombre y el primer apellido
+        assert _crear_personal(admin, "Zoila Marcela", "Ñúñez Xyzprueba", cedulas[0], "z1@prueba.ec") == "znunez"
+        assert _crear_personal(admin, "Zacarías", "Ñuñez Otro", cedulas[1], "z2@prueba.ec") == "znunez01"
+        assert _crear_personal(admin, "Zulema Ana", "Nunez Ruiz", cedulas[2], "z3@prueba.ec") == "znunez02"
+    finally:
+        for c in cedulas:
+            sql_escribir("DELETE FROM usuario WHERE cedula = %s", (c,))
+
+
+def test_los_homonimos_del_ejemplo_tienen_numero(entrar):
+    nombres = {f["nombre_usuario"] for f in sql("SELECT nombre_usuario FROM usuario WHERE nombre_usuario LIKE 'cmarin%'")}
+    assert {"cmarin", "cmarin01", "cmarin02", "cmarin03"} <= nombres
+
+
+def test_el_nombre_de_usuario_no_se_edita(entrar):
+    admin = entrar("admin")
+    objetivo = id_usuario("victima")
+    antes = sql("SELECT nombre_usuario, correo FROM usuario WHERE id_usuario = %s", (objetivo,), uno=True)
+    r = admin.post(f"/usuarios/{objetivo}/editar", {"nombre_usuario": "otro", "correo": antes["correo"], "id_rol": "6"})
+    assert r.status_code in (200, 302)
+    assert sql("SELECT nombre_usuario FROM usuario WHERE id_usuario = %s", (objetivo,), uno=True)["nombre_usuario"] == antes["nombre_usuario"]
+
+
+def test_usuario_medico_o_paciente_debe_tener_ficha(entrar):
+    from conftest import sql_escribir
+    import pytest as _p
+    with _p.raises(Exception):
+        sql_escribir("""INSERT INTO usuario (id_rol, cedula, nombres, apellidos, correo, password)
+                        SELECT id_rol, '0000098765', 'X', 'Y', 'xy@prueba.ec', 'x' FROM rol WHERE nombre = 'medico'""")

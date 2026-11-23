@@ -31,7 +31,6 @@
         <td data-etiqueta="Estado">{{ estado_badge(m.estado) }}</td>
         <td class="tabla__acciones" data-etiqueta="Acciones">
           <div class="acciones-fila">
-            <a class="boton boton--secundario boton--pequeno" href="{{ url_for('medicos.horario', id_medico=m.id_medico) }}">Horario</a>
             <a class="boton boton--secundario boton--pequeno" href="{{ url_for('medicos.editar', id_medico=m.id_medico) }}">Editar</a>
             {% if m.estado == "activo" %}
               {{ boton_post(url_for('medicos.estado', id_medico=m.id_medico), "Desactivar", confirmar="¿Desactivar a " ~ m.nombres ~ " " ~ m.apellidos ~ "? No podrá recibir citas nuevas.", boton_texto="Desactivar", campos={"estado": "inactivo"}) }}

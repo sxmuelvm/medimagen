@@ -1,6 +1,6 @@
 {# Navegación entre los catálogos. actual = endpoint de la pantalla abierta. #}
 {% macro subnav(actual) -%}
-{% set items = [("catalogos.index", "Resumen"), ("catalogos.areas", "Áreas"), ("catalogos.recursos", "Recursos"), ("catalogos.tipos_examen", "Tipos de examen"), ("catalogos.subtipos_examen", "Exámenes"), ("catalogos.medicamentos", "Medicamentos"), ("catalogos.bloques_horario", "Bloques horarios")] %}
+{% set items = [("catalogos.index", "Resumen"), ("catalogos.areas", "Áreas"), ("catalogos.recursos", "Recursos"), ("catalogos.tipos_examen", "Tipos de examen"), ("catalogos.subtipos_examen", "Exámenes")] %}
 <nav class="subnavegacion" aria-label="Catálogos">
   {% for endpoint, texto in items %}<a href="{{ url_for(endpoint) }}"{% if endpoint == actual %} aria-current="page"{% endif %}>{{ texto }}</a>{% endfor %}
 </nav>

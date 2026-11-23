@@ -2,7 +2,7 @@
 {% from "components/_icono.html" import icono %}
 {% from "components/_campo_formulario.html" import campo %}
 {% from "components/_estado_badge.html" import estado_badge %}
-{% set migas = [("Panel", url_for('dashboard.inicio')), ("Agenda de citas", url_for('citas.agenda')), ("Cita " ~ cita.id_cita, url_for('citas.detalle', id_cita=cita.id_cita)), ("Reprogramar", None)] %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Calendario", url_for('calendario.semana')), ("Cita " ~ cita.id_cita, url_for('citas.detalle', id_cita=cita.id_cita)), ("Reprogramar", None)] %}
 {% set bloques = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"] %}
 {% set recurso_actual = form.get("id_recurso", cita.id_recurso|string if cita.id_area == 2 else "") %}
 {% block titulo %}Reprogramar cita{% endblock %}
@@ -32,13 +32,8 @@
       </div>
       <p class="horarios-estado" id="estado-horarios" role="status" aria-live="polite" data-estado-horarios>Elige una fecha para ver los horarios libres.</p>
 
-      <div class="campo">
-        <label class="campo__etiqueta" for="id_recurso">{{ "Equipo" if cita.id_area == 2 else ("Puesto" if cita.id_area == 3 else "Consultorio") }}</label>
-        <select class="campo__control" id="id_recurso" name="id_recurso" data-campo-recurso>
-          {% if cita.id_area != 2 %}<option value="">Asignar automáticamente</option>{% endif %}
-          {% for r in recursos if r.id_area == cita.id_area %}<option value="{{ r.id_recurso }}"{% if recurso_actual|string == r.id_recurso|string %} selected{% endif %}>{{ r.nombre_recurso }}</option>{% endfor %}
-        </select>
-      </div>
+      {# El consultorio, equipo o puesto se asigna solo; en imagenología se conserva el equipo de la cita #}
+      <input type="hidden" name="id_recurso" data-campo-recurso value="{{ recurso_actual }}">
 
       <div class="campo">
         <label class="campo__etiqueta" for="observacion">Observación</label>

@@ -56,7 +56,7 @@ class Config:
     # ---------- Base de datos ----------
     BD_HOST = os.getenv("DB_HOST", "localhost")
     BD_PUERTO = _entero("DB_PORT", 3306)         # 3306 en local y dentro de Docker
-    BD_NOMBRE = os.getenv("DB_NAME", "medimagen")
+    BD_NOMBRE = os.getenv("DB_NAME", "medimagen2")
     # 3 conexiones por cuenta y por worker: 3 workers x 3 = 9 (limite de MySQL: 10 o mas)
     BD_POOL = max(1, min(_entero("DB_POOL_SIZE", 3), 10))
 
@@ -85,4 +85,4 @@ class Config:
     @classmethod
     def validar(cls):
         if not cls.SECRET_KEY or len(cls.SECRET_KEY) < 32:
-            raise RuntimeError("SECRET_KEY falta o es muy corta (minimo 32 caracteres). Revisa el .env")
+            raise RuntimeError("SECRET_KEY falta o es muy corta (minimo 32 caracteres). Revisa el .env")

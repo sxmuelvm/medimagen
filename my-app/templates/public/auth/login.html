@@ -23,11 +23,10 @@
       <form class="formulario" method="post" action="{{ url_for('auth.login') }}" autocomplete="off" aria-labelledby="titulo-acceso">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="campo">
-          <label class="campo__etiqueta" for="cedula">Cédula</label>
-          <input class="campo__control" id="cedula" name="cedula" type="text" inputmode="numeric" enterkeyhint="next"
-                 maxlength="10" pattern="[0-9]{10}" value="{{ cedula or '' }}" required autofocus
-                 autocomplete="username" aria-describedby="ayuda-cedula">
-          <p class="campo__ayuda" id="ayuda-cedula">10 dígitos, sin guiones ni espacios.</p>
+          <label class="campo__etiqueta" for="nombre_usuario">Usuario</label>
+          <input class="campo__control" id="nombre_usuario" name="nombre_usuario" type="text" enterkeyhint="next"
+                 maxlength="50" value="{{ nombre_usuario or '' }}" required autofocus autocapitalize="none"
+                 spellcheck="false" autocomplete="username">
         </div>
         <div class="campo">
           <label class="campo__etiqueta" for="clave">Contraseña</label>

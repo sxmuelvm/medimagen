@@ -24,15 +24,15 @@ def login():
     if session.get("id_usuario"):
         return redirect(url_for("dashboard.inicio"))
 
-    cedula = ""
+    nombre_usuario = ""
     if request.method == "POST":
-        cedula = request.form.get("cedula", "").strip()
+        nombre_usuario = request.form.get("nombre_usuario", "").strip()
         clave = request.form.get("clave", "")
         try:
-            datos = auth_controller.iniciar_sesion(cedula, clave, ip_cliente(), navegador())
+            datos = auth_controller.iniciar_sesion(nombre_usuario, clave, ip_cliente(), navegador())
         except ErrorAutenticacion as error:
             flash(error.mensaje, "error")
-            return render_pagina("public/auth/login.html", cedula=cedula), 401
+            return render_pagina("public/auth/login.html", nombre_usuario=nombre_usuario), 401
 
         session.clear()                       # sesion nueva: evita la fijacion de sesion
         session.update(datos)
@@ -43,13 +43,13 @@ def login():
             return redirect(url_for("perfil.cambiar_clave"))
         return redirect(url_for("dashboard.inicio"))
 
-    return render_pagina("public/auth/login.html", cedula=cedula)
+    return render_pagina("public/auth/login.html", nombre_usuario=nombre_usuario)
 
 
 @bp.post("/logout")
 @login_requerido
 def logout():
-    auth_controller.registrar_cierre_sesion(session["id_usuario"], session.get("cedula"), ip_cliente(), navegador())
+    auth_controller.registrar_cierre_sesion(session["id_usuario"], session.get("nombre_usuario"), ip_cliente(), navegador())
     session.clear()
     flash("Cerraste sesión correctamente.", "exito")
     return redirect(url_for("auth.login"))

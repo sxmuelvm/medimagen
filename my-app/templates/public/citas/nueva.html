@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 {% from "components/_icono.html" import icono %}
 {% from "components/_campo_formulario.html" import campo %}
-{% set migas = [("Panel", url_for('dashboard.inicio')), ("Agenda de citas", url_for('citas.agenda')), ("Nueva cita", None)] %}
-{% set buscada = request.args.get("cedula") %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Calendario", url_for('calendario.semana')), ("Nueva cita", None)] %}
 {% set area_elegida = form.get("id_area", "1") %}
 {% set bloques = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"] %}
 {% block titulo %}Nueva cita{% endblock %}
 {% block subtitulo %}Busca al paciente, elige qué necesita y escoge un horario libre.{% endblock %}
 {% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/citas.css') }}">{% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/modules/citas.js') }}" defer></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/core/http.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/modules/citas.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/modules/buscar_paciente.js') }}" defer></script>{% endblock %}
 {% block contenido %}
 <ol class="pasos">
   <li class="paso">
@@ -19,18 +20,38 @@
           <p class="paciente-tarjeta__nombre">{{ paciente.nombres }} {{ paciente.apellidos }}</p>
           <p class="paciente-tarjeta__dato">Cédula {{ paciente.cedula_paciente }} · {{ paciente.edad }} años</p>
         </div>
-        <a class="boton boton--secundario boton--pequeno" href="{{ url_for('citas.nueva') }}">Cambiar paciente</a>
+        <a class="boton boton--secundario boton--pequeno" href="{{ url_for('citas.nueva', **previo) }}">Cambiar paciente</a>
       </div>
       {% if paciente.estado != "activo" %}
         <div class="mensaje mensaje--error" role="alert">{{ icono("error", "mensaje__icono") }}<p class="mensaje__texto">Este paciente está inactivo y no se le pueden agendar citas. Actívalo desde su ficha.</p></div>
       {% endif %}
     {% else %}
-      <form class="buscar-paciente" method="get" action="{{ url_for('citas.nueva') }}" role="search">
-        {{ campo("cedula", "Cédula del paciente", valor=buscada or "", requerido=true, inputmode="numeric", maxlength=10, pattern="[0-9]{10}", ayuda="10 dígitos.") }}
-        <button type="submit" class="boton boton--primario">{{ icono("buscar") }}Buscar paciente</button>
+      <form class="buscar-paciente" method="get" action="{{ url_for('citas.nueva') }}" role="search" data-buscar-paciente data-url-sugerencias="{{ url_for('citas.pacientes') }}" data-url-nueva="{{ url_for('citas.nueva') }}">
+        {% for k, v in previo.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}" data-previo>{% endfor %}
+        <div class="campo buscar-paciente__campo">
+          <label class="campo__etiqueta" for="q">Cédula o nombre del paciente</label>
+          <div class="sugerencias-contenedor">
+          <input class="campo__control" type="search" id="q" name="q" value="{{ busqueda or '' }}" maxlength="60" autocomplete="off" autofocus
+                 aria-describedby="ayuda-q" role="combobox" aria-expanded="false" aria-controls="sugerencias-paciente" aria-autocomplete="list" data-campo-busqueda>
+          <ul class="sugerencias" id="sugerencias-paciente" role="listbox" aria-label="Pacientes encontrados" data-sugerencias hidden></ul>
+          </div>
+          <p class="campo__ayuda" id="ayuda-q">Si escribes números, se toma como cédula (máximo 10 dígitos). Si escribes letras, busca por nombre y apellido.</p>
+        </div>
+        <button type="submit" class="boton boton--primario buscar-paciente__boton">{{ icono("buscar") }}Buscar paciente</button>
       </form>
-      {% if buscada %}
-        <div class="mensaje mensaje--aviso" role="status">{{ icono("alerta", "mensaje__icono") }}<p class="mensaje__texto">No hay un paciente registrado con esa cédula. Revisa el número o <a href="{{ url_for('pacientes.crear') }}">registra al paciente</a> primero.</p></div>
+      {% if resultados is not none %}
+        {% if resultados %}
+        <ul class="resultados-paciente" aria-label="Pacientes encontrados">
+          {% for p in resultados %}
+          <li><a class="resultado-paciente" href="{{ url_for('citas.nueva', cedula=p.cedula_paciente, **previo) }}">
+            <span class="resultado-paciente__nombre">{{ p.nombre }}</span>
+            <span class="resultado-paciente__dato">Cédula {{ p.cedula_paciente }} · {{ p.edad }} años{% if p.estado != "activo" %} · Inactivo{% endif %}</span>
+          </a></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="mensaje mensaje--aviso" role="status">{{ icono("alerta", "mensaje__icono") }}<p class="mensaje__texto">No encontramos pacientes con «{{ busqueda }}». Revisa el dato o <a href="{{ url_for('pacientes.crear') }}">registra al paciente</a> primero.</p></div>
+        {% endif %}
       {% endif %}
     {% endif %}
   </li>
@@ -91,19 +112,6 @@
           </div>
         </fieldset>
 
-        <div class="campo" data-grupo-area="2 3">
-          <label class="campo__etiqueta" for="id_recurso">Equipo o puesto</label>
-          <select class="campo__control" id="id_recurso" name="id_recurso" data-por-area data-campo-recurso aria-describedby="ayuda-recurso">
-            <option value="">Asignar automáticamente</option>
-            {% for area in areas if area.id_area != 1 %}
-            <optgroup label="{{ area.nombre }}" data-area="{{ area.id_area }}">
-              {% for r in recursos if r.id_area == area.id_area %}<option value="{{ r.id_recurso }}"{% if form.get("id_recurso") == r.id_recurso|string %} selected{% endif %}>{{ r.nombre_recurso }}</option>{% endfor %}
-            </optgroup>
-            {% endfor %}
-          </select>
-          <p class="campo__ayuda" id="ayuda-recurso">En imagenología debes elegir el equipo, porque cada uno hace estudios distintos. En laboratorio se asigna un puesto libre.</p>
-        </div>
-
         <p class="nota" data-solo-sin-js>Según el área que elijas arriba, usa el médico de la consulta o el médico solicitante y el examen. Los demás campos se ignoran.</p>
 
         <div class="resumen-costo" data-resumen-costo hidden>
@@ -132,7 +140,7 @@
       </div>
 
       <div class="formulario__acciones">
-        <a class="boton boton--secundario" href="{{ url_for('citas.agenda') }}">Cancelar</a>
+        <a class="boton boton--secundario" href="{{ url_for('calendario.semana') }}">Cancelar</a>
         <button type="submit" class="boton boton--primario">{{ icono("check") }}Registrar cita</button>
       </div>
     </form>

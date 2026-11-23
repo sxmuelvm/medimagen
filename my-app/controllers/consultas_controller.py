@@ -86,22 +86,18 @@ def cita_propia(usuario, id_medico, id_cita):
 
 def detalle_consulta(usuario, id_consulta):
     consulta = consultar(CUENTA_MEDICO, """
-        SELECT id_consulta, id_cita, fecha_hora_atencion, motivo_consulta, observaciones
+        SELECT id_consulta, id_cita, fecha_hora_atencion, motivo_consulta, diagnostico, observaciones
         FROM consulta_medica WHERE id_consulta = %s""", (id_consulta,), id_usuario_app=usuario, uno=True)
-    diagnosticos = consultar(CUENTA_MEDICO, """
-        SELECT descripcion, observacion, fecha_registro FROM diagnostico WHERE id_consulta = %s
-        ORDER BY id_diagnostico""", (id_consulta,), id_usuario_app=usuario)
     receta = consultar(CUENTA_MEDICO, """
         SELECT id_prescripcion, fecha_prescripcion, indicaciones_generales FROM prescripcion
         WHERE id_consulta = %s""", (id_consulta,), id_usuario_app=usuario, uno=True)
     medicamentos = []
     if receta:
         medicamentos = consultar(CUENTA_MEDICO, """
-            SELECT m.nombre, m.presentacion, m.concentracion, d.dosis, d.frecuencia, d.duracion, d.indicaciones
-            FROM detalle_prescripcion d JOIN medicamento m ON m.id_medicamento = d.id_medicamento
-            WHERE d.id_prescripcion = %s ORDER BY d.id_detalle""", (receta["id_prescripcion"],),
-                               id_usuario_app=usuario)
-    return {"consulta": consulta, "diagnosticos": diagnosticos, "receta": receta, "medicamentos": medicamentos}
+            SELECT medicamento, dosis, frecuencia, duracion, indicaciones
+            FROM detalle_prescripcion WHERE id_prescripcion = %s ORDER BY id_detalle""",
+                                 (receta["id_prescripcion"],), id_usuario_app=usuario)
+    return {"consulta": consulta, "receta": receta, "medicamentos": medicamentos}
 
 
 def historial_paciente(usuario, cedula, limite=5):
@@ -111,7 +107,7 @@ def historial_paciente(usuario, cedula, limite=5):
         FROM v_historial_paciente WHERE cedula_paciente = %s
         ORDER BY fecha_hora_atencion DESC, id_consulta DESC LIMIT %s""", (cedula, limite), id_usuario_app=usuario)
     recetas = consultar(CUENTA_MEDICO, """
-        SELECT fecha_prescripcion, medico, medicamento, concentracion, dosis, frecuencia, duracion
+        SELECT fecha_prescripcion, medico, medicamento, dosis, frecuencia, duracion
         FROM v_recetas WHERE cedula_paciente = %s
         ORDER BY fecha_prescripcion DESC, id_prescripcion DESC LIMIT %s""", (cedula, limite * 2),
                       id_usuario_app=usuario)
@@ -122,9 +118,6 @@ def preparar_atencion(usuario, id_medico, id_cita):
     """Todo lo que necesita la pantalla de atencion. Si la consulta ya se registro, incluye su detalle."""
     cita = cita_propia(usuario, id_medico, id_cita)
     datos = {"cita": cita,
-             "medicamentos": consultar(CUENTA_MEDICO, """
-                 SELECT id_medicamento, nombre, presentacion, concentracion FROM medicamento
-                 WHERE estado = 'activo' ORDER BY nombre, concentracion""", id_usuario_app=usuario),
              "historial": historial_paciente(usuario, cita["cedula_paciente"])}
     datos["registrada"] = detalle_consulta(usuario, cita["id_consulta"]) if cita["id_consulta"] else None
     return datos
@@ -133,39 +126,17 @@ def preparar_atencion(usuario, id_medico, id_cita):
 # ---------------------------------------------------------------------------
 # Atender
 # ---------------------------------------------------------------------------
-def _limpiar_diagnosticos(diagnosticos):
-    lista = []
-    for fila in diagnosticos or []:
-        descripcion = validators.texto(fila.get("descripcion"), "El diagnóstico", maximo=500, obligatorio=False)
-        observacion = validators.texto(fila.get("observacion"), "La observación del diagnóstico", maximo=2000,
-                                       obligatorio=False)
-        if descripcion is None and observacion is None:
-            continue                                   # fila vacia del formulario
-        if descripcion is None:
-            raise ErrorNegocio("Escribe el diagnóstico o quita la observación suelta.")
-        lista.append((descripcion, observacion))
-    if not lista:
-        raise ErrorNegocio("Registra al menos un diagnóstico.")
-    return lista
-
-
-def _limpiar_receta(cuenta, usuario, medicamentos):
+def _limpiar_receta(medicamentos):
     lista, vistos = [], set()
     for fila in medicamentos or []:
-        campos = [str(fila.get(k) or "").strip() for k in ("id_medicamento", "dosis", "frecuencia", "duracion", "indicaciones")]
+        campos = [str(fila.get(k) or "").strip() for k in ("medicamento", "dosis", "frecuencia", "duracion", "indicaciones")]
         if not any(campos):
             continue                                   # fila vacia del formulario
-        id_medicamento = validators.entero(fila.get("id_medicamento"), "El medicamento", minimo=1)
-        if id_medicamento in vistos:
+        nombre = validators.texto(fila.get("medicamento"), "El medicamento", maximo=150)
+        if nombre.casefold() in vistos:
             raise ErrorNegocio("No repitas el mismo medicamento en la receta.")
-        vistos.add(id_medicamento)
-        existe = consultar(cuenta, "SELECT estado FROM medicamento WHERE id_medicamento = %s", (id_medicamento,),
-                           id_usuario_app=usuario, uno=True)
-        if existe is None:
-            raise ErrorNegocio("El medicamento no existe.")
-        if existe["estado"] != "activo":
-            raise ErrorNegocio("Uno de los medicamentos está inactivo.")
-        lista.append((id_medicamento,
+        vistos.add(nombre.casefold())
+        lista.append((nombre,
                       validators.texto(fila.get("dosis"), "La dosis", maximo=100),
                       validators.texto(fila.get("frecuencia"), "La frecuencia", maximo=100),
                       validators.texto(fila.get("duracion"), "La duración", maximo=100),
@@ -174,8 +145,8 @@ def _limpiar_receta(cuenta, usuario, medicamentos):
     return lista
 
 
-def atender(usuario, id_medico, id_cita, datos, diagnosticos, medicamentos):
-    """Registra la consulta (motivo, diagnosticos y receta opcional) y deja la cita como 'atendida'.
+def atender(usuario, id_medico, id_cita, datos, medicamentos):
+    """Registra la consulta (motivo, diagnostico y receta opcional) y deja la cita como 'atendida'.
 
     La consulta solo se atiende desde el dia de la cita y una sola vez. Todo se guarda en una transaccion.
     """
@@ -187,8 +158,8 @@ def atender(usuario, id_medico, id_cita, datos, diagnosticos, medicamentos):
 
     motivo = validators.texto(datos.get("motivo_consulta"), "El motivo de consulta", maximo=255)
     observaciones = validators.texto(datos.get("observaciones"), "Las observaciones", maximo=5000, obligatorio=False)
-    lista_dx = _limpiar_diagnosticos(diagnosticos)
-    lista_rx = _limpiar_receta(CUENTA_MEDICO, usuario, medicamentos)
+    diagnostico = validators.texto(datos.get("diagnostico"), "El diagnóstico", maximo=500)
+    lista_rx = _limpiar_receta(medicamentos)
     indicaciones = validators.texto(datos.get("indicaciones_generales"), "Las indicaciones generales", maximo=2000,
                                     obligatorio=False)
     if indicaciones and not lista_rx:
@@ -200,22 +171,20 @@ def atender(usuario, id_medico, id_cita, datos, diagnosticos, medicamentos):
                           WHERE id_cita = %s AND estado IN ('pendiente', 'confirmada')""", (id_cita,))
         if cursor.rowcount != 1:
             raise ErrorNegocio("Esta cita ya no se puede atender.")
-        cursor.execute("""INSERT INTO consulta_medica (id_cita, fecha_hora_atencion, motivo_consulta, observaciones)
-                          VALUES (%s, NOW(), %s, %s)""", (id_cita, motivo, observaciones))
+        cursor.execute("""INSERT INTO consulta_medica (id_cita, fecha_hora_atencion, motivo_consulta, diagnostico,
+                                                       observaciones)
+                          VALUES (%s, NOW(), %s, %s, %s)""", (id_cita, motivo, diagnostico, observaciones))
         id_consulta = cursor.lastrowid
-        for descripcion, observacion in lista_dx:
-            cursor.execute("INSERT INTO diagnostico (id_consulta, descripcion, observacion) VALUES (%s, %s, %s)",
-                           (id_consulta, descripcion, observacion))
         if lista_rx:
             cursor.execute("INSERT INTO prescripcion (id_consulta, indicaciones_generales) VALUES (%s, %s)",
                            (id_consulta, indicaciones))
             id_prescripcion = cursor.lastrowid
             for fila in lista_rx:
                 cursor.execute("""INSERT INTO detalle_prescripcion
-                                  (id_prescripcion, id_medicamento, dosis, frecuencia, duracion, indicaciones)
+                                  (id_prescripcion, medicamento, dosis, frecuencia, duracion, indicaciones)
                                   VALUES (%s, %s, %s, %s, %s, %s)""", (id_prescripcion, *fila))
-    log.info("Consulta %s atendida por el medico %s (usuario %s): %s diagnosticos, %s medicamentos",
-             id_cita, id_medico, usuario, len(lista_dx), len(lista_rx))
+    log.info("Consulta %s atendida por el medico %s (usuario %s): %s medicamentos",
+             id_cita, id_medico, usuario, len(lista_rx))
     return {"id_consulta": id_consulta}
 
 
@@ -255,7 +224,7 @@ def solicitar_examen(usuario, id_medico, datos):
     if area == AREA_CONSULTAS:
         raise ErrorNegocio("Ese no es un examen de imagenología ni de laboratorio.")
     pedido = {"fecha_cita": datos.get("fecha_cita"), "hora_inicio": datos.get("hora_inicio"),
-              "id_recurso": datos.get("id_recurso"), "observacion": datos.get("observacion"),
+              "observacion": datos.get("observacion"),
               "id_subtipo": codigo, "id_medico_solicitante": id_medico}
     return citas.registrar_cita(CUENTA_MEDICO, usuario, cedula, area, pedido)
 
@@ -325,4 +294,4 @@ def cancelar_examen(usuario, id_medico, id_cita):
     if not examen_propio(usuario, id_medico, id_cita)["modificable"]:
         raise ErrorNegocio("Este examen ya no se puede cancelar.")
     citas.cambiar_estado(CUENTA_MEDICO, usuario, id_cita, "cancelada")
-    log.info("Examen %s cancelado por el medico %s (usuario %s)", id_cita, id_medico, usuario)
+    log.info("Examen %s cancelado por el medico %s (usuario %s)", id_cita, id_medico, usuario)

@@ -21,18 +21,11 @@ def _administrador(sesion):
           (SELECT COUNT(*) FROM medico WHERE estado = 'activo') AS medicos,
           (SELECT COUNT(*) FROM cita WHERE fecha_cita = CURDATE()
               AND estado IN ('pendiente','confirmada')) AS citas_hoy,
-          (SELECT COUNT(*) FROM cita WHERE estado = 'pendiente') AS citas_pendientes,
-          (SELECT COUNT(*) FROM auditoria_acceso WHERE resultado IN ('fallido','bloqueado')
-              AND fecha >= NOW() - INTERVAL 1 DAY) AS accesos_fallidos_24h""", id_usuario_app=yo, uno=True)
+          (SELECT COUNT(*) FROM cita WHERE estado = 'pendiente') AS citas_pendientes""", id_usuario_app=yo, uno=True)
     ingresos = consultar(cuenta, """
         SELECT area, mes, citas_atendidas, ingresos
         FROM v_reporte_ingresos ORDER BY mes DESC, area LIMIT 6""", id_usuario_app=yo)
-    accesos = consultar(cuenta, """
-        SELECT a.fecha, a.cedula_intento, a.resultado, u.nombre_usuario
-        FROM auditoria_acceso a
-        LEFT JOIN usuario u ON u.id_usuario = a.id_usuario
-        ORDER BY a.fecha DESC, a.id_acceso DESC LIMIT 5""", id_usuario_app=yo)
-    return {"indicadores": indicadores, "ingresos": ingresos, "ultimos_accesos": accesos}
+    return {"indicadores": indicadores, "ingresos": ingresos}
 
 
 def _recepcion(sesion):
@@ -118,23 +111,24 @@ def _paciente(sesion):
     proximas = consultar(cuenta, """
         SELECT fecha_cita, hora_inicio, estado, 'Consulta' AS tipo, especialidad AS detalle
         FROM v_agenda_consultas WHERE cedula_paciente = %(c)s AND fecha_cita >= CURDATE()
-          AND estado IN ('pendiente','confirmada')
+          AND estado IN ('pendiente','confirmada','cancelada')
         UNION ALL
         SELECT fecha_cita, hora_inicio, estado, 'Imagenología', subtipo
         FROM v_agenda_imagenologia WHERE cedula_paciente = %(c)s AND fecha_cita >= CURDATE()
-          AND estado IN ('pendiente','confirmada')
+          AND estado IN ('pendiente','confirmada','cancelada')
         UNION ALL
         SELECT fecha_cita, hora_inicio, estado, 'Laboratorio', examen
         FROM v_agenda_laboratorio WHERE cedula_paciente = %(c)s AND fecha_cita >= CURDATE()
-          AND estado IN ('pendiente','confirmada')
-        ORDER BY fecha_cita, hora_inicio LIMIT 5""", {"c": cedula}, id_usuario_app=yo)
+          AND estado IN ('pendiente','confirmada','cancelada')
+        ORDER BY fecha_cita, hora_inicio LIMIT 8""", {"c": cedula}, id_usuario_app=yo)
     indicadores = consultar(cuenta, """
         SELECT
           (SELECT COUNT(*) FROM v_historial_paciente WHERE cedula_paciente = %(c)s) AS consultas_realizadas,
           (SELECT COUNT(DISTINCT id_prescripcion) FROM v_recetas WHERE cedula_paciente = %(c)s) AS recetas,
           (SELECT COUNT(*) FROM v_resultados_laboratorio WHERE cedula_paciente = %(c)s) AS resultados""",
                             {"c": cedula}, id_usuario_app=yo, uno=True)
-    indicadores["proximas_citas"] = len(proximas)
+    # Las canceladas se muestran (para que el paciente sepa), pero no cuentan como próximas
+    indicadores["proximas_citas"] = sum(1 for c in proximas if c["estado"] != "cancelada")
     return {"indicadores": indicadores, "proximas": proximas}
 
 

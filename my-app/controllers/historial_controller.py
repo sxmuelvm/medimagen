@@ -128,7 +128,7 @@ def mis_recetas(usuario, cedula, pagina=1):
     recetas = []
     if ids:
         filas = consultar(CUENTA_PACIENTE, f"""
-            SELECT id_prescripcion, fecha_prescripcion, medico, medicamento, presentacion, concentracion,
+            SELECT id_prescripcion, fecha_prescripcion, medico, medicamento,
                    dosis, frecuencia, duracion, indicaciones
             FROM v_recetas WHERE cedula_paciente = %s AND id_prescripcion IN ({_cuantos_ids(ids)})
             ORDER BY fecha_prescripcion DESC, id_prescripcion DESC, medicamento""", [cedula] + ids,
@@ -141,8 +141,7 @@ def mis_recetas(usuario, cedula, pagina=1):
                     "id_prescripcion": fila["id_prescripcion"], "fecha_prescripcion": fila["fecha_prescripcion"],
                     "medico": fila["medico"], "medicamentos": []}
                 recetas.append(receta)
-            receta["medicamentos"].append({k: fila[k] for k in ("medicamento", "presentacion", "concentracion",
-                                                                "dosis", "frecuencia", "duracion", "indicaciones")})
+            receta["medicamentos"].append({k: fila[k] for k in ("medicamento", "dosis", "frecuencia", "duracion", "indicaciones")})
     return {"recetas": recetas, "paginacion": pag}
 
 
@@ -179,12 +178,11 @@ def mis_datos(usuario, cedula):
 
 
 def actualizar_contacto(usuario, cedula, datos):
-    """El paciente cambia solo su telefono, correo y direccion. Nombre, cedula y fecha de nacimiento los corrige
+    """El paciente cambia solo su telefono y correo. Nombre, cedula y fecha de nacimiento los corrige
     recepcion."""
-    ejecutar(CUENTA_PACIENTE, "CALL sp_paciente_actualizar_contacto(%s, %s, %s, %s)",
+    ejecutar(CUENTA_PACIENTE, "CALL sp_paciente_actualizar_contacto(%s, %s, %s)",
              (cedula, validators.telefono(datos.get("telefono")),
-              validators.correo(datos.get("correo"), obligatorio=False),
-              validators.texto(datos.get("direccion"), "La dirección", maximo=200, obligatorio=False)),
+              validators.correo(datos.get("correo"), obligatorio=False)),
              id_usuario_app=usuario)
     log.info("El paciente %s actualizo su contacto (usuario %s)", cedula, usuario)
 
@@ -192,4 +190,4 @@ def actualizar_contacto(usuario, cedula, datos):
 def cancelar_cita(usuario, cedula, id_cita):
     """El paciente cancela una cita suya pendiente que aun no empezo. Reservar sigue siendo trabajo de recepcion."""
     ejecutar(CUENTA_PACIENTE, "CALL sp_paciente_cancelar_cita(%s, %s)", (cedula, id_cita), id_usuario_app=usuario)
-    log.info("El paciente %s cancelo la cita %s (usuario %s)", cedula, id_cita, usuario)
+    log.info("El paciente %s cancelo la cita %s (usuario %s)", cedula, id_cita, usuario)

@@ -1,17 +1,9 @@
-/* Medimagen Cuenca · pantalla de acceso: cédula solo con dígitos y aviso de Bloq Mayús.
+/* Medimagen Cuenca · pantalla de acceso: aviso de Bloq Mayús.
    (El ojo para ver la contraseña lo pone js/modules/clave.js.) Sin JavaScript el formulario funciona igual. */
 (function () {
   "use strict";
 
-  var cedula = document.getElementById("cedula");
   var clave = document.getElementById("clave");
-
-  if (cedula) {
-    cedula.addEventListener("input", function () {
-      var limpio = cedula.value.replace(/\D/g, "").slice(0, 10);
-      if (limpio !== cedula.value) { cedula.value = limpio; }
-    });
-  }
 
   if (!clave) { return; }
   var campo = clave.closest(".campo");

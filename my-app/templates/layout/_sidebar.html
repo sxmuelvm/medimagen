@@ -1,11 +1,11 @@
 {% from "components/_icono.html" import icono %}
 {% set iconos = {
-  "dashboard.inicio": "panel", "usuarios.lista": "usuarios", "roles.lista": "roles", "personal.lista": "personal",
+  "dashboard.inicio": "panel", "usuarios.lista": "usuarios", "roles.lista": "roles",
   "medicos.lista": "medico", "pacientes.lista": "pacientes", "especialidades.lista": "especialidades",
   "catalogos.index": "catalogos", "citas.agenda": "citas", "citas.nueva": "cita-nueva", "reportes.ingresos": "reportes",
-  "auditoria.lista": "auditoria", "auditoria.accesos": "accesos", "consultas.mi_agenda": "citas",
+  "consultas.mi_agenda": "citas",
   "consultas.examenes_solicitados": "examenes", "imagenologia.agenda": "imagen", "laboratorio.agenda": "examenes",
-  "historial.mis_citas": "citas", "historial.mi_historial": "historial", "historial.mis_recetas": "receta",
+  "historial.mis_citas": "citas", "calendario.semana": "citas", "historial.mi_historial": "historial", "historial.mis_recetas": "receta",
   "historial.mis_resultados": "examenes"
 } %}
 {# Se lee de la sesión (no de `usuario`): algunas pantallas de administración pasan su propio `usuario` (la persona que se edita) #}

@@ -51,11 +51,9 @@ def examen(cedula, dia, area, subtipo, hora="09:00", equipo="", medico=1):
 
 
 # ---------------------------------------------------------------------------
-def test_agenda_y_filtros(entrar):
-    c = entrar("recepcion")
-    assert c.get("/citas/").status_code == 200
-    assert c.get("/citas/?estado=pendiente&id_area=2&desde=2026-01-01&hasta=2027-12-31&pagina=3").status_code == 200
-    assert c.get("/citas/?q=%27%20OR%201%3D1%20--&desde=basura&id_area=zz").status_code == 200
+def test_la_lista_de_citas_ahora_es_el_calendario(entrar):
+    r = entrar("recepcion").get("/citas/")
+    assert r.status_code == 302 and "/calendario" in r.headers["Location"]
 
 
 def test_detalle_y_cita_inexistente(entrar):
@@ -87,7 +85,7 @@ def test_crear_consulta(entrar, limpiar_citas, pacientes, dia):
                   FROM cita c JOIN cita_consulta cc USING (id_cita) JOIN medico m ON m.id_medico = cc.id_medico
                   JOIN especialidad e ON e.id_especialidad = m.id_especialidad WHERE c.id_cita = %s""",
                (id_cita,), uno=True)
-    assert fila["estado"] == "pendiente"
+    assert fila["estado"] == "confirmada"     # la cita nace confirmada: el paciente ya esta en recepcion
     assert fila["costo_aplicado"] == fila["costo_consulta"]                  # el costo lo pone la base de datos
     assert fila["id_usuario_registra"] == id_usuario("recepcion")
     assert str(fila["hora_fin"]) == "10:00:00"
@@ -156,18 +154,25 @@ def test_se_acaban_los_consultorios(entrar, limpiar_citas, pacientes, dia):
 
 def test_imagenologia_y_laboratorio(entrar, limpiar_citas, pacientes, dia):
     c = entrar("recepcion")
-    r, sin_equipo = nueva(c, limpiar_citas, **examen(pacientes[0], dia, 2, "RM-02", "08:00", equipo=""))
-    assert r.status_code == 400 and "equipo" in texto(r)
-    r, id_rm = nueva(c, limpiar_citas, **examen(pacientes[0], dia, 2, "RM-02", "08:00", equipo="7"))
+    # El equipo lo decide el tipo de examen (resonancia -> Resonador): recepcion no lo elige
+    r, id_rm = nueva(c, limpiar_citas, **examen(pacientes[0], dia, 2, "RM-02", "08:00", equipo=""))
     assert r.status_code == 302
+    assert sql("SELECT r.nombre_recurso FROM cita c JOIN recurso_atencion r USING (id_recurso) WHERE c.id_cita = %s",
+               (id_rm,), uno=True)["nombre_recurso"] == "Resonador"
+    horas = [h["hora_inicio"] for h in c.get(f"/citas/horarios?fecha={dia}&id_area=2&id_subtipo=RM-02").get_json()["horarios"]]
+    assert "08:00" not in horas                       # el resonador ya esta ocupado a esa hora
+    otras = [h["hora_inicio"] for h in c.get(f"/citas/horarios?fecha={dia}&id_area=2&id_subtipo=RX-01").get_json()["horarios"]]
+    assert "08:00" in otras                           # pero la sala de rayos X esta libre
     fila = sql("""SELECT c.costo_aplicado, s.costo, ci.estado_procedimiento FROM cita c
                   JOIN cita_imagenologia ci USING (id_cita) JOIN subtipo_examen s ON s.id_subtipo = ci.id_subtipo
                   WHERE c.id_cita = %s""", (id_rm,), uno=True)
     assert fila["costo_aplicado"] == fila["costo"] and fila["estado_procedimiento"] == "pendiente"
-    r, _ = nueva(c, limpiar_citas, **examen(pacientes[1], dia, 2, "RM-02", "08:00", equipo="7"))    # equipo ocupado
+    r, _ = nueva(c, limpiar_citas, **examen(pacientes[1], dia, 2, "RM-02", "08:00", equipo=""))    # equipo ocupado
     assert r.status_code == 400 and "ocupado" in texto(r)
     r, _ = nueva(c, limpiar_citas, **examen(pacientes[1], dia, 2, "LAB-01", "09:00", equipo="7"))   # examen de otra area
     assert r.status_code == 400
+    r, id_rx = nueva(c, limpiar_citas, **examen(pacientes[1], dia, 2, "RX-01", "08:00", equipo=""))  # otro equipo, misma hora
+    assert r.status_code == 302 and sql("SELECT id_recurso FROM cita WHERE id_cita = %s", (id_rx,), uno=True)["id_recurso"] == 5
     r, id_lab = nueva(c, limpiar_citas, **examen(pacientes[1], dia, 3, "LAB-03", "09:00"))
     assert r.status_code == 302
     assert sql("SELECT id_recurso FROM cita WHERE id_cita = %s", (id_lab,), uno=True)["id_recurso"] in (9, 10)
@@ -207,8 +212,7 @@ def test_ciclo_de_estados(entrar, limpiar_citas, pacientes, dia):
     c = entrar("recepcion")
     _, id_cita = nueva(c, limpiar_citas, **consulta(pacientes[0], dia, "10:00"))
     estado = lambda: sql("SELECT estado FROM cita WHERE id_cita = %s", (id_cita,), uno=True)["estado"]
-    c.post(f"/citas/{id_cita}/estado", {"estado": "confirmada"})
-    assert estado() == "confirmada"
+    assert estado() == "confirmada"                                                  # nace confirmada
     r = c.post(f"/citas/{id_cita}/estado", {"estado": "no_asistio"}, follow_redirects=True)
     assert "ya pasó la hora" in texto(r) and estado() == "confirmada"                # aun no llega la hora
     c.post(f"/citas/{id_cita}/estado", {"estado": "atendida"})
@@ -217,8 +221,8 @@ def test_ciclo_de_estados(entrar, limpiar_citas, pacientes, dia):
     assert estado() == "confirmada"
     c.post(f"/citas/{id_cita}/estado", {"estado": "cancelada"})
     assert estado() == "cancelada"
-    c.post(f"/citas/{id_cita}/estado", {"estado": "pendiente"})                       # reactivar
-    assert estado() == "pendiente"
+    c.post(f"/citas/{id_cita}/estado", {"estado": "confirmada"})                      # reactivar
+    assert estado() == "confirmada"
 
 
 def test_cancelar_un_examen_actualiza_su_estado(entrar, limpiar_citas, pacientes, dia):
@@ -226,14 +230,13 @@ def test_cancelar_un_examen_actualiza_su_estado(entrar, limpiar_citas, pacientes
     _, id_cita = nueva(c, limpiar_citas, **examen(pacientes[0], dia, 3, "LAB-02", "09:00"))
     c.post(f"/citas/{id_cita}/estado", {"estado": "cancelada"})
     assert sql("SELECT estado_examen FROM cita_laboratorio WHERE id_cita = %s", (id_cita,), uno=True)["estado_examen"] == "cancelado"
-    c.post(f"/citas/{id_cita}/estado", {"estado": "pendiente"})
+    c.post(f"/citas/{id_cita}/estado", {"estado": "confirmada"})
     assert sql("SELECT estado_examen FROM cita_laboratorio WHERE id_cita = %s", (id_cita,), uno=True)["estado_examen"] == "pendiente"
 
 
 def test_eliminar_solo_pendientes_o_canceladas(entrar, limpiar_citas, pacientes, dia):
     c = entrar("recepcion")
     _, id_cita = nueva(c, limpiar_citas, **consulta(pacientes[0], dia, "10:00"))
-    c.post(f"/citas/{id_cita}/estado", {"estado": "confirmada"})
     r = c.post(f"/citas/{id_cita}/eliminar", follow_redirects=True)
     assert "Solo se pueden eliminar" in texto(r)
     c.post(f"/citas/{id_cita}/estado", {"estado": "cancelada"})
@@ -242,27 +245,55 @@ def test_eliminar_solo_pendientes_o_canceladas(entrar, limpiar_citas, pacientes,
     assert c.post("/citas/99999999/eliminar").status_code == 404
 
 
-def test_los_cambios_quedan_auditados_con_quien_los_hizo(entrar, limpiar_citas, pacientes, dia):
-    c = entrar("recepcion")
-    _, id_cita = nueva(c, limpiar_citas, **consulta(pacientes[0], dia, "10:00"))
-    c.post(f"/citas/{id_cita}/estado", {"estado": "confirmada"})
-    c.post(f"/citas/{id_cita}/estado", {"estado": "cancelada"})
-    c.post(f"/citas/{id_cita}/eliminar")
-    filas = sql("SELECT estado_nuevo, usuario_bd, id_usuario_app FROM auditoria_cita WHERE id_cita = %s ORDER BY id_auditoria",
-                (id_cita,))
-    assert [f["estado_nuevo"] for f in filas] == ["confirmada", "cancelada", "eliminada"]
-    assert all(f["usuario_bd"].startswith("usr_recepcion") and f["id_usuario_app"] == id_usuario("recepcion") for f in filas)
-
-
-def test_el_admin_ve_el_historial_de_la_cita_y_recepcion_no(entrar, limpiar_citas, pacientes, dia):
-    c = entrar("recepcion")
-    _, id_cita = nueva(c, limpiar_citas, **consulta(pacientes[0], dia, "10:00"))
-    c.post(f"/citas/{id_cita}/estado", {"estado": "confirmada"})
-    assert "usr_recepcion" not in texto(c.get(f"/citas/{id_cita}"))          # recepcion no puede leer la auditoria
-    assert "usr_recepcion" in texto(entrar("admin").get(f"/citas/{id_cita}"))
-
-
 def test_el_admin_tambien_agenda(entrar, limpiar_citas, pacientes, dia):
     r, id_cita = nueva(entrar("admin"), limpiar_citas, **consulta(pacientes[0], dia, "10:00"))
     assert r.status_code == 302
     assert sql("SELECT id_usuario_registra FROM cita WHERE id_cita = %s", (id_cita,), uno=True)["id_usuario_registra"] == id_usuario("admin")
+
+# ---------------------------------------------------------------------------
+# Una cita cancelada libera el horario: se puede volver a agendar a la misma hora
+# ---------------------------------------------------------------------------
+def test_se_puede_reagendar_a_la_misma_hora_despues_de_cancelar(entrar, limpiar_citas, pacientes, dia):
+    c = entrar("recepcion")
+    medico = sql("SELECT id_medico FROM medico WHERE estado = 'activo' ORDER BY id_medico LIMIT 1", uno=True)["id_medico"]
+    r, primera = nueva(c, limpiar_citas, **consulta(pacientes[0], dia, "10:00", medico=medico))
+    assert r.status_code == 302
+    r, _ = nueva(c, limpiar_citas, **consulta(pacientes[0], dia, "10:00", medico=medico))      # mismo paciente, mismo horario
+    assert r.status_code == 400
+    assert c.post(f"/citas/{primera}/estado", {"estado": "cancelada"}).status_code in (200, 302)
+    horas = [h["hora_inicio"] for h in c.get(f"/citas/horarios?fecha={dia}&id_area=1&id_medico={medico}"
+                                            f"&cedula_paciente={pacientes[0]}").get_json()["horarios"]]
+    assert "10:00" in horas
+    r, segunda = nueva(c, limpiar_citas, **consulta(pacientes[0], dia, "10:00", medico=medico))
+    assert r.status_code == 302 and segunda != primera
+
+
+# ---------------------------------------------------------------------------
+# El medico busca al paciente igual que recepcion: cedula (max. 10 digitos) o nombre, con sugerencias
+# ---------------------------------------------------------------------------
+def test_medico_busca_paciente_por_cedula_o_nombre(entrar, pacientes):
+    m = entrar("medico")
+    r = m.get("/consultas/pacientes?q=andrade%20carlos")
+    assert r.status_code == 200 and pacientes[0] in [p["cedula_paciente"] for p in r.get_json()["pacientes"]]
+    r = m.get(f"/consultas/pacientes?q={pacientes[0][:6]}")
+    assert pacientes[0] in [p["cedula_paciente"] for p in r.get_json()["pacientes"]]
+    assert m.get("/consultas/pacientes?q=a").get_json()["pacientes"] == []           # muy poco texto
+    assert entrar("recepcion").get("/consultas/pacientes?q=carlos").status_code in (302, 403)
+
+
+def test_solicitar_examen_ya_no_tiene_boton_de_cedula_sola(entrar, pacientes):
+    m = entrar("medico")
+    html = texto(m.get("/consultas/examenes/nuevo"))
+    assert "data-buscar-paciente" in html and "Cédula o nombre del paciente" in html
+    assert "equipo o puesto" not in html.lower()
+    # cedula completa -> abre directo al paciente; nombre -> lista de resultados
+    assert "Solicitar examen" in texto(m.get(f"/consultas/examenes/nuevo?q={pacientes[0]}"))
+    assert pacientes[0] in texto(m.get(f"/consultas/examenes/nuevo?q={pacientes[0]}"))
+    assert "Andrade" in texto(m.get("/consultas/examenes/nuevo?q=andrade"))
+    # mas de 10 digitos se recorta a 10
+    assert pacientes[0] in texto(m.get(f"/consultas/examenes/nuevo?q={pacientes[0]}99"))
+
+
+def test_la_pantalla_de_nueva_cita_no_pide_equipo(entrar):
+    html = texto(entrar("recepcion").get("/citas/nueva?cedula=0000000021"))
+    assert "Equipo o puesto" not in html and 'name="id_recurso"' not in html

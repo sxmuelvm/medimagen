@@ -6,8 +6,7 @@ venv/
 .venv/
 my-app/logs/*
 !my-app/logs/.gitkeep
-database/backups/*
-!database/backups/.gitkeep
+backups/*.sql
 *.log
 .pytest_cache/
 .idea/

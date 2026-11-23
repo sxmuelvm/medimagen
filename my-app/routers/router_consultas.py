@@ -13,7 +13,7 @@ from utils.helpers import render_pagina
 
 bp = Blueprint("consultas", __name__, url_prefix="/consultas")
 SOLO_MEDICO = roles_permitidos(CUENTA_MEDICO)
-MAX_FILAS = 20          # diagnosticos o medicamentos por consulta
+MAX_FILAS = 20          # medicamentos por receta
 
 
 def _medico():
@@ -23,16 +23,12 @@ def _medico():
     return session["id_usuario"], session["id_medico"]
 
 
-def _listas(form):
-    """Arma las listas de diagnosticos y medicamentos a partir de los campos repetidos del formulario."""
-    diagnosticos = [{"descripcion": d, "observacion": o}
-                    for d, o in zip_longest(form.getlist("diagnostico"), form.getlist("diagnostico_obs"),
-                                            fillvalue="")][:MAX_FILAS]
-    medicamentos = [{"id_medicamento": a, "dosis": b, "frecuencia": c, "duracion": d, "indicaciones": e}
-                    for a, b, c, d, e in zip_longest(form.getlist("id_medicamento"), form.getlist("dosis"),
-                                                     form.getlist("frecuencia"), form.getlist("duracion"),
-                                                     form.getlist("indicaciones_med"), fillvalue="")][:MAX_FILAS]
-    return diagnosticos, medicamentos
+def _medicamentos(form):
+    """Arma la lista de medicamentos de la receta a partir de los campos repetidos del formulario."""
+    return [{"medicamento": a, "dosis": b, "frecuencia": c, "duracion": d, "indicaciones": e}
+            for a, b, c, d, e in zip_longest(form.getlist("medicamento"), form.getlist("dosis"),
+                                             form.getlist("frecuencia"), form.getlist("duracion"),
+                                             form.getlist("indicaciones_med"), fillvalue="")][:MAX_FILAS]
 
 
 @bp.get("/")
@@ -49,19 +45,19 @@ def mi_agenda():
 def atender(id_cita):
     usuario, id_medico = _medico()
     if request.method == "POST":
-        diagnosticos, medicamentos = _listas(request.form)
+        medicamentos = _medicamentos(request.form)
         try:
-            ctrl.atender(usuario, id_medico, id_cita, request.form, diagnosticos, medicamentos)
+            ctrl.atender(usuario, id_medico, id_cita, request.form, medicamentos)
         except ErrorNegocio as error:
             if error.codigo != 400:
                 raise
             flash(error.mensaje, "error")
-            return render_pagina("public/consultas/atender.html", form=request.form, diagnosticos=diagnosticos,
+            return render_pagina("public/consultas/atender.html", form=request.form,
                                  filas_medicamentos=medicamentos,
                                  **ctrl.preparar_atencion(usuario, id_medico, id_cita)), 400
         flash("Consulta registrada.", "exito")
         return redirect(url_for("consultas.atender", id_cita=id_cita))
-    return render_pagina("public/consultas/atender.html", form={}, diagnosticos=[], filas_medicamentos=[],
+    return render_pagina("public/consultas/atender.html", form={}, filas_medicamentos=[],
                          **ctrl.preparar_atencion(usuario, id_medico, id_cita))
 
 
@@ -79,12 +75,30 @@ def solicitar_examen():
             return render_pagina("public/consultas/solicitar_examen.html", form=request.form,
                                  paciente=citas.buscar_paciente(CUENTA_MEDICO, usuario,
                                                                 request.form.get("cedula_paciente")),
-                                 **ctrl.opciones_examen(usuario)), 400
+                                 busqueda="", resultados=None, **ctrl.opciones_examen(usuario)), 400
         flash("Examen solicitado y agendado.", "exito")
         return redirect(url_for("consultas.examenes_solicitados", cita=creado["id_cita"]))
-    return render_pagina("public/consultas/solicitar_examen.html", form={},
-                         paciente=citas.buscar_paciente(CUENTA_MEDICO, usuario, request.args.get("cedula")),
-                         **ctrl.opciones_examen(usuario))
+    # Misma busqueda que en recepcion: solo numeros = cedula (maximo 10 digitos); con letras, por nombre y apellido
+    busqueda = " ".join((request.args.get("q") or "").split())
+    if busqueda.isdigit():
+        busqueda = busqueda[:10]
+    cedula = request.args.get("cedula")
+    if not cedula and busqueda.isdigit() and len(busqueda) == 10:
+        cedula = busqueda
+    paciente = citas.buscar_paciente(CUENTA_MEDICO, usuario, cedula) if cedula else None
+    resultados = None
+    if not paciente and busqueda:
+        resultados = citas.buscar_pacientes(CUENTA_MEDICO, usuario, busqueda, limite=10)
+    return render_pagina("public/consultas/solicitar_examen.html", form={}, paciente=paciente,
+                         busqueda=busqueda, resultados=resultados, **ctrl.opciones_examen(usuario))
+
+
+@bp.get("/pacientes")
+@SOLO_MEDICO
+def pacientes():
+    """Pacientes que coinciden con lo escrito (cedula o nombre), para las sugerencias al solicitar un examen."""
+    usuario, _ = _medico()
+    return jsonify({"pacientes": citas.buscar_pacientes(CUENTA_MEDICO, usuario, request.args.get("q"))})
 
 
 @bp.get("/examenes/horarios")
@@ -95,7 +109,7 @@ def horarios_examen():
     try:
         area = validators.entero(request.args.get("id_area"), "El área", minimo=2, maximo=3)
         lista = citas.horarios_disponibles(CUENTA_MEDICO, usuario, request.args.get("fecha"), area,
-                                           id_recurso=request.args.get("id_recurso"),
+                                           id_subtipo=request.args.get("id_subtipo"),
                                            cedula_paciente=request.args.get("cedula_paciente"))
     except ErrorNegocio as error:
         return jsonify({"error": error.mensaje}), error.codigo
@@ -144,4 +158,4 @@ def modificar_examen(id_cita):
 def cancelar_examen(id_cita):
     usuario, id_medico = _medico()
     return resultado_accion(lambda: ctrl.cancelar_examen(usuario, id_medico, id_cita),
-                            "Examen cancelado.", url_for("consultas.examenes_solicitados"))
+                            "Examen cancelado.", url_for("consultas.examenes_solicitados"))

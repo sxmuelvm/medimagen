@@ -110,16 +110,16 @@ def opcion(valor, permitidos, etiqueta):
     return limpio
 
 
-def clave_segura(clave, cedula_usuario=None):
-    """Politica minima: 8 a 128 caracteres, con letras y numeros, distinta de la cedula."""
+def clave_segura(clave, *prohibidas):
+    """Politica minima: 8 a 128 caracteres, con letras y numeros, distinta de la cedula o del usuario."""
     if not isinstance(clave, str) or len(clave) < 8:
         raise ErrorNegocio("La contraseña debe tener al menos 8 caracteres.")
     if len(clave) > 128:
         raise ErrorNegocio("La contraseña no puede superar 128 caracteres.")
     if not re.search(r"[A-Za-z]", clave) or not re.search(r"\d", clave):
         raise ErrorNegocio("La contraseña debe incluir letras y números.")
-    if cedula_usuario and clave == cedula_usuario:
-        raise ErrorNegocio("La contraseña no puede ser igual a la cédula.")
+    if any(valor and clave == valor for valor in prohibidas):
+        raise ErrorNegocio("La contraseña no puede ser igual a la cédula ni al nombre de usuario.")
     return clave
 
 
@@ -138,4 +138,4 @@ def nombre_persona(valor, etiqueta="El nombre", maximo=100):
     limpio = texto(valor, etiqueta, maximo=maximo, minimo=2)
     if not _NOMBRE_PERSONA.fullmatch(limpio):
         raise ErrorNegocio(f"{etiqueta} solo puede tener letras, espacios, apóstrofe, punto o guion.")
-    return limpio
+    return limpio

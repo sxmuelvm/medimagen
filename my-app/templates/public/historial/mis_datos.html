@@ -3,7 +3,7 @@
 {% from "components/_campo_formulario.html" import campo %}
 {% set migas = [("Panel", url_for('dashboard.inicio')), ("Mis datos", None)] %}
 {% block titulo %}Mis datos de contacto{% endblock %}
-{% block subtitulo %}Puedes actualizar tu teléfono, correo y dirección. Para corregir tu nombre o cédula, acude a recepción.{% endblock %}
+{% block subtitulo %}Puedes actualizar tu teléfono y tu correo. Para corregir tu nombre o cédula, acude a recepción.{% endblock %}
 {% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/atencion.css') }}">{% endblock %}
 {% block scripts %}<script src="{{ url_for('static', filename='js/core/validaciones.js') }}" defer></script>{% endblock %}
 {% block contenido %}
@@ -17,7 +17,6 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {{ campo("telefono", "Teléfono", valor=form.get("telefono", paciente.telefono or ""), tipo="tel", inputmode="tel", maxlength=15, pattern="[0-9]{7,15}", ayuda="Solo dígitos, de 7 a 15.") }}
       {{ campo("correo", "Correo electrónico", valor=form.get("correo", paciente.correo or ""), tipo="email", inputmode="email", maxlength=100, autocomplete="email") }}
-      {{ campo("direccion", "Dirección", valor=form.get("direccion", paciente.direccion or ""), maxlength=200, autocomplete="street-address") }}
       <div class="formulario__acciones">
         <a class="boton boton--secundario" href="{{ url_for('dashboard.inicio') }}">Cancelar</a>
         <button type="submit" class="boton boton--primario">{{ icono("check") }}Guardar cambios</button>

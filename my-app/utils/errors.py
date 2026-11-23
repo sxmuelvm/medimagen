@@ -27,26 +27,19 @@ class ErrorAutenticacion(ErrorNegocio):
 _DUPLICADOS = {
     "cita.uq_cita_paciente_horario": "El paciente ya tiene una cita en ese horario.",
     "cita.uq_cita_recurso_horario": "Ese consultorio, equipo o puesto ya está ocupado en ese horario.",
-    "usuario.cedula": "Ya existe un usuario con esa cédula.",
     "usuario.nombre_usuario": "Ese nombre de usuario ya está en uso.",
     "usuario.correo": "Ese correo ya está registrado en otro usuario.",
-    "usuario.id_medico": "Ese médico ya tiene un usuario.",
-    "usuario.id_personal": "Ese miembro del personal ya tiene un usuario.",
-    "usuario.cedula_paciente": "Ese paciente ya tiene un usuario.",
+    "usuario.cedula": "Ya existe un usuario con esa cédula.",
     "paciente.PRIMARY": "Ya existe un paciente con esa cédula.",
     "paciente.correo": "Ese correo ya está registrado en otro paciente.",
     "medico.cedula": "Ya existe un médico con esa cédula.",
     "medico.correo": "Ese correo ya está registrado en otro médico.",
-    "personal.cedula": "Ya existe un miembro del personal con esa cédula.",
-    "personal.correo": "Ese correo ya está registrado en otro miembro del personal.",
     "especialidad.nombre": "Ya existe una especialidad con ese nombre.",
     "rol.nombre": "Ya existe un rol con ese nombre.",
     "area.nombre": "Ya existe un área con ese nombre.",
     "recurso_atencion.uq_recurso_nombre": "Ya existe un recurso con ese nombre en el área.",
     "tipo_procedimiento.nombre": "Ya existe un tipo con ese nombre.",
     "subtipo_examen.uq_subtipo": "Ya existe un examen con ese nombre en el tipo.",
-    "medicamento.uq_medicamento": "Ese medicamento ya está registrado.",
-    "horario_medico.uq_hm": "El médico ya tiene un turno que empieza a esa hora ese día.",
 }
 
 _CHECKS = {
@@ -54,9 +47,10 @@ _CHECKS = {
     "chk_cita_costo": "El costo no puede ser negativo.",
     "chk_esp_costo": "El costo no puede ser negativo.",
     "chk_subtipo_costo": "El costo no puede ser negativo.",
-    "chk_usuario_perfil": "El usuario debe estar asociado a un solo perfil (médico, paciente o personal).",
     "chk_hm_dia": "El turno solo puede ser de lunes a viernes.",
     "chk_hm_horas": "La hora de fin debe ser posterior a la de inicio.",
+    "chk_usuario_cedula": "La cédula debe tener 10 dígitos.",
+    "chk_usuario_nombre": "El nombre de usuario debe tener de 4 a 50 caracteres: letras, números, punto, guion o guion bajo.",
 }
 
 _PERMISO = {1044, 1142, 1143, 1370, 1227}
@@ -167,4 +161,4 @@ def resultado_accion(funcion, mensaje_ok, destino):
         if error.codigo != 400:
             raise
         flash(error.mensaje, "error")
-    return redirect(destino)
+    return redirect(destino)

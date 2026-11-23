@@ -1,5 +1,5 @@
 -- =====================================================================
--- MEDIMAGEN | 05_usuarios.sql
+-- MEDIMAGEN2 | 05_usuarios.sql
 -- Cuentas de MySQL (host '%': sirve en local y en Docker), privilegios directos
 -- y asignacion de roles. Ejecutar con root.
 -- En Docker el puerto de MySQL solo se publica en 127.0.0.1, por eso '%' es seguro.
@@ -17,17 +17,18 @@ CREATE USER IF NOT EXISTS 'usr_reportes'@'%' IDENTIFIED BY 'uno234cinco' WITH MA
 CREATE USER IF NOT EXISTS 'usr_login'@'%' IDENTIFIED BY 'uno234cinco' WITH MAX_USER_CONNECTIONS 20;
 
 -- Usuarios con privilegios especificos (directos, sin rol)
-GRANT SELECT ON medimagen.v_reporte_ingresos TO 'usr_reportes'@'%';
+GRANT SELECT ON medimagen2.v_reporte_ingresos TO 'usr_reportes'@'%';
 
 -- usr_login: solo autenticacion. Lee las columnas necesarias, actualiza solo las del login
--- y puede insertar (nunca leer ni modificar) en el registro de accesos.
-GRANT SELECT (id_usuario, cedula, id_rol, id_medico, cedula_paciente, id_personal, nombres, apellidos,
-              nombre_usuario, password_hash, estado, intentos_fallidos, bloqueado_hasta, cambio_clave_obligatorio)
-    ON medimagen.usuario TO 'usr_login'@'%';
-GRANT UPDATE (ultimo_acceso, intentos_fallidos, bloqueado_hasta, cambio_clave_obligatorio, password_hash)
-    ON medimagen.usuario TO 'usr_login'@'%';
-GRANT SELECT ON medimagen.rol TO 'usr_login'@'%';
-GRANT INSERT ON medimagen.auditoria_acceso TO 'usr_login'@'%';
+-- 
+GRANT SELECT (id_usuario, id_rol, cedula, nombres, apellidos,
+              nombre_usuario, password, estado, intentos_fallidos, bloqueado_hasta, cambio_clave_obligatorio)
+    ON medimagen2.usuario TO 'usr_login'@'%';
+GRANT UPDATE (ultimo_acceso, intentos_fallidos, bloqueado_hasta, cambio_clave_obligatorio, password)
+    ON medimagen2.usuario TO 'usr_login'@'%';
+GRANT SELECT ON medimagen2.rol TO 'usr_login'@'%';
+-- Para saber el id_medico de quien entra (se busca por la cedula)
+GRANT SELECT (id_medico, cedula) ON medimagen2.medico TO 'usr_login'@'%';
 
 -- Asignacion de roles a usuarios
 GRANT 'rol_administrador' TO 'usr_administrador'@'%';
@@ -40,4 +41,4 @@ GRANT 'rol_respaldo' TO 'usr_respaldo'@'%';
 
 -- Activar el rol al iniciar sesion
 SET DEFAULT ROLE ALL TO 'usr_administrador'@'%', 'usr_recepcion'@'%', 'usr_medico'@'%',
-    'usr_imagenologia'@'%', 'usr_laboratorio'@'%', 'usr_paciente'@'%', 'usr_respaldo'@'%';
+    'usr_imagenologia'@'%', 'usr_laboratorio'@'%', 'usr_paciente'@'%', 'usr_respaldo'@'%';

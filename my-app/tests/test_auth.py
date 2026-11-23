@@ -14,19 +14,19 @@ def test_login_correcto_de_cada_rol(anonimo, rol):
     assert anonimo.get("/inicio").status_code == 200
 
 
-def test_clave_incorrecta_y_cedula_inexistente_dan_el_mismo_mensaje(anonimo):
+def test_clave_incorrecta_y_usuario_inexistente_dan_el_mismo_mensaje(anonimo):
     mala = anonimo.login(USUARIOS["paciente"], "clave-equivocada-1")
-    inexistente = anonimo.login("0999999999", "clave-equivocada-1")
+    inexistente = anonimo.login("noexiste99", "clave-equivocada-1")
     assert mala.status_code == 401 and inexistente.status_code == 401
-    assert "incorrectas" in texto(mala)
-    # no se puede saber si la cedula existe: el aviso es identico
-    aviso = lambda r: texto(r).split("incorrectas")[0][-40:]
+    assert "incorrectos" in texto(mala)
+    # no se puede saber si el usuario existe: el aviso es identico
+    aviso = lambda r: texto(r).split("incorrectos")[0][-40:]
     assert aviso(mala) == aviso(inexistente)
 
 
-@pytest.mark.parametrize("cedula", ["", "abc", "12345", "' OR '1'='1", "0000000001'--", "00000000011", "000000000"])
-def test_cedulas_mal_formadas_no_entran(anonimo, cedula):
-    assert anonimo.login(cedula, CLAVE).status_code == 401
+@pytest.mark.parametrize("usuario", ["", "abc", "con espacio", "' OR '1'='1", "admin'--", "a" * 51, "usuario*raro"])
+def test_usuarios_mal_formados_no_entran(anonimo, usuario):
+    assert anonimo.login(usuario, CLAVE).status_code == 401
 
 
 def test_clave_vacia_o_larguisima_no_entra(anonimo):
@@ -35,18 +35,8 @@ def test_clave_vacia_o_larguisima_no_entra(anonimo):
 
 
 def test_login_sin_csrf_se_rechaza(anonimo):
-    r = anonimo.post("/login", {"cedula": USUARIOS["paciente"], "clave": CLAVE}, csrf=False)
+    r = anonimo.post("/login", {"nombre_usuario": USUARIOS["paciente"], "clave": CLAVE}, csrf=False)
     assert r.status_code == 400
-
-
-def test_login_registra_accesos_exitosos_y_fallidos(anonimo):
-    antes = sql("SELECT COUNT(*) AS n FROM auditoria_acceso WHERE cedula_intento = %s", (USUARIOS["paciente"],), uno=True)["n"]
-    anonimo.login(USUARIOS["paciente"], "mala-clave-9")
-    anonimo.login(USUARIOS["paciente"])
-    filas = sql("""SELECT resultado FROM auditoria_acceso WHERE cedula_intento = %s
-                   ORDER BY id_acceso DESC LIMIT 2""", (USUARIOS["paciente"],))
-    assert [f["resultado"] for f in filas] == ["exitoso", "fallido"]
-    assert sql("SELECT COUNT(*) AS n FROM auditoria_acceso WHERE cedula_intento = %s", (USUARIOS["paciente"],), uno=True)["n"] == antes + 2
 
 
 def test_logout(entrar):
@@ -55,9 +45,6 @@ def test_logout(entrar):
     r = c.post("/logout")
     assert r.status_code == 302 and "/login" in r.headers["Location"]
     assert c.get("/inicio").status_code == 302                # ya no hay sesion
-    ultimo = sql("SELECT resultado FROM auditoria_acceso WHERE cedula_intento = %s ORDER BY id_acceso DESC LIMIT 1",
-                 (USUARIOS["paciente"],), uno=True)
-    assert ultimo["resultado"] == "cierre_sesion"
 
 
 def test_logout_sin_csrf_se_rechaza(entrar):
@@ -80,14 +67,12 @@ def test_bloqueo_tras_intentos_fallidos(anonimo, restablecer):
     try:
         for _ in range(Config.MAX_INTENTOS):
             assert anonimo.login(cedula, "mala-clave-9").status_code == 401
-        fila = sql("SELECT intentos_fallidos, bloqueado_hasta IS NOT NULL AS bloqueado FROM usuario WHERE cedula = %s",
+        fila = sql("SELECT intentos_fallidos, bloqueado_hasta IS NOT NULL AS bloqueado FROM usuario WHERE nombre_usuario = %s",
                    (cedula,), uno=True)
         assert fila["bloqueado"] == 1
         # con la clave CORRECTA tampoco entra mientras dure el bloqueo (y el mensaje no lo delata)
         r = anonimo.login(cedula, CLAVE)
-        assert r.status_code == 401 and "incorrectas" in texto(r)
-        assert sql("SELECT resultado FROM auditoria_acceso WHERE cedula_intento = %s ORDER BY id_acceso DESC LIMIT 1",
-                   (cedula,), uno=True)["resultado"] == "bloqueado"
+        assert r.status_code == 401 and "incorrectos" in texto(r)
     finally:
         restablecer("victima")
 
@@ -97,9 +82,9 @@ def test_un_acierto_reinicia_los_intentos_fallidos(anonimo, restablecer):
     try:
         anonimo.login(cedula, "mala-clave-9")
         anonimo.login(cedula, "mala-clave-8")
-        assert sql("SELECT intentos_fallidos AS n FROM usuario WHERE cedula = %s", (cedula,), uno=True)["n"] == 2
+        assert sql("SELECT intentos_fallidos AS n FROM usuario WHERE nombre_usuario = %s", (cedula,), uno=True)["n"] == 2
         assert anonimo.login(cedula).status_code == 302
-        assert sql("SELECT intentos_fallidos AS n FROM usuario WHERE cedula = %s", (cedula,), uno=True)["n"] == 0
+        assert sql("SELECT intentos_fallidos AS n FROM usuario WHERE nombre_usuario = %s", (cedula,), uno=True)["n"] == 0
     finally:
         restablecer("victima")
 
@@ -107,7 +92,7 @@ def test_un_acierto_reinicia_los_intentos_fallidos(anonimo, restablecer):
 def test_usuario_inactivo_no_entra(anonimo, restablecer):
     cedula = USUARIOS["victima"]
     try:
-        sql_escribir("UPDATE usuario SET estado = 'inactivo' WHERE cedula = %s", (cedula,))
+        sql_escribir("UPDATE usuario SET estado = 'inactivo' WHERE nombre_usuario = %s", (cedula,))
         r = anonimo.login(cedula)
         assert r.status_code == 401 and "inactiva" in texto(r)
     finally:
@@ -118,7 +103,7 @@ def test_sesion_abierta_se_invalida_si_desactivan_al_usuario(entrar, restablecer
     c = entrar("victima")
     assert c.get("/inicio").status_code == 200
     try:
-        sql_escribir("UPDATE usuario SET estado = 'inactivo' WHERE cedula = %s", (USUARIOS["victima"],))
+        sql_escribir("UPDATE usuario SET estado = 'inactivo' WHERE nombre_usuario = %s", (USUARIOS["victima"],))
         r = c.get("/inicio")
         assert r.status_code == 302 and "/login" in r.headers["Location"]
     finally:
@@ -128,7 +113,7 @@ def test_sesion_abierta_se_invalida_si_desactivan_al_usuario(entrar, restablecer
 def test_cambio_de_clave_obligatorio(anonimo, restablecer):
     cedula = USUARIOS["victima"]
     try:
-        sql_escribir("UPDATE usuario SET cambio_clave_obligatorio = 1 WHERE cedula = %s", (cedula,))
+        sql_escribir("UPDATE usuario SET cambio_clave_obligatorio = 1 WHERE nombre_usuario = %s", (cedula,))
         r = anonimo.login(cedula)
         assert r.status_code == 302 and r.headers["Location"].endswith("/perfil/clave")
         # mientras no cambie la clave, todo lo demas lo devuelve a esa pantalla
@@ -147,7 +132,7 @@ def test_cambio_de_clave_obligatorio(anonimo, restablecer):
         assert cambiar(CLAVE, "sololetrasaqui").status_code == 400                      # sin numeros
         assert cambiar(CLAVE, "12345678901").status_code == 400                         # sin letras
         assert cambiar(CLAVE, CLAVE).status_code == 400                                 # igual a la actual
-        assert cambiar(CLAVE, cedula).status_code == 400                                # igual a la cedula
+        assert cambiar(CLAVE, cedula).status_code == 400                                # igual al usuario
         ok = cambiar(CLAVE, "NuevaClave2026")
         assert ok.status_code == 302 and ok.headers["Location"].endswith("/inicio")
         assert anonimo.get("/inicio").status_code == 200
@@ -155,8 +140,8 @@ def test_cambio_de_clave_obligatorio(anonimo, restablecer):
         otro = type(anonimo)(anonimo.c.application)
         assert otro.login(cedula, CLAVE).status_code == 401
         assert otro.login(cedula, "NuevaClave2026").status_code == 302
-        assert sql("SELECT cambio_clave_obligatorio AS c FROM usuario WHERE cedula = %s", (cedula,), uno=True)["c"] == 0
-        assert sql("SELECT password_hash FROM usuario WHERE cedula = %s", (cedula,), uno=True)["password_hash"].startswith("pbkdf2:sha256:")
+        assert sql("SELECT cambio_clave_obligatorio AS c FROM usuario WHERE nombre_usuario = %s", (cedula,), uno=True)["c"] == 0
+        assert sql("SELECT password FROM usuario WHERE nombre_usuario = %s", (cedula,), uno=True)["password"].startswith("pbkdf2:sha256:")
     finally:
         restablecer("victima")
 
@@ -165,4 +150,4 @@ def test_cambiar_clave_sin_csrf_se_rechaza(entrar):
     c = entrar("victima")
     r = c.post("/perfil/clave", {"clave_actual": CLAVE, "clave_nueva": "NuevaClave2026",
                                  "clave_confirmacion": "NuevaClave2026"}, csrf=False)
-    assert r.status_code == 400
+    assert r.status_code == 400

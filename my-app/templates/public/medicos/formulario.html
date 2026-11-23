@@ -36,7 +36,6 @@
   </form>
   {% if editando %}
   <div class="panel__pie">
-    <a class="boton boton--secundario boton--pequeno" href="{{ url_for('medicos.horario', id_medico=medico.id_medico) }}">Ver horario de atención</a>
     {{ boton_post(url_for('medicos.eliminar', id_medico=medico.id_medico), "Eliminar médico", "boton--peligro-suave boton--pequeno", confirmar="¿Eliminar a " ~ medico.nombres ~ " " ~ medico.apellidos ~ "? Solo es posible si no tiene citas ni usuario.", boton_texto="Eliminar") }}
   </div>
   {% endif %}

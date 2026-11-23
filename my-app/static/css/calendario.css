@@ -1,0 +1,83 @@
+/* Medimagen Cuenca · calendario semanal de citas */
+.cal { --cal-linea: #8a94a3; display: grid; gap: var(--e3); }   /* líneas oscuras de la cuadrícula */
+
+.cal__barra { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e3); }
+.cal__nav { display: flex; gap: var(--e2); }
+.cal__rango { margin: 0; font-size: var(--texto-lg); font-weight: 700; flex: 1 1 auto; min-width: 0; }
+.cal__filtros { display: flex; flex-wrap: wrap; gap: var(--e2); }
+.cal__filtros .campo__control { width: auto; min-width: 11rem; max-width: 100%; }
+
+.cal__leyenda { display: flex; flex-wrap: wrap; gap: var(--e4); margin: 0; padding: 0; list-style: none; font-size: var(--texto-sm); color: var(--texto-suave); }
+.cal__leyenda li { display: inline-flex; align-items: center; gap: var(--e2); }
+.cal__punto { width: 0.75rem; height: 0.75rem; border-radius: 3px; display: inline-block; }
+.cal__punto--a1 { background: var(--turquesa-700); }
+.cal__punto--a2 { background: var(--info); }
+.cal__punto--a3 { background: #6b3fa0; }
+
+.cal__estado { margin: 0; font-size: var(--texto-sm); color: var(--texto-suave); min-height: 1.25rem; }
+.cal__estado--error { color: var(--error); }
+
+/* Pestañas de día: solo en pantallas angostas */
+.cal__dias { display: none; gap: var(--e1); }
+.cal__dia-boton { flex: 1; min-height: 2.75rem; border: 1px solid var(--borde-fuerte); background: var(--blanco); border-radius: var(--radio); font: inherit; font-size: var(--texto-sm); cursor: pointer; }
+.cal__dia-boton[aria-selected="true"] { background: var(--primario); color: var(--blanco); border-color: var(--primario); }
+
+/* Rejilla: columna de horas + 5 días */
+.cal__rejilla { display: grid; grid-template-columns: 3.5rem repeat(5, minmax(0, 1fr)); border: 1px solid var(--cal-linea); border-radius: var(--radio); background: var(--blanco); overflow: hidden; }
+.cal__cab { padding: var(--e2); text-align: center; font-size: var(--texto-sm); border-bottom: 1px solid var(--cal-linea); border-left: 1px solid var(--cal-linea); background: var(--blanco); color: var(--texto); }
+.cal__cab strong { display: block; font-size: var(--texto-lg); }
+.cal__cab--hoy { background: #dcf0f3; color: var(--azul-900); }
+.cal__cab--hoy strong { color: var(--primario); }
+.cal__hora { padding: var(--e1) var(--e2); white-space: nowrap; font-size: var(--texto-xs); color: var(--texto); text-align: right; border-top: 1px solid var(--cal-linea); }
+.cal__celda { position: relative; display: flex; flex-direction: column; gap: var(--e1); min-height: 4.5rem; padding: var(--e1); border-top: 1px solid var(--cal-linea); border-left: 1px solid var(--cal-linea); background: var(--blanco); min-width: 0; }
+.cal__celda--pasada { background: #fbfcfd; }
+.cal__celda--hoy { background: #eaf6f8; }
+
+/* Casilla "Mostrar canceladas" (recepción y administrador) */
+.cal__canceladas { display: inline-flex; align-items: center; gap: 0.4rem; font-size: var(--texto-sm); white-space: nowrap; }
+
+/* Horario libre: enlace que aparece al pasar o enfocar */
+.cal__libre { display: flex; align-items: center; justify-content: center; min-height: 2rem; margin-top: auto; border-radius: var(--radio); color: var(--turquesa-700); text-decoration: none; font-size: var(--texto-sm); opacity: 0; }
+.cal__celda:focus-within .cal__libre { opacity: 1; background: var(--celeste-50); }
+@media (hover: hover) and (pointer: fine) { .cal__celda:hover .cal__libre { opacity: 1; background: var(--celeste-50); } }
+.cal__libre:focus-visible { outline: 2px solid var(--primario); outline-offset: 1px; }
+@media (pointer: coarse) { .cal__libre { opacity: 1; } }
+
+/* Cita */
+.cal__cita { display: grid; gap: 1px; width: 100%; text-align: left; padding: var(--e1) var(--e2); border: 1px solid #6b7686; border-left-width: 4px; border-radius: 6px; background: var(--blanco); color: var(--texto); font: inherit; font-size: var(--texto-xs); line-height: 1.25; cursor: pointer; min-width: 0; }
+.cal__cita:focus-visible { outline: 2px solid var(--primario); outline-offset: 1px; }
+.cal__cita-t { font-weight: 700; overflow-wrap: anywhere; }
+.cal__cita-s { color: var(--gris-600); overflow-wrap: anywhere; }
+.cal__cita--a1 { border-left-color: var(--turquesa-700); background: #d4f0f2; }
+.cal__cita--a2 { border-left-color: var(--info); background: #dbe9fb; }
+.cal__cita--a3 { border-left-color: #6b3fa0; background: #eadff8; }
+.cal__cita--cancelada, .cal__cita--no_asistio { opacity: 0.6; }
+.cal__cita--cancelada .cal__cita-t { text-decoration: line-through; }
+.cal__cita--elegida { outline: 2px solid var(--primario); }
+
+/* Panel de detalle */
+.cal__detalle { position: fixed; right: var(--e4); bottom: var(--e4); width: min(24rem, calc(100% - 2 * var(--e4))); max-height: 80vh; overflow: auto; padding: var(--e4); border: 1px solid var(--borde-fuerte); border-radius: var(--radio-grande); background: var(--blanco); box-shadow: var(--sombra); z-index: 20; }
+.cal__detalle[hidden] { display: none; }
+.cal__detalle-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--e2); }
+.cal__detalle-titulo { margin: 0; font-size: var(--texto-lg); }
+.cal__detalle-lista { display: grid; gap: var(--e2); margin: var(--e3) 0; }
+.cal__detalle-lista div { display: grid; grid-template-columns: 6rem 1fr; gap: var(--e2); font-size: var(--texto-sm); }
+.cal__detalle-lista dt { color: var(--texto-suave); }
+.cal__detalle-lista dd { margin: 0; overflow-wrap: anywhere; }
+.cal__detalle-acciones { display: flex; flex-wrap: wrap; gap: var(--e2); }
+
+/* Pantallas angostas: un día a la vez */
+@media (max-width: 760px) {
+  .cal__dias { display: flex; }
+  .cal__rejilla { grid-template-columns: 3.75rem minmax(0, 1fr); }
+  .cal__rejilla [data-dia]:not(.es-activo) { display: none; }
+  .cal__filtros .campo__control { min-width: 0; flex: 1 1 100%; }
+  .cal__detalle { left: var(--e3); right: var(--e3); bottom: var(--e3); width: auto; }
+}
+
+@media (prefers-reduced-motion: no-preference) { .cal__libre { transition: opacity 0.15s; } }
+@media (forced-colors: active) { .cal__cita { border: 2px solid CanvasText; } .cal__cita--elegida { outline: 3px solid Highlight; } }
+
+.cal__confirmar { margin: 0 0 var(--e2); font-size: var(--texto-sm); font-weight: 600; }
+.cal__detalle-acciones form { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e2); }
+[hidden] { display: none !important; }

@@ -2,13 +2,12 @@
 {% from "components/_icono.html" import icono %}
 {% from "components/_campo_formulario.html" import campo %}
 {% set migas = [("Panel", url_for('dashboard.inicio')), ("Exámenes solicitados", url_for('consultas.examenes_solicitados')), ("Solicitar examen", None)] %}
-{% set buscada = request.args.get("cedula") %}
 {% set bloques = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"] %}
 {% set nombres_area = {2: "Imagenología", 3: "Laboratorio"} %}
 {% block titulo %}Solicitar examen{% endblock %}
-{% block subtitulo %}Elige al paciente, el examen y un horario libre. El examen queda agendado a tu nombre.{% endblock %}
+{% block subtitulo %}Busca al paciente, elige el examen y un horario libre. El examen queda agendado a tu nombre.{% endblock %}
 {% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/citas.css') }}">{% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/core/http.js') }}" defer></script><script src="{{ url_for('static', filename='js/modules/consultas.js') }}" defer></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/core/http.js') }}" defer></script><script src="{{ url_for('static', filename='js/modules/consultas.js') }}" defer></script><script src="{{ url_for('static', filename='js/modules/buscar_paciente.js') }}" defer></script>{% endblock %}
 {% block contenido %}
 <ol class="pasos">
   <li class="paso">
@@ -25,12 +24,31 @@
         <div class="mensaje mensaje--error" role="alert">{{ icono("error", "mensaje__icono") }}<p class="mensaje__texto">Este paciente está inactivo y no se le pueden agendar exámenes.</p></div>
       {% endif %}
     {% else %}
-      <form class="buscar-paciente" method="get" action="{{ url_for('consultas.solicitar_examen') }}" role="search">
-        {{ campo("cedula", "Cédula del paciente", valor=buscada or "", requerido=true, inputmode="numeric", maxlength=10, pattern="[0-9]{10}", ayuda="10 dígitos.") }}
-        <button type="submit" class="boton boton--primario">{{ icono("buscar") }}Buscar paciente</button>
+      <form class="buscar-paciente" method="get" action="{{ url_for('consultas.solicitar_examen') }}" role="search" data-buscar-paciente data-url-sugerencias="{{ url_for('consultas.pacientes') }}" data-url-nueva="{{ url_for('consultas.solicitar_examen') }}">
+        <div class="campo buscar-paciente__campo">
+          <label class="campo__etiqueta" for="q">Cédula o nombre del paciente</label>
+          <div class="sugerencias-contenedor">
+          <input class="campo__control" type="search" id="q" name="q" value="{{ busqueda or '' }}" maxlength="60" autocomplete="off" autofocus
+                 aria-describedby="ayuda-q" role="combobox" aria-expanded="false" aria-controls="sugerencias-paciente" aria-autocomplete="list" data-campo-busqueda>
+          <ul class="sugerencias" id="sugerencias-paciente" role="listbox" aria-label="Pacientes encontrados" data-sugerencias hidden></ul>
+          </div>
+          <p class="campo__ayuda" id="ayuda-q">Si escribes números, se toma como cédula (máximo 10 dígitos). Si escribes letras, busca por nombre y apellido.</p>
+        </div>
+        <button type="submit" class="boton boton--primario buscar-paciente__boton">{{ icono("buscar") }}Buscar paciente</button>
       </form>
-      {% if buscada %}
-        <div class="mensaje mensaje--aviso" role="status">{{ icono("alerta", "mensaje__icono") }}<p class="mensaje__texto">No hay un paciente registrado con esa cédula. Revisa el número o pide a recepción que lo registre.</p></div>
+      {% if resultados is not none %}
+        {% if resultados %}
+        <ul class="resultados-paciente" aria-label="Pacientes encontrados">
+          {% for p in resultados %}
+          <li><a class="resultado-paciente" href="{{ url_for('consultas.solicitar_examen', cedula=p.cedula_paciente) }}">
+            <span class="resultado-paciente__nombre">{{ p.nombre }}</span>
+            <span class="resultado-paciente__dato">Cédula {{ p.cedula_paciente }} · {{ p.edad }} años{% if p.estado != "activo" %} · Inactivo{% endif %}</span>
+          </a></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="mensaje mensaje--aviso" role="status">{{ icono("alerta", "mensaje__icono") }}<p class="mensaje__texto">No encontramos pacientes con «{{ busqueda }}». Revisa el dato o pide a recepción que lo registre.</p></div>
+        {% endif %}
       {% endif %}
     {% endif %}
   </li>
@@ -53,14 +71,6 @@
             </optgroup>
             {% endfor %}
           </select>
-        </div>
-        <div class="campo">
-          <label class="campo__etiqueta" for="id_recurso">Equipo o puesto</label>
-          <select class="campo__control" id="id_recurso" name="id_recurso" data-campo-recurso aria-describedby="ayuda-recurso">
-            <option value="" data-fijo>Asignar automáticamente</option>
-            {% for r in recursos %}<option value="{{ r.id_recurso }}" data-area="{{ r.id_area }}"{% if form.get("id_recurso") == r.id_recurso|string %} selected{% endif %}>{{ nombres_area[r.id_area] }} · {{ r.nombre_recurso }}</option>{% endfor %}
-          </select>
-          <p class="campo__ayuda" id="ayuda-recurso">En imagenología debes elegir el equipo, porque cada uno hace estudios distintos. En laboratorio se asigna un puesto libre.</p>
         </div>
         <div class="resumen-costo" data-resumen-costo hidden>
           <span>Costo estimado</span><span class="resumen-costo__valor" data-costo-valor></span>

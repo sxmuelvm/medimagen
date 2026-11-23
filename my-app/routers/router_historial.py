@@ -21,10 +21,9 @@ def _paciente():
 @bp.get("/citas")
 @SOLO_PACIENTE
 def mis_citas():
-    usuario, cedula = _paciente()
-    datos = ctrl.mis_citas(usuario, cedula, request.args.get("estado"), request.args.get("desde"),
-                           request.args.get("hasta"), request.args.get("pagina"))
-    return render_pagina("public/historial/mis_citas.html", **datos)
+    """Sus citas se ven en el calendario semanal."""
+    _paciente()
+    return redirect(url_for("calendario.semana"))
 
 
 @bp.get("/")
@@ -50,10 +49,11 @@ def mis_resultados():
     return render_pagina("public/historial/mis_resultados.html",
                          **ctrl.mis_resultados(usuario, cedula, request.args.get("pagina")))
 
+
 @bp.route("/mis-datos", methods=["GET", "POST"])
 @SOLO_PACIENTE
 def mis_datos():
-    """El paciente ve y edita su telefono, correo y direccion."""
+    """El paciente ve sus datos y edita solo su telefono y correo."""
     usuario, cedula = _paciente()
     if request.method == "POST":
         try:

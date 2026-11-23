@@ -18,11 +18,8 @@ def _quien():
 @bp.get("/")
 @ADMIN_O_RECEPCION
 def agenda():
-    cuenta, usuario = _quien()
-    datos = ctrl.agenda(cuenta, usuario, request.args.get("q"), request.args.get("id_area"),
-                        request.args.get("estado"), request.args.get("desde"), request.args.get("hasta"),
-                        request.args.get("pagina"))
-    return render_pagina("public/citas/agenda.html", **datos)
+    """La agenda se ve en el calendario semanal."""
+    return redirect(url_for("calendario.semana"))
 
 
 @bp.get("/horarios")
@@ -33,10 +30,22 @@ def horarios():
     try:
         lista = ctrl.horarios_disponibles(cuenta, usuario, request.args.get("fecha"), request.args.get("id_area"),
                                           request.args.get("id_medico"), request.args.get("id_recurso"),
-                                          request.args.get("cedula_paciente"), request.args.get("excluir_cita"))
+                                          request.args.get("cedula_paciente"), request.args.get("excluir_cita"),
+                                          request.args.get("id_subtipo"))
     except ErrorNegocio as error:
         return jsonify({"error": error.mensaje}), error.codigo
     return jsonify({"horarios": lista})
+
+
+@bp.get("/pacientes")
+@ADMIN_O_RECEPCION
+def pacientes():
+    """Pacientes que coinciden con lo escrito (cedula o nombre), para las sugerencias del formulario."""
+    cuenta, usuario = _quien()
+    return jsonify({"pacientes": ctrl.buscar_pacientes(cuenta, usuario, request.args.get("q"))})
+
+
+_PREVIO = ("fecha_cita", "hora_inicio", "id_area", "id_medico", "id_recurso")
 
 
 @bp.route("/nueva", methods=["GET", "POST"])
@@ -50,12 +59,24 @@ def nueva():
             if error.codigo != 400:
                 raise
             flash(error.mensaje, "error")
-            return render_pagina("public/citas/nueva.html", form=request.form,
+            return render_pagina("public/citas/nueva.html", form=request.form, previo={},
                                  **ctrl.opciones_nueva(cuenta, usuario, request.form.get("cedula_paciente"))), 400
         flash("Cita registrada.", "exito")
         return redirect(url_for("citas.detalle", id_cita=creada["id_cita"]))
-    return render_pagina("public/citas/nueva.html", form={},
-                         **ctrl.opciones_nueva(cuenta, usuario, request.args.get("cedula")))
+    # Desde el calendario llegan fecha, hora, area y medico ya elegidos
+    previo = {k: request.args.get(k, "") for k in _PREVIO if request.args.get(k)}
+    busqueda = " ".join((request.args.get("q") or "").split())
+    if busqueda.isdigit():
+        busqueda = busqueda[:10]              # solo numeros: es una cedula, maximo 10 digitos
+    cedula = request.args.get("cedula")
+    if not cedula and busqueda.isdigit() and len(busqueda) == 10:
+        cedula = busqueda
+    opciones = ctrl.opciones_nueva(cuenta, usuario, cedula)
+    resultados = None
+    if not opciones["paciente"] and busqueda:
+        resultados = ctrl.buscar_pacientes(cuenta, usuario, busqueda, limite=10)
+    return render_pagina("public/citas/nueva.html", form=previo, previo=previo, busqueda=busqueda,
+                         resultados=resultados, **opciones)
 
 
 @bp.get("/<int:id_cita>")
@@ -98,4 +119,4 @@ def estado(id_cita):
 def eliminar(id_cita):
     cuenta, usuario = _quien()
     return resultado_accion(lambda: ctrl.eliminar(cuenta, usuario, id_cita),
-                            "Cita eliminada.", url_for("citas.agenda"))
+                            "Cita eliminada.", url_for("calendario.semana"))

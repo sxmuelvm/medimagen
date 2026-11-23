@@ -1,5 +1,5 @@
 """Catalogos del sistema (solo administrador): areas, recursos de atencion, tipos y subtipos de examen,
-medicamentos y bloques horarios.
+
 
 - Las 3 areas (consultas, imagenologia, laboratorio) las usa la logica de la base de datos: se editan, no se crean.
 - Los bloques horarios son fijos (07:00 a 18:00): solo se consultan.
@@ -43,9 +43,7 @@ def resumen(administrador):
         SELECT (SELECT COUNT(*) FROM area) AS areas,
                (SELECT COUNT(*) FROM recurso_atencion) AS recursos,
                (SELECT COUNT(*) FROM tipo_procedimiento) AS tipos_examen,
-               (SELECT COUNT(*) FROM subtipo_examen) AS subtipos_examen,
-               (SELECT COUNT(*) FROM medicamento) AS medicamentos,
-               (SELECT COUNT(*) FROM bloque_horario) AS bloques_horario""", id_usuario_app=administrador, uno=True)
+               (SELECT COUNT(*) FROM subtipo_examen) AS subtipos_examen""", id_usuario_app=administrador, uno=True)
     return {"resumen": fila}
 
 
@@ -292,79 +290,3 @@ def eliminar_subtipo(id_subtipo, administrador):
     ejecutar(CUENTA, "DELETE FROM subtipo_examen WHERE id_subtipo = %s", (actual["id_subtipo"],),
              id_usuario_app=administrador)
     log.info("Examen %s eliminado por el usuario %s", actual["id_subtipo"], administrador)
-
-
-# ---------------------------------------------------------------------------
-# Medicamentos
-# ---------------------------------------------------------------------------
-def listar_medicamentos(administrador, q=None, estado=None, pagina=1):
-    condiciones, parametros = [], []
-    patron = patron_like(q)
-    if patron:
-        condiciones.append("(nombre LIKE %s OR presentacion LIKE %s OR concentracion LIKE %s)")
-        parametros += [patron] * 3
-    if estado in ESTADOS:
-        condiciones.append("estado = %s")
-        parametros.append(estado)
-    donde = _donde(condiciones)
-
-    total = consultar(CUENTA, f"SELECT COUNT(*) AS total FROM medicamento {donde}", parametros,
-                      id_usuario_app=administrador, uno=True)["total"]
-    pag = paginar(total, pagina_actual(pagina), POR_PAGINA)
-    filas = consultar(CUENTA, f"""
-        SELECT id_medicamento, nombre, presentacion, concentracion, estado FROM medicamento
-        {donde} ORDER BY nombre, presentacion LIMIT %s OFFSET %s""",
-                      parametros + [pag["por_pagina"], pag["offset"]], id_usuario_app=administrador)
-    return {"medicamentos": filas, "paginacion": pag, "filtros": {"q": q or "", "estado": estado or ""}}
-
-
-def obtener_medicamento(id_medicamento, administrador):
-    fila = consultar(CUENTA, """SELECT id_medicamento, nombre, presentacion, concentracion, estado
-                                FROM medicamento WHERE id_medicamento = %s""", (id_medicamento,),
-                     id_usuario_app=administrador, uno=True)
-    if fila is None:
-        raise ErrorNegocio("El medicamento no existe.", 404)
-    return fila
-
-
-def _validar_medicamento(datos):
-    return (validators.texto(datos.get("nombre"), "El nombre", maximo=120, minimo=2),
-            validators.texto(datos.get("presentacion"), "La presentación", maximo=100, obligatorio=False),
-            validators.texto(datos.get("concentracion"), "La concentración", maximo=80, obligatorio=False))
-
-
-def crear_medicamento(datos, administrador):
-    nombre, presentacion, concentracion = _validar_medicamento(datos)
-    resultado = ejecutar(CUENTA, "INSERT INTO medicamento (nombre, presentacion, concentracion) VALUES (%s, %s, %s)",
-                         (nombre, presentacion, concentracion), id_usuario_app=administrador)
-    log.info("Medicamento %s creado por el usuario %s", nombre, administrador)
-    return resultado["id"]
-
-
-def actualizar_medicamento(id_medicamento, datos, administrador):
-    obtener_medicamento(id_medicamento, administrador)
-    nombre, presentacion, concentracion = _validar_medicamento(datos)
-    estado = validators.opcion(datos.get("estado"), ESTADOS, "El estado")
-    ejecutar(CUENTA, """UPDATE medicamento SET nombre = %s, presentacion = %s, concentracion = %s, estado = %s
-                        WHERE id_medicamento = %s""",
-             (nombre, presentacion, concentracion, estado, id_medicamento), id_usuario_app=administrador)
-    log.info("Medicamento %s modificado por el usuario %s", id_medicamento, administrador)
-
-
-def eliminar_medicamento(id_medicamento, administrador):
-    obtener_medicamento(id_medicamento, administrador)
-    usos = consultar(CUENTA, "SELECT COUNT(*) AS total FROM detalle_prescripcion WHERE id_medicamento = %s",
-                     (id_medicamento,), id_usuario_app=administrador, uno=True)["total"]
-    if usos:
-        raise ErrorNegocio("Ya se recetó. Desactívalo en lugar de eliminarlo.")
-    ejecutar(CUENTA, "DELETE FROM medicamento WHERE id_medicamento = %s", (id_medicamento,),
-             id_usuario_app=administrador)
-    log.info("Medicamento %s eliminado por el usuario %s", id_medicamento, administrador)
-
-
-# ---------------------------------------------------------------------------
-# Bloques horarios (solo lectura)
-# ---------------------------------------------------------------------------
-def listar_bloques(administrador):
-    return {"bloques": consultar(CUENTA, "SELECT hora_inicio, hora_fin FROM bloque_horario ORDER BY hora_inicio",
-                                 id_usuario_app=administrador)}

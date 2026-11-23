@@ -25,7 +25,7 @@ def cambiar_clave():
     if request.method == "POST":
         try:
             perfil_controller.cambiar_clave(
-                session["id_usuario"], session.get("cedula"),
+                session["id_usuario"], session.get("nombre_usuario"), session.get("cedula_paciente"),
                 request.form.get("clave_actual", ""),
                 request.form.get("clave_nueva", ""),
                 request.form.get("clave_confirmacion", ""))

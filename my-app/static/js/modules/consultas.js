@@ -70,7 +70,6 @@
 
   var url = formulario.getAttribute("data-url-horarios");
   var campoExamen = formulario.querySelector("[data-campo-examen]");
-  var campoRecurso = formulario.querySelector("[data-campo-recurso]");
   var campoFecha = formulario.querySelector("input[name='fecha_cita']");
   var campoHora = formulario.querySelector("[data-campo-hora]");
   var estado = formulario.querySelector("[data-estado-horarios]");
@@ -79,8 +78,6 @@
   var paciente = formulario.getAttribute("data-paciente") || "";
   var temporizador = null;
   var solicitud = 0;
-
-  var opcionesRecurso = Array.prototype.slice.call(campoRecurso.options);
 
   function opcionExamen() {
     return campoExamen.selectedIndex > 0 ? campoExamen.options[campoExamen.selectedIndex] : null;
@@ -94,27 +91,6 @@
   function mensaje(texto, vacio) {
     estado.textContent = texto;
     estado.classList.toggle("horarios-estado--vacio", !!vacio);
-  }
-
-  function filtrarRecursos() {
-    var area = areaActual();
-    var previo = campoRecurso.value;
-    while (campoRecurso.firstChild) { campoRecurso.removeChild(campoRecurso.firstChild); }
-    opcionesRecurso.forEach(function (o) {
-      var esFijo = o.hasAttribute("data-fijo");
-      if ((esFijo && area !== "2") || (!esFijo && area && o.getAttribute("data-area") === area)) { campoRecurso.appendChild(o); }
-    });
-    /* En imagenología el equipo es obligatorio (cada uno hace estudios distintos): no hay "asignar automáticamente". */
-    var esImagen = area === "2";
-    if (esImagen) {
-      var elegir = document.createElement("option");
-      elegir.value = "";
-      elegir.textContent = "Elige el equipo…";
-      campoRecurso.insertBefore(elegir, campoRecurso.firstChild);
-    }
-    campoRecurso.required = esImagen;
-    var existe = Array.prototype.some.call(campoRecurso.options, function (o) { return o.value === previo; });
-    campoRecurso.value = existe ? previo : "";
   }
 
   function mostrarCosto() {
@@ -160,7 +136,7 @@
     if (!window.Medimagen || !window.Medimagen.http) { return; }
     var numero = ++solicitud;
     mensaje("Buscando horarios libres…", false);
-    window.Medimagen.http.json(url, { parametros: { fecha: fecha, id_area: area, id_recurso: campoRecurso.value, cedula_paciente: paciente } })
+    window.Medimagen.http.json(url, { parametros: { fecha: fecha, id_area: area, id_subtipo: campoExamen.value, cedula_paciente: paciente } })
       .then(function (r) {
         if (numero !== solicitud) { return; }
         if (!r.ok) { mensaje(r.error, true); return; }
@@ -168,7 +144,7 @@
         llenarHoras(lista);
         mensaje(lista.length
           ? lista.length + (lista.length === 1 ? " horario libre" : " horarios libres") + " ese día."
-          : "No quedan horarios libres ese día. Prueba con otra fecha u otro equipo.", !lista.length);
+          : "No quedan horarios libres ese día. Prueba con otra fecha.", !lista.length);
       })
       .catch(function () {
         if (numero !== solicitud) { return; }
@@ -186,12 +162,10 @@
     campoFecha.min = hoy.getFullYear() + "-" + ("0" + (hoy.getMonth() + 1)).slice(-2) + "-" + ("0" + hoy.getDate()).slice(-2);
   }
 
-  campoExamen.addEventListener("change", function () { filtrarRecursos(); mostrarCosto(); pedirHorarios(); });
-  campoRecurso.addEventListener("change", pedirHorarios);
+  campoExamen.addEventListener("change", function () { mostrarCosto(); pedirHorarios(); });
   campoFecha.addEventListener("change", pedirHorarios);
   campoFecha.addEventListener("input", pedirHorarios);
 
-  filtrarRecursos();
   mostrarCosto();
   if (campoFecha.value && areaActual()) { pedirHorarios(); }
 }());

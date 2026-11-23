@@ -17,7 +17,7 @@
     <ul class="medicamentos">
       {% for m in r.medicamentos %}
       <li class="medicamento">
-        <span class="medicamento__nombre">{{ m.medicamento }} <span class="registro__meta">{{ m.presentacion }} {{ m.concentracion }}</span></span>
+        <span class="medicamento__nombre">{{ m.medicamento }}</span>
         <span class="medicamento__pauta">{{ m.dosis }} · {{ m.frecuencia }} · {{ m.duracion }}</span>
         {% if m.indicaciones %}<span class="medicamento__nota">{{ m.indicaciones }}</span>{% endif %}
       </li>

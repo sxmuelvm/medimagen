@@ -2,7 +2,7 @@
 {% from "components/_icono.html" import icono %}
 {% set migas = [("Panel", url_for('dashboard.inicio')), ("Usuarios", url_for('usuarios.lista')), ("Nuevo usuario", None)] %}
 {% block titulo %}{% if creado %}Usuario creado{% else %}Nuevo usuario{% endif %}{% endblock %}
-{% block subtitulo %}{% if creado %}La cuenta ya puede iniciar sesión.{% else %}Una cuenta se crea siempre para una persona que ya está registrada como médico, paciente o personal.{% endif %}{% endblock %}
+{% block subtitulo %}{% if creado %}La cuenta ya puede iniciar sesión.{% else %}Los médicos y pacientes deben estar registrados antes; el resto del personal se crea aquí con sus datos.{% endif %}{% endblock %}
 {% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
 {% block contenido %}
 {% if creado %}
@@ -25,7 +25,7 @@
       <select class="campo__control" id="id_rol" name="id_rol" required data-selector-rol>
         <option value="">Elige un rol…</option>
         {% for r in roles %}
-        <option value="{{ r.id_rol }}" data-tipo="{{ r.tipo_perfil }}"{% if form.get('id_rol') == r.id_rol|string %} selected{% endif %}>{{ r.nombre|replace("_", " ")|capitalize }}</option>
+        <option value="{{ r.id_rol }}" data-tipo="{{ r.tipo_perfil }}"{% if form.get('id_rol') == r.id_rol|string %} selected{% endif %}>{{ {"recepcion": "Recepción", "medico": "Médico", "personal_imagenologia": "Personal de imagenología", "personal_laboratorio": "Personal de laboratorio"}.get(r.nombre, r.nombre|replace("_", " ")|capitalize) }}</option>
         {% endfor %}
       </select>
       <p class="campo__ayuda">El rol decide qué pantallas verá la persona.</p>
@@ -37,7 +37,7 @@
         <label class="campo__etiqueta" for="perfil-medico">Médico sin usuario</label>
         <select class="campo__control" id="perfil-medico" name="id_perfil">
           <option value="">Elige un médico…</option>
-          {% for m in medicos %}<option value="{{ m.id_medico }}"{% if form.get('id_perfil') == m.id_medico|string %} selected{% endif %}>{{ m.apellidos }} {{ m.nombres }} · {{ m.especialidad }}</option>{% endfor %}
+          {% for m in medicos %}<option value="{{ m.cedula }}"{% if form.get('id_perfil') == m.cedula %} selected{% endif %}>{{ m.apellidos }} {{ m.nombres }} · {{ m.especialidad }}</option>{% endfor %}
         </select>
         {% if not medicos %}<p class="campo__ayuda">Todos los médicos activos ya tienen usuario.</p>{% endif %}
       </div>
@@ -56,29 +56,32 @@
     </fieldset>
 
     <fieldset class="grupo" data-grupo-perfil="personal">
-      <legend class="grupo__titulo">Personal del centro</legend>
-      <div class="campo">
-        <label class="campo__etiqueta" for="perfil-personal">Persona sin usuario</label>
-        <select class="campo__control" id="perfil-personal" name="id_perfil">
-          <option value="">Elige a la persona…</option>
-          {% for p in personal %}<option value="{{ p.id_personal }}"{% if form.get('id_perfil') == p.id_personal|string %} selected{% endif %}>{{ p.apellidos }} {{ p.nombres }} · {{ p.cargo }}</option>{% endfor %}
-        </select>
-        {% if not personal %}<p class="campo__ayuda">Todo el personal activo ya tiene usuario.</p>{% endif %}
+      <legend class="grupo__titulo">Datos de la persona</legend>
+      <div class="formulario__rejilla">
+        <div class="campo">
+          <label class="campo__etiqueta" for="cedula">Cédula<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+          <input class="campo__control" id="cedula" name="cedula" type="text" value="{{ form.get('cedula', '') }}" maxlength="10" pattern="[0-9]{10}" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="nombres">Nombres<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+          <input class="campo__control" id="nombres" name="nombres" type="text" value="{{ form.get('nombres', '') }}" maxlength="60" autocomplete="off">
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="apellidos">Apellidos<span class="campo__obligatorio" aria-hidden="true">*</span></label>
+          <input class="campo__control" id="apellidos" name="apellidos" type="text" value="{{ form.get('apellidos', '') }}" maxlength="60" autocomplete="off">
+        </div>
       </div>
     </fieldset>
 
     <div class="formulario__rejilla">
       <div class="campo">
-        <label class="campo__etiqueta" for="nombre_usuario">Nombre de usuario<span class="campo__obligatorio" aria-hidden="true">*</span></label>
-        <input class="campo__control" id="nombre_usuario" name="nombre_usuario" type="text" value="{{ form.get('nombre_usuario', '') }}" maxlength="30" required autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="ayuda-usuario">
-        <p class="campo__ayuda" id="ayuda-usuario">Sin espacios. Es el nombre con el que se reconoce la cuenta.</p>
-      </div>
-      <div class="campo">
         <label class="campo__etiqueta" for="correo">Correo</label>
         <input class="campo__control" id="correo" name="correo" type="email" value="{{ form.get('correo', '') }}" maxlength="120" autocomplete="off" inputmode="email" autocapitalize="none" aria-describedby="ayuda-correo">
-        <p class="campo__ayuda" id="ayuda-correo">Si lo dejas vacío se usa el del perfil elegido.</p>
+        <p class="campo__ayuda" id="ayuda-correo">En médicos y pacientes, si lo dejas vacío se usa el de su ficha. En el resto del personal es obligatorio.</p>
       </div>
     </div>
+
+    <p class="campo__ayuda">El nombre de usuario se genera solo: inicial del nombre + primer apellido (por ejemplo <strong>cmarin</strong>; si ya existe, <strong>cmarin01</strong>, <strong>cmarin02</strong>…). Se muestra al crear la cuenta.</p>
 
     <div class="campo">
       <label class="campo__etiqueta" for="clave">Contraseña inicial</label>

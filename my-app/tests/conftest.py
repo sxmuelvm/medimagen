@@ -23,18 +23,20 @@ from utils.security import hashear_clave  # noqa: E402
 
 CLAVE = "Prueba2026ok"          # clave conocida que se pone a los usuarios de prueba mientras dura la sesion
 
-# nombre corto -> cedula del usuario de ejemplo
+# nombre corto -> nombre_usuario del usuario de ejemplo
 USUARIOS = {
-    "admin": "0000000001",
-    "recepcion": "0000000002",
-    "medico": "0000000003",
-    "imagenologia": "0000000004",
-    "laboratorio": "0000000009",
-    "paciente": "0000000021",       # Carlos Andrade
-    "paciente2": "0000000024",      # Ana Cordero
-    "victima": "0000000022",        # paciente usado en pruebas que bloquean, desactivan o cambian la clave
+    "admin": "admin",
+    "recepcion": "ccriollo",
+    "medico": "cmarin",
+    "imagenologia": "mbajana",
+    "laboratorio": "asornoza",
+    "paciente": "candrade",         # Carlos Andrade
+    "paciente2": "acordero",        # Ana Cordero
+    "victima": "mvintimilla",       # paciente usado en pruebas que bloquean, desactivan o cambian la clave
 }
-COLUMNAS = "password_hash, cambio_clave_obligatorio, intentos_fallidos, bloqueado_hasta, estado"
+# cedulas de los pacientes de ejemplo (el login ya no usa cedula, pero el historial y las citas si)
+CEDULAS = {"paciente": "0000000021", "paciente2": "0000000024", "victima": "0000000022"}
+COLUMNAS = "password, cambio_clave_obligatorio, intentos_fallidos, bloqueado_hasta, estado"
 
 
 def sql(consulta, parametros=None, uno=False):
@@ -47,12 +49,12 @@ def sql_escribir(consulta, parametros=None):
 
 
 def id_usuario(nombre):
-    return sql("SELECT id_usuario FROM usuario WHERE cedula = %s", (USUARIOS[nombre],), uno=True)["id_usuario"]
+    return sql("SELECT id_usuario FROM usuario WHERE nombre_usuario = %s", (USUARIOS[nombre],), uno=True)["id_usuario"]
 
 
-def poner_clave_conocida(cedula):
-    sql_escribir("""UPDATE usuario SET password_hash = %s, cambio_clave_obligatorio = 0, intentos_fallidos = 0,
-                    bloqueado_hasta = NULL, estado = 'activo' WHERE cedula = %s""", (HASH, cedula))
+def poner_clave_conocida(nombre_usuario):
+    sql_escribir("""UPDATE usuario SET password = %s, cambio_clave_obligatorio = 0, intentos_fallidos = 0,
+                    bloqueado_hasta = NULL, estado = 'activo' WHERE nombre_usuario = %s""", (HASH, nombre_usuario))
 
 
 HASH = hashear_clave(CLAVE)
@@ -62,7 +64,7 @@ HASH = hashear_clave(CLAVE)
 def usuarios_de_prueba():
     """Guarda el estado de los usuarios de prueba, les pone clave conocida y al final lo restaura."""
     try:
-        originales = {n: sql(f"SELECT {COLUMNAS} FROM usuario WHERE cedula = %s", (c,), uno=True)
+        originales = {n: sql(f"SELECT {COLUMNAS} FROM usuario WHERE nombre_usuario = %s", (c,), uno=True)
                       for n, c in USUARIOS.items()}
     except ErrorNegocio as error:
         pytest.exit(f"No se pudo conectar con la base de datos: {error.mensaje}. "
@@ -70,13 +72,13 @@ def usuarios_de_prueba():
     faltan = [n for n, fila in originales.items() if fila is None]
     if faltan:
         pytest.exit(f"Faltan usuarios de ejemplo en la base: {faltan}. Carga los scripts de database/init.", returncode=2)
-    for cedula in USUARIOS.values():
-        poner_clave_conocida(cedula)
+    for usuario in USUARIOS.values():
+        poner_clave_conocida(usuario)
     yield
     for nombre, fila in originales.items():
-        sql_escribir("""UPDATE usuario SET password_hash = %s, cambio_clave_obligatorio = %s, intentos_fallidos = %s,
-                         bloqueado_hasta = %s, estado = %s WHERE cedula = %s""",
-                     (fila["password_hash"], fila["cambio_clave_obligatorio"], fila["intentos_fallidos"],
+        sql_escribir("""UPDATE usuario SET password = %s, cambio_clave_obligatorio = %s, intentos_fallidos = %s,
+                         bloqueado_hasta = %s, estado = %s WHERE nombre_usuario = %s""",
+                     (fila["password"], fila["cambio_clave_obligatorio"], fila["intentos_fallidos"],
                       fila["bloqueado_hasta"], fila["estado"], USUARIOS[nombre]))
 
 
@@ -102,8 +104,8 @@ class Cliente:
         with self.c.session_transaction() as sesion:
             return bool(sesion.get("id_usuario"))
 
-    def login(self, cedula, clave=CLAVE):
-        return self.c.post("/login", data={"cedula": cedula, "clave": clave, "csrf_token": self.token()})
+    def login(self, nombre_usuario, clave=CLAVE):
+        return self.c.post("/login", data={"nombre_usuario": nombre_usuario, "clave": clave, "csrf_token": self.token()})
 
     def get(self, url, **kw):
         return self.c.get(url, **kw)

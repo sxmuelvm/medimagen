@@ -1,9 +1,9 @@
 -- =====================================================================
 -- MEDIMAGEN | 03_datos.sql
--- Datos iniciales (ficticios). Los 16 usuarios entran con la clave uno234cinco (cédulas 0000000001, 0000000002, ...)
+-- Datos iniciales (ficticios). Los usuarios de ejemplo entran con la clave uno234cinco (cédulas 0000000001, 0000000002, ...)
 -- (hash de werkzeug). Ejecutar con root.
 -- =====================================================================
-USE medimagen;
+USE medimagen2;
 
 INSERT INTO rol (nombre, descripcion) VALUES
 ('administrador','Gestión de usuarios, roles, médicos, pacientes, especialidades y catálogos'),
@@ -17,11 +17,6 @@ INSERT INTO area (nombre, descripcion) VALUES
 ('Consultas médicas','Atención médica por especialidad'),
 ('Imagenología','Radiografía, tomografía, resonancia y densitometría ósea'),
 ('Laboratorio clínico','Exámenes de orina, heces y sangre');
-
-INSERT INTO bloque_horario (hora_inicio, hora_fin) VALUES
-('07:00:00','08:00:00'),('08:00:00','09:00:00'),('09:00:00','10:00:00'),('10:00:00','11:00:00'),
-('11:00:00','12:00:00'),('12:00:00','13:00:00'),('13:00:00','14:00:00'),('14:00:00','15:00:00'),
-('15:00:00','16:00:00'),('16:00:00','17:00:00'),('17:00:00','18:00:00');
 
 INSERT INTO especialidad (nombre, descripcion, costo_consulta) VALUES
 ('Medicina General','Atención médica integral y primer contacto',20.00),
@@ -46,13 +41,6 @@ INSERT INTO subtipo_examen (id_tipo, nombre, costo) VALUES
 ('DO','Básica: miembros superiores',40.00),('DO','Completa: miembros superiores e inferiores',60.00),
 ('LAB','Orina',8.00),('LAB','Heces',8.00),('LAB','Sangre',15.00);
 
-INSERT INTO medicamento (nombre, presentacion, concentracion) VALUES
-('Paracetamol','Tableta','500 mg'),('Ibuprofeno','Tableta','400 mg'),
-('Amoxicilina','Suspensión','250 mg/5 ml'),('Propranolol','Tableta','10 mg'),
-('Hidrocortisona','Crema','1%'),('Omeprazol','Cápsula','20 mg'),
-('Vitamina D','Cápsula','1000 UI'),('Enalapril','Tableta','10 mg'),
-('Multivitamínico','Tableta',NULL),('Loratadina','Tableta','10 mg');
-
 INSERT INTO paciente (cedula_paciente, nombres, apellidos, fecha_nacimiento, sexo, telefono, correo, direccion) VALUES
 ('0000000021','Carlos','Andrade Pinos','1990-03-14','M','0991111111','carlos.andrade@mail.com','Av. Loja y Remigio Crespo'),
 ('0000000022','María','Vintimilla Cueva','1985-07-22','F','0992222222','maria.vintimilla@mail.com','Calle Larga 4-35'),
@@ -63,17 +51,26 @@ INSERT INTO paciente (cedula_paciente, nombres, apellidos, fecha_nacimiento, sex
 ('0000000027','Pedro','Calle Arévalo','1965-12-02','M','0997777777','pedro.calle@mail.com','Baños, Cuenca'),
 ('0000000028','Sofía','Barrera León','1993-04-27','F','0998888888','sofia.barrera@mail.com','El Batán'),
 ('0000000029','Andrés','Idrovo Sarmiento','1980-08-11','M','0999999999','andres.idrovo@mail.com','Totoracocha'),
-('0000000030','Camila','Loja Zhunio','2004-02-19','F','0981234567','camila.loja@mail.com','Monay');
+('0000000030','Camila','Loja Zhunio','2004-02-19','F','0981234567','camila.loja@mail.com','Monay'),
+-- Pacientes con dos nombres y dos apellidos (y homonimos, para probar los nombres de usuario automaticos)
+('0000000049','Carlos Eduardo','Marín Torres','1988-06-12','M','0982000049','carlos.marin@mail.com','Av. Solano 3-15'),
+('0000000050','Camila Fernanda','Marín Loja','1999-10-03','F','0982000050','camila.marin@mail.com','Sector Feria Libre'),
+('0000000051','María José','Vintimilla Cueva','1995-01-25','F','0982000051','mariajose.vintimilla@mail.com','Av. Loja 8-40'),
+('0000000052','Juan Carlos','Pérez Andrade','1979-11-08','M','0982000052','juan.perez@mail.com','Gil Ramírez Dávalos'),
+('0000000053','Ana Lucía','Cordero Ríos','2002-03-17','F','0982000053','analucia.cordero@mail.com','Misicata'),
+('0000000054','José Miguel','Quezada Brito','1991-09-29','M','0982000054','josemiguel.quezada@mail.com','Sayausí'),
+('0000000055','Luis Fernando','Pesántez Mora','1983-12-21','M','0982000055','luis.pesantez2@mail.com','Turi'),
+('0000000056','Sofía Alejandra','Barrera León','2000-07-14','F','0982000056','sofia.barrera2@mail.com','Ricaurte');
 
 -- 28 médicos: cada una de las 7 especialidades tiene 4, para que atiendan de forma simultánea
 INSERT INTO medico (id_especialidad, cedula, nombres, apellidos, telefono, correo) VALUES
 ('ESP-01','0000000003','Cristian Teodoro','Marin Guachichullca','0970000001','cristian.marin@medimagen.ec'),
-('ESP-01','0000000012','Patricia','Crespo Vélez','0970000002','patricia.crespo@medimagen.ec'),
+('ESP-01','0000000012','Patricia Alejandra','Crespo Vélez','0970000002','patricia.crespo@medimagen.ec'),
 ('ESP-01','0000000013','Esteban','Peña Alvear','0970000003','esteban.pena@medimagen.ec'),
 ('ESP-02','0000000014','Gabriela','Mora Ullauri','0970000004','gabriela.mora@medimagen.ec'),
 ('ESP-03','0000000015','Verónica','Astudillo Cabrera','0970000005','veronica.astudillo@medimagen.ec'),
-('ESP-04','0000000016','Marcelo','Tello Bravo','0970000006','marcelo.tello@medimagen.ec'),
-('ESP-05','0000000017','Lucía','Serrano Maldonado','0970000007','lucia.serrano@medimagen.ec'),
+('ESP-04','0000000016','Marcelo Andrés','Tello Bravo','0970000006','marcelo.tello@medimagen.ec'),
+('ESP-05','0000000017','María Lucía','Serrano Maldonado','0970000007','lucia.serrano@medimagen.ec'),
 ('ESP-06','0000000018','Fernando','Guamán Pacheco','0970000008','fernando.guaman@medimagen.ec'),
 ('ESP-07','0000000019','Mónica','Jaramillo Heredia','0970000009','monica.jaramillo@medimagen.ec'),
 ('ESP-07','0000000020','Santiago','Rivera Coronel','0970000010','santiago.rivera@medimagen.ec'),
@@ -87,7 +84,7 @@ INSERT INTO medico (id_especialidad, cedula, nombres, apellidos, telefono, corre
 ('ESP-02','0000000038','Pablo','Cevallos Mena','0970000018','pablo.cevallos@medimagen.ec'),
 ('ESP-03','0000000039','Silvia','Narváez Ochoa','0970000019','silvia.narvaez@medimagen.ec'),
 ('ESP-03','0000000040','Tomás','Rendón Salinas','0970000020','tomas.rendon@medimagen.ec'),
-('ESP-04','0000000041','Elisa','Bermeo Quito','0970000021','elisa.bermeo@medimagen.ec'),
+('ESP-04','0000000041','Elisa Beatriz','Bermeo Quito','0970000021','elisa.bermeo@medimagen.ec'),
 ('ESP-04','0000000042','Hugo','Parra Castro','0970000022','hugo.parra@medimagen.ec'),
 ('ESP-05','0000000043','Natalia','Fajardo León','0970000023','natalia.fajardo@medimagen.ec'),
 ('ESP-05','0000000044','Óscar','Ayala Medina','0970000024','oscar.ayala@medimagen.ec'),
@@ -96,49 +93,43 @@ INSERT INTO medico (id_especialidad, cedula, nombres, apellidos, telefono, corre
 ('ESP-07','0000000047','Alejandra','Peralta Cruz','0970000027','alejandra.peralta@medimagen.ec'),
 ('ESP-07','0000000048','Raúl','Espinoza Maza','0970000028','raul.espinoza@medimagen.ec');
 
--- Turnos de atención (lunes a viernes). La clínica atiende de forma continua de 07:00 a 18:00, sin hora de almuerzo.
--- Todos los médicos tienen jornada completa: así ninguna especialidad queda sin médico en ningún horario, y las
--- especialidades tienen 4 médicos que atienden de forma simultánea.
-INSERT INTO horario_medico (id_medico, dia_semana, hora_inicio, hora_fin)
-SELECT m.id_medico, d.dia, '07:00:00', '18:00:00'
-FROM medico m
-CROSS JOIN (SELECT 1 AS dia UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) d;
-
-INSERT INTO personal (cedula, nombres, apellidos, telefono, correo, cargo) VALUES
-('0000000001','Samuel Felipe','Vallejo Morales','0960000001','samuel.vallejo@medimagen.ec','Administrador'),
-('0000000002','Christian David','Criollo Lucero','0960000002','christian.criollo@medimagen.ec','Recepcionista'),
-('0000000005','Mónica','Vargas Ruiz','0960000003','monica.vargas@medimagen.ec','Recepcionista'),
-('0000000006','Esteban','Calle Paredes','0960000004','esteban.calle@medimagen.ec','Recepcionista'),
-('0000000004','Michael Jose','Bajaña Espinoza','0960000005','michael.bajana@medimagen.ec','Técnico de imagenología'),
-('0000000007','Diego','Ochoa Brito','0960000006','diego.ochoa@medimagen.ec','Técnico de imagenología'),
-('0000000008','Lucas','Paredes Soto','0960000007','lucas.paredes@medimagen.ec','Técnico de imagenología'),
-('0000000009','Andrea','Sornoza Viteri','0960000008','andrea.sornoza@medimagen.ec','Laboratorista'),
-('0000000010','Elena','Rojas Cabrera','0960000009','elena.rojas@medimagen.ec','Laboratorista'),
-('0000000011','Nelson','Tapia Ullauri','0960000010','nelson.tapia@medimagen.ec','Laboratorista');
-
 -- Hash werkzeug (pbkdf2:sha256) de la contraseña de prueba: uno234cinco
 SET @hash = 'pbkdf2:sha256:1000000$B6H7bOn922NqQi5j$0b4c23fafb117e8a7c093bc856036717abfa6304426f43f8958de0df3b0ce82c';
 
-INSERT INTO usuario (cedula, id_rol, id_medico, cedula_paciente, id_personal, nombres, apellidos, nombre_usuario, correo, password_hash) VALUES
-('0000000001',1,NULL,NULL,1,'Samuel Felipe','Vallejo Morales','admin','samuel.vallejo@medimagen.ec',@hash),
-('0000000002',2,NULL,NULL,2,'Christian David','Criollo Lucero','ccriollo','christian.criollo@medimagen.ec',@hash),
-('0000000005',2,NULL,NULL,3,'Mónica','Vargas Ruiz','mvargas','monica.vargas@medimagen.ec',@hash),
-('0000000006',2,NULL,NULL,4,'Esteban','Calle Paredes','ecalle','esteban.calle@medimagen.ec',@hash),
-('0000000004',4,NULL,NULL,5,'Michael Jose','Bajaña Espinoza','mbajana','michael.bajana@medimagen.ec',@hash),
-('0000000007',4,NULL,NULL,6,'Diego','Ochoa Brito','dochoa','diego.ochoa@medimagen.ec',@hash),
-('0000000008',4,NULL,NULL,7,'Lucas','Paredes Soto','lparedes','lucas.paredes@medimagen.ec',@hash),
-('0000000009',5,NULL,NULL,8,'Andrea','Sornoza Viteri','asornoza','andrea.sornoza@medimagen.ec',@hash),
-('0000000010',5,NULL,NULL,9,'Elena','Rojas Cabrera','erojas','elena.rojas@medimagen.ec',@hash),
-('0000000011',5,NULL,NULL,10,'Nelson','Tapia Ullauri','ntapia','nelson.tapia@medimagen.ec',@hash),
-('0000000003',3,1,NULL,NULL,'Cristian Teodoro','Marin Guachichullca','cmarin','cristian.marin@medimagen.ec',@hash),
-('0000000014',3,4,NULL,NULL,'Gabriela','Mora Ullauri','gmora','gabriela.mora@medimagen.ec',@hash),
-('0000000019',3,9,NULL,NULL,'Mónica','Jaramillo Heredia','mjaramillo','monica.jaramillo@medimagen.ec',@hash),
-('0000000021',6,NULL,'0000000021',NULL,'Carlos','Andrade Pinos','candrade','carlos.andrade@mail.com',@hash),
-('0000000022',6,NULL,'0000000022',NULL,'María','Vintimilla Cueva','mvintimilla','maria.vintimilla@mail.com',@hash),
-('0000000024',6,NULL,'0000000024',NULL,'Ana','Cordero Ríos','acordero','ana.cordero@mail.com',@hash);
+-- El nombre de usuario (nombre_usuario) se genera solo: primera letra del nombre + primer apellido (cmarin);
+-- si ya existe se agrega 01, 02... (cmarin01). Solo 'admin' se escribe a mano.
+-- Cada persona se identifica solo por su cedula. Los nombres de medicos y pacientes se copian de su ficha.
+INSERT INTO usuario (id_rol, cedula, nombres, apellidos, nombre_usuario, correo, password) VALUES
+(1,'0000000001','Samuel Felipe','Vallejo Morales','admin','samuel.vallejo@medimagen.ec',@hash),
+(2,'0000000002','Christian David','Criollo Lucero',NULL,'christian.criollo@medimagen.ec',@hash),
+(2,'0000000004','Mónica','Vargas Ruiz',NULL,'monica.vargas@medimagen.ec',@hash),
+(2,'0000000005','Esteban','Calle Paredes',NULL,'esteban.calle@medimagen.ec',@hash),
+(4,'0000000006','Michael Jose','Bajaña Espinoza',NULL,'michael.bajana@medimagen.ec',@hash),
+(4,'0000000007','Diego','Ochoa Brito',NULL,'diego.ochoa@medimagen.ec',@hash),
+(4,'0000000008','Lucas','Paredes Soto',NULL,'lucas.paredes@medimagen.ec',@hash),
+(5,'0000000009','Andrea','Sornoza Viteri',NULL,'andrea.sornoza@medimagen.ec',@hash),
+(5,'0000000010','Elena','Rojas Cabrera',NULL,'elena.rojas@medimagen.ec',@hash),
+(5,'0000000011','Nelson','Tapia Ullauri',NULL,'nelson.tapia@medimagen.ec',@hash),
+(3,'0000000003','Cristian Teodoro','Marin Guachichullca',NULL,'cristian.marin@medimagen.ec',@hash),
+(3,'0000000014','Gabriela','Mora Ullauri',NULL,'gabriela.mora@medimagen.ec',@hash),
+(3,'0000000019','Mónica','Jaramillo Heredia',NULL,'monica.jaramillo@medimagen.ec',@hash),
+(6,'0000000021','Carlos','Andrade Pinos',NULL,'carlos.andrade@mail.com',@hash),
+(6,'0000000022','María','Vintimilla Cueva',NULL,'maria.vintimilla@mail.com',@hash),
+(6,'0000000024','Ana','Cordero Ríos',NULL,'ana.cordero@mail.com',@hash),
+-- Mas personas: dos nombres y dos apellidos, y homonimos (cmarin01, cmarin02, mvargas01, mvintimilla01, acordero01...)
+(3,'0000000012','Patricia Alejandra','Crespo Vélez',NULL,'patricia.crespo@medimagen.ec',@hash),
+(3,'0000000016','Marcelo Andrés','Tello Bravo',NULL,'marcelo.tello@medimagen.ec',@hash),
+(2,'0000000057','María Fernanda','Vargas Salinas',NULL,'mariafernanda.vargas@medimagen.ec',@hash),
+(2,'0000000058','Juan Pablo','Ortega Salas',NULL,'juan.ortega@medimagen.ec',@hash),
+(5,'0000000059','Camila Andrea','Marín Cuesta',NULL,'camila.marin.lab@medimagen.ec',@hash),
+(6,'0000000049','Carlos Eduardo','Marín Torres',NULL,'carlos.marin@mail.com',@hash),
+(6,'0000000050','Camila Fernanda','Marín Loja',NULL,'camila.marin@mail.com',@hash),
+(6,'0000000051','María José','Vintimilla Cueva',NULL,'mariajose.vintimilla@mail.com',@hash),
+(6,'0000000052','Juan Carlos','Pérez Andrade',NULL,'juan.perez@mail.com',@hash),
+(6,'0000000053','Ana Lucía','Cordero Ríos',NULL,'analucia.cordero@mail.com',@hash);
 
--- Las cuentas de ejemplo nacen con la clave inicial: obligar a cambiarla en el primer ingreso
-UPDATE usuario SET cambio_clave_obligatorio = 1;
+-- Las cuentas de ejemplo nacen con la clave inicial: se obliga a cambiarla en el primer ingreso
+UPDATE usuario SET cambio_clave_obligatorio = 1 WHERE id_usuario > 0;
 
 INSERT INTO recurso_atencion (id_area, nombre_recurso, tipo_recurso, descripcion) VALUES
 (1,'Consultorio 1','consultorio','Planta baja'),
@@ -151,6 +142,12 @@ INSERT INTO recurso_atencion (id_area, nombre_recurso, tipo_recurso, descripcion
 (2,'Densitómetro','equipo','Densitómetro óseo DXA'),
 (3,'Puesto de laboratorio 1','puesto_laboratorio','Toma de muestras'),
 (3,'Puesto de laboratorio 2','puesto_laboratorio','Toma de muestras');
+
+-- Cada tipo de estudio de imagenologia se hace en un equipo: asi la recepcion no tiene que elegirlo
+UPDATE tipo_procedimiento SET id_recurso = (SELECT id_recurso FROM recurso_atencion WHERE nombre_recurso = 'Sala de Rayos X') WHERE id_tipo = 'RX';
+UPDATE tipo_procedimiento SET id_recurso = (SELECT id_recurso FROM recurso_atencion WHERE nombre_recurso = 'Tomógrafo') WHERE id_tipo = 'TAC';
+UPDATE tipo_procedimiento SET id_recurso = (SELECT id_recurso FROM recurso_atencion WHERE nombre_recurso = 'Resonador') WHERE id_tipo = 'RM';
+UPDATE tipo_procedimiento SET id_recurso = (SELECT id_recurso FROM recurso_atencion WHERE nombre_recurso = 'Densitómetro') WHERE id_tipo = 'DO';
 
 -- Citas 1-10 consultas (usuario 2), 11-20 imagenología (usuario 3), 21-30 laboratorio (usuario 4)
 INSERT INTO cita (cedula_paciente, id_area, id_recurso, id_usuario_registra, fecha_cita, hora_inicio, hora_fin, estado) VALUES
@@ -213,7 +210,6 @@ INSERT INTO cita_laboratorio (id_cita, id_medico_solicitante, id_subtipo, estado
 (29,5,'LAB-03','realizado','2026-11-12'),
 (30,3,'LAB-01','realizado','2026-11-13');
 
--- Estos UPDATE generan 27 registros en auditoria_cita por medio del trigger
 UPDATE cita SET estado = 'atendida' WHERE id_cita BETWEEN 1 AND 16 OR id_cita BETWEEN 21 AND 30;
 UPDATE cita SET estado = 'cancelada' WHERE id_cita = 17;
 
@@ -229,29 +225,17 @@ INSERT INTO resultado_laboratorio (id_cita, registrado_por, fecha_resultado, res
 (29,8,'2026-11-13','Hemoglobina 13.1 g/dL, glucosa 88 mg/dL','Valores normales'),
 (30,8,'2026-11-14','Sin hallazgos patológicos','Muestra adecuada');
 
-INSERT INTO consulta_medica (id_cita, fecha_hora_atencion, motivo_consulta, observaciones) VALUES
-(1,'2026-11-02 08:00:00','Dolor de cabeza persistente','Reposo e hidratación'),
-(2,'2026-11-02 09:00:00','Control general','Control anual'),
-(3,'2026-11-03 10:00:00','Fiebre y tos','Vigilar temperatura'),
-(4,'2026-11-04 11:00:00','Palpitaciones','Solicitar chequeo de seguimiento'),
-(5,'2026-11-05 15:00:00','Manchas en la piel','Evitar jabones perfumados'),
-(6,'2026-11-06 15:00:00','Dolor dental','Programar calzado dental'),
-(7,'2026-11-09 07:00:00','Dolor abdominal','Dieta blanda por una semana'),
-(8,'2026-11-10 16:00:00','Control de peso','Plan nutricional de 4 semanas'),
-(9,'2026-11-11 09:00:00','Dolor de garganta','Reposo vocal'),
-(10,'2026-11-12 17:00:00','Control de presión arterial','Continuar tratamiento');
-
-INSERT INTO diagnostico (id_consulta, descripcion, observacion) VALUES
-(1,'Cefalea tensional','Sin signos de alarma'),
-(2,'Paciente sano','Exámenes de rutina solicitados'),
-(3,'Infección respiratoria aguda','Sin dificultad respiratoria'),
-(4,'Taquicardia sinusal','Se recomienda evitar cafeína'),
-(5,'Dermatitis de contacto','Lesiones leves en antebrazo'),
-(6,'Caries en molar inferior','Pieza 36'),
-(7,'Gastritis leve','Evitar irritantes'),
-(8,'Sobrepeso grado I','IMC 27.5'),
-(9,'Faringitis aguda','Sin placas'),
-(10,'Hipertensión arterial controlada','Presión 125/80');
+INSERT INTO consulta_medica (id_cita, fecha_hora_atencion, motivo_consulta, diagnostico, observaciones) VALUES
+(1,'2026-11-02 08:00:00','Dolor de cabeza persistente','Cefalea tensional','Reposo e hidratación'),
+(2,'2026-11-02 09:00:00','Control general','Paciente sano','Control anual'),
+(3,'2026-11-03 10:00:00','Fiebre y tos','Infección respiratoria aguda','Vigilar temperatura'),
+(4,'2026-11-04 11:00:00','Palpitaciones','Taquicardia sinusal','Solicitar chequeo de seguimiento'),
+(5,'2026-11-05 15:00:00','Manchas en la piel','Dermatitis de contacto','Evitar jabones perfumados'),
+(6,'2026-11-06 15:00:00','Dolor dental','Caries en molar inferior','Programar calzado dental'),
+(7,'2026-11-09 07:00:00','Dolor abdominal','Gastritis leve','Dieta blanda por una semana'),
+(8,'2026-11-10 16:00:00','Control de peso','Sobrepeso grado I','Plan nutricional de 4 semanas'),
+(9,'2026-11-11 09:00:00','Dolor de garganta','Faringitis aguda','Reposo vocal'),
+(10,'2026-11-12 17:00:00','Control de presión arterial','Hipertensión arterial controlada','Continuar tratamiento');
 
 INSERT INTO prescripcion (id_consulta, fecha_prescripcion, indicaciones_generales) VALUES
 (1,'2026-11-02 09:00:00','Reposo e hidratación abundante'),
@@ -265,29 +249,17 @@ INSERT INTO prescripcion (id_consulta, fecha_prescripcion, indicaciones_generale
 (9,'2026-11-11 10:00:00','Evitar bebidas frías'),
 (10,'2026-11-12 18:00:00','Control mensual de presión');
 
-INSERT INTO detalle_prescripcion (id_prescripcion, id_medicamento, dosis, frecuencia, duracion, indicaciones) VALUES
-(1,1,'1 tableta','Cada 8 horas','3 días','Si persiste el dolor, acudir a control'),
-(2,9,'1 tableta','Cada 24 horas','30 días',NULL),
-(3,3,'5 ml','Cada 8 horas','7 días','Agitar antes de usar'),
-(3,1,'5 ml','Cada 8 horas si hay fiebre','3 días',NULL),
-(4,4,'1 tableta','Cada 12 horas','15 días',NULL),
-(5,5,'Aplicación local','Cada 12 horas','10 días','No aplicar en heridas abiertas'),
-(5,10,'1 tableta','Cada 24 horas','7 días',NULL),
-(6,2,'1 tableta','Cada 8 horas','3 días','Tomar con alimentos'),
-(7,6,'1 cápsula','Cada 24 horas en ayunas','14 días',NULL),
-(8,7,'1 cápsula','Cada 24 horas','30 días',NULL),
-(9,2,'1 tableta','Cada 8 horas','5 días','Tomar con alimentos'),
-(10,8,'1 tableta','Cada 24 horas','30 días','Tomar a la misma hora');
+INSERT INTO detalle_prescripcion (id_prescripcion, medicamento, dosis, frecuencia, duracion, indicaciones) VALUES
+(1,'Paracetamol 500 mg tableta','1 tableta','Cada 8 horas','3 días','Si persiste el dolor, acudir a control'),
+(2,'Multivitamínico tableta','1 tableta','Cada 24 horas','30 días',NULL),
+(3,'Amoxicilina 250 mg/5 ml suspensión','5 ml','Cada 8 horas','7 días','Agitar antes de usar'),
+(3,'Paracetamol 500 mg tableta','5 ml','Cada 8 horas si hay fiebre','3 días',NULL),
+(4,'Propranolol 10 mg tableta','1 tableta','Cada 12 horas','15 días',NULL),
+(5,'Hidrocortisona 1% crema','Aplicación local','Cada 12 horas','10 días','No aplicar en heridas abiertas'),
+(5,'Loratadina 10 mg tableta','1 tableta','Cada 24 horas','7 días',NULL),
+(6,'Ibuprofeno 400 mg tableta','1 tableta','Cada 8 horas','3 días','Tomar con alimentos'),
+(7,'Omeprazol 20 mg cápsula','1 cápsula','Cada 24 horas en ayunas','14 días',NULL),
+(8,'Vitamina D 1000 UI cápsula','1 cápsula','Cada 24 horas','30 días',NULL),
+(9,'Ibuprofeno 400 mg tableta','1 tableta','Cada 8 horas','5 días','Tomar con alimentos'),
+(10,'Enalapril 10 mg tableta','1 tableta','Cada 24 horas','30 días','Tomar a la misma hora');
 
--- Accesos de demostracion (el sistema real los escribe Flask con usr_login)
-INSERT INTO auditoria_acceso (cedula_intento, id_usuario, resultado, ip, navegador, fecha) VALUES
-('0000000001',1,'exitoso','127.0.0.1','Chrome','2026-11-02 07:45:00'),
-('0000000002',2,'exitoso','127.0.0.1','Chrome','2026-11-02 07:50:00'),
-('0000000003',11,'exitoso','127.0.0.1','Firefox','2026-11-02 07:55:00'),
-('0000000021',14,'exitoso','127.0.0.1','Chrome','2026-11-02 18:10:00'),
-('0000000022',15,'fallido','127.0.0.1','Edge','2026-11-03 09:00:00'),
-('0000000022',15,'exitoso','127.0.0.1','Edge','2026-11-03 09:01:00'),
-('0999999999',NULL,'fallido','127.0.0.1','Chrome','2026-11-03 10:20:00'),
-('0000000004',5,'exitoso','127.0.0.1','Chrome','2026-11-04 08:00:00'),
-('0000000009',8,'exitoso','127.0.0.1','Chrome','2026-11-04 08:05:00'),
-('0000000001',1,'cierre_sesion','127.0.0.1','Chrome','2026-11-04 17:30:00');

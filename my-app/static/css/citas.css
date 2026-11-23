@@ -220,3 +220,62 @@
     outline: 2px solid Highlight;
   }
 }
+
+/* Buscar paciente por cédula o nombre */
+.sugerencias-contenedor { position: relative; }
+
+.sugerencias {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 4px);
+  z-index: 15;
+  max-height: 20rem;
+  margin: 0;
+  padding: var(--e1);
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio);
+  background: var(--blanco);
+  box-shadow: var(--sombra);
+}
+
+.sugerencias[hidden] { display: none; }
+
+.sugerencias__opcion,
+.resultado-paciente {
+  display: grid;
+  gap: 2px;
+  padding: var(--e2) var(--e3);
+  border-radius: var(--radio);
+  cursor: pointer;
+  color: var(--texto);
+  text-decoration: none;
+}
+
+.sugerencias__opcion[aria-selected="true"],
+.sugerencias__opcion:hover { background: var(--celeste-50); }
+
+.sugerencias__nombre,
+.resultado-paciente__nombre { font-weight: 600; }
+
+.sugerencias__dato,
+.resultado-paciente__dato,
+.sugerencias__vacio { font-size: var(--texto-sm); color: var(--texto-suave); }
+
+.sugerencias__vacio { padding: var(--e3); }
+
+.resultados-paciente {
+  display: grid;
+  gap: var(--e1);
+  margin: var(--e3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resultado-paciente { border: 1px solid var(--borde); }
+.resultado-paciente:hover,
+.resultado-paciente:focus-visible { background: var(--celeste-50); border-color: var(--primario); }
+
+/* Con JavaScript las sugerencias reemplazan al botón; sin él, el botón sigue disponible */
+.js .buscar-paciente__boton { display: none; }

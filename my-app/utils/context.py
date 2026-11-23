@@ -15,10 +15,10 @@ def registrar_contexto(app):
         cuenta = session.get("cuenta")
         usuario = {
             "id": session["id_usuario"],
-            "cedula": session.get("cedula"),
             "nombres": session.get("nombres"),
             "apellidos": session.get("apellidos"),
             "nombre_usuario": session.get("nombre_usuario"),
+            "cedula_paciente": session.get("cedula_paciente"),
             "cuenta": cuenta,
             "rol": ETIQUETA_CUENTA.get(cuenta, cuenta),
         }

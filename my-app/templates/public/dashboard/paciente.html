@@ -5,7 +5,7 @@
 {% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
 {% block titulo %}Panel{% endblock %}
 {% block subtitulo %}Hola, {{ usuario.nombres }}. Aquí tienes tus citas y tu información médica.{% endblock %}
-{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('historial.mis_citas') }}">{{ icono("citas") }}Todas mis citas</a>{% endblock %}
+{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('calendario.semana') }}">{{ icono("citas") }}Todas mis citas</a>{% endblock %}
 {% block contenido %}
 {% set i = datos.indicadores %}
 <div class="pila">
@@ -27,7 +27,7 @@
           <span class="cita-item__titulo">{{ c.tipo }}{% if c.detalle %} · {{ c.detalle }}{% endif %}</span>
           <span class="cita-item__detalle">{{ c.fecha_cita|fecha }}</span>
         </span>
-        <span class="cita-item__estado">{{ estado_badge(c.estado) }}</span>
+        {% if c.estado == "cancelada" %}<span class="cita-item__estado">{{ estado_badge(c.estado) }}</span>{% endif %}
       </li>
       {% endfor %}
     </ul>

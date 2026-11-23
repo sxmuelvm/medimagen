@@ -16,7 +16,7 @@
       var activo = grupo.getAttribute("data-grupo-perfil") === tipo;
       grupo.hidden = !activo;
       grupo.disabled = !activo;           /* un fieldset deshabilitado no envía sus campos */
-      Array.prototype.forEach.call(grupo.querySelectorAll("select"), function (campo) {
+      Array.prototype.forEach.call(grupo.querySelectorAll("select, input"), function (campo) {
         campo.required = activo;
       });
     });

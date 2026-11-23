@@ -1,6 +1,7 @@
 """Pacientes. Lo usan el administrador y recepcion, cada uno con su propia cuenta de MySQL.
 
-Recepcion puede registrar, buscar y modificar pacientes (no ve datos clinicos ni usuarios).
+Recepcion puede registrar, buscar, modificar, desactivar y (si no tienen citas ni usuario) eliminar pacientes;
+no ve datos clinicos ni usuarios.
 Cambiar el estado y eliminar es solo del administrador (lo controla el router).
 """
 from datetime import date
@@ -22,7 +23,7 @@ _COLUMNAS = """p.cedula_paciente, p.nombres, p.apellidos, p.fecha_nacimiento, p.
                p.direccion, p.fecha_registro, p.estado,
                TIMESTAMPDIFF(YEAR, p.fecha_nacimiento, CURDATE()) AS edad"""
 # recepcion no puede leer la tabla usuario: el nombre de usuario solo se consulta con la cuenta del administrador
-_USUARIO = ", (SELECT u.nombre_usuario FROM usuario u WHERE u.cedula_paciente = p.cedula_paciente) AS usuario"
+_USUARIO = ", (SELECT u.nombre_usuario FROM usuario u WHERE u.cedula = p.cedula_paciente) AS usuario"
 
 
 def _cedula_ruta(cedula):
@@ -110,7 +111,7 @@ def crear(cuenta, usuario_app, datos):
 
 
 def actualizar(cuenta, usuario_app, cedula, datos):
-    """La cedula no se cambia. Si el administrador modifica los nombres, tambien se actualizan en su usuario."""
+    """La cedula no se cambia. Si cambian los nombres, MySQL los actualiza tambien en su usuario (trigger)."""
     obtener(cuenta, usuario_app, cedula)
     v = _validar(datos)
     with transaccion(cuenta, usuario_app) as cursor:
@@ -118,9 +119,6 @@ def actualizar(cuenta, usuario_app, cedula, datos):
                                  telefono = %s, correo = %s, direccion = %s WHERE cedula_paciente = %s""",
                        (v["nombres"], v["apellidos"], v["fecha_nacimiento"], v["sexo"], v["telefono"], v["correo"],
                         v["direccion"], cedula))
-        if cuenta == CUENTA_ADMINISTRADOR:
-            cursor.execute("UPDATE usuario SET nombres = %s, apellidos = %s WHERE cedula_paciente = %s",
-                           (v["nombres"], v["apellidos"], cedula))
     log.info("Paciente %s modificado (cuenta %s, usuario %s)", cedula, cuenta, usuario_app)
 
 

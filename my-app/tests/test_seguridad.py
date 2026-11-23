@@ -85,18 +85,18 @@ def test_token_csrf_falso_se_rechaza(entrar):
     assert c.c.post("/citas/1/estado", data={"estado": "cancelada", "csrf_token": "falso"}).status_code == 400
 
 
-@pytest.mark.parametrize("cedula", ["' OR '1'='1", "0000000001' -- ", "0000000001'; DROP TABLE usuario; --", "1 OR 1=1"])
+@pytest.mark.parametrize("cedula", ["' OR '1'='1", "admin' -- ", "admin'; DROP TABLE usuario; --", "1 OR 1=1"])
 @pytest.mark.parametrize("clave", ["' OR '1'='1", "x' OR 1=1 -- "])
 def test_inyeccion_sql_en_el_login(anonimo, cedula, clave):
     assert anonimo.login(cedula, clave).status_code == 401
     assert sql("SELECT COUNT(*) AS n FROM usuario", uno=True)["n"] > 0
 
 
-@pytest.mark.parametrize("url", ["/usuarios?q=", "/pacientes?q=", "/citas/?q=", "/auditoria/accesos?q=", "/consultas/?q="])
+@pytest.mark.parametrize("url", ["/usuarios?q=", "/pacientes?q=", "/calendario/datos?id_medico=", "/calendario/datos?fecha=", "/consultas/?q="])
 def test_inyeccion_sql_y_xss_en_buscadores(entrar, url):
     cuenta = "medico" if url.startswith("/consultas") else "admin"
     c = entrar(cuenta)
-    for payload in ("' OR 1=1 -- ", "%' UNION SELECT password_hash FROM usuario -- ", "<script>alert(1)</script>"):
+    for payload in ("' OR 1=1 -- ", "%' UNION SELECT password FROM usuario -- ", "<script>alert(1)</script>"):
         r = c.get(url + payload)
         assert r.status_code == 200
         assert b"<script>alert(1)</script>" not in r.data
@@ -114,9 +114,9 @@ def test_los_datos_se_pasan_como_parametros_no_como_texto_sql(entrar, limpiar_ci
 # Contrasenas
 # ---------------------------------------------------------------------------
 def test_ninguna_contrasena_esta_en_texto_plano():
-    filas = sql("SELECT nombre_usuario, password_hash FROM usuario")
-    assert filas and all(f["password_hash"].startswith("pbkdf2:sha256:") for f in filas)
-    assert all(CLAVE not in f["password_hash"] and "uno234cinco" not in f["password_hash"] for f in filas)
+    filas = sql("SELECT nombre_usuario, password FROM usuario")
+    assert filas and all(f["password"].startswith("pbkdf2:sha256:") for f in filas)
+    assert all(CLAVE not in f["password"] and "uno234cinco" not in f["password"] for f in filas)
 
 
 def test_la_misma_clave_genera_hashes_distintos():
@@ -124,11 +124,6 @@ def test_la_misma_clave_genera_hashes_distintos():
     a, b = hashear_clave(CLAVE), hashear_clave(CLAVE)
     assert a != b                           # cada hash lleva su propia sal
     assert clave_correcta(a, CLAVE) and clave_correcta(b, CLAVE) and not clave_correcta(a, CLAVE + "x")
-
-
-def test_la_auditoria_de_accesos_no_guarda_contrasenas():
-    columnas = {f["Field"].lower() for f in sql("SHOW COLUMNS FROM auditoria_acceso")}
-    assert not any("clave" in c or "pass" in c for c in columnas)
 
 
 # ---------------------------------------------------------------------------
@@ -143,12 +138,12 @@ def prohibido(cuenta, consulta, escribir=False):
 
 
 @pytest.mark.parametrize("cuenta,tabla", [
-    ("recepcion", "usuario"), ("recepcion", "auditoria_cita"), ("recepcion", "auditoria_acceso"),
+    ("recepcion", "usuario"),
     ("recepcion", "consulta_medica"), ("recepcion", "resultado_laboratorio"),
-    ("medico", "usuario"), ("medico", "auditoria_acceso"), ("medico", "resultado_laboratorio"),
+    ("medico", "usuario"), ("medico", "resultado_laboratorio"),
     ("imagenologia", "usuario"), ("imagenologia", "paciente"), ("imagenologia", "consulta_medica"),
     ("laboratorio", "usuario"), ("laboratorio", "paciente"), ("laboratorio", "consulta_medica"),
-    ("paciente", "usuario"), ("paciente", "cita"), ("paciente", "paciente"), ("paciente", "auditoria_cita"),
+    ("paciente", "usuario"), ("paciente", "cita"), ("paciente", "paciente"),
 ])
 def test_cuentas_no_leen_tablas_ajenas(cuenta, tabla):
     assert prohibido(cuenta, f"SELECT * FROM {tabla} LIMIT 1")
@@ -156,7 +151,7 @@ def test_cuentas_no_leen_tablas_ajenas(cuenta, tabla):
 
 @pytest.mark.parametrize("cuenta,sentencia", [
     ("recepcion", "UPDATE cita SET costo_aplicado = 0 WHERE 1 = 0"),
-    ("recepcion", "INSERT INTO medicamento (nombre) SELECT 'x' FROM DUAL WHERE 1 = 0"),
+    ("recepcion", "INSERT INTO especialidad (nombre, costo_consulta) SELECT 'x', 1 FROM DUAL WHERE 1 = 0"),
     ("medico", "DELETE FROM cita WHERE 1 = 0"),
     ("medico", "UPDATE cita SET costo_aplicado = 0 WHERE 1 = 0"),
     ("medico", "UPDATE paciente SET nombres = 'x' WHERE 1 = 0"),
@@ -207,15 +202,6 @@ def test_el_administrador_no_puede_eliminar_la_base_ni_la_tabla_usuario():
     assert not any("ALL PRIVILEGES" in x or "WITH GRANT OPTION" in x for x in privilegios("administrador"))
 
 
-@pytest.mark.parametrize("tabla", ["auditoria_cita", "auditoria_acceso"])
-def test_ninguna_cuenta_puede_borrar_ni_eliminar_la_auditoria(tabla):
-    """DELETE y DROP/TRUNCATE sobre las tablas de auditoria no deben estar concedidos a nadie de la app."""
-    for clave in Config.CUENTAS_BD:
-        p = privilegios_por_tabla(clave)
-        peligrosos = {"DELETE", "DROP"} & (p.get(tabla, set()) | p.get("*", set()))
-        assert not peligrosos, f"{Config.CUENTAS_BD[clave][0]} tiene {peligrosos} sobre {tabla}"
-
-
 @pytest.mark.parametrize("clave", list(Config.CUENTAS_BD))
 def test_ninguna_cuenta_de_la_app_tiene_privilegios_globales(clave):
     lineas = privilegios(clave)
@@ -223,13 +209,6 @@ def test_ninguna_cuenta_de_la_app_tiene_privilegios_globales(clave):
     for x in lineas:
         if " ON *.* " in x:
             assert x.startswith("GRANT USAGE ON"), x
-
-
-def test_el_administrador_puede_eliminar_usuarios_pero_no_borrar_la_auditoria():
-    """Prueba sin efecto (WHERE 1 = 0): DELETE sobre usuario esta permitido, sobre la auditoria no."""
-    assert not prohibido("administrador", "DELETE FROM usuario WHERE 1 = 0", escribir=True)
-    assert prohibido("administrador", "DELETE FROM auditoria_cita WHERE 1 = 0", escribir=True)
-    assert prohibido("administrador", "DELETE FROM auditoria_acceso WHERE 1 = 0", escribir=True)
 
 
 def test_la_cuenta_de_login_no_toca_datos_clinicos():
@@ -247,23 +226,16 @@ def test_cada_cuenta_de_la_app_usa_su_propia_cuenta_mysql():
         assert consultar(clave, "SELECT SUBSTRING_INDEX(USER(), '@', 1) AS u", uno=True)["u"] == cuenta
 
 
-def test_los_triggers_impiden_alterar_la_auditoria_incluso_con_privilegios():
-    """Aunque alguien tuviera el privilegio, los triggers bloquean UPDATE y DELETE sobre la auditoria."""
-    nombres = {f["TRIGGER_NAME"] for f in sql("""SELECT TRIGGER_NAME FROM information_schema.TRIGGERS
-                                                 WHERE TRIGGER_SCHEMA = %s""", (Config.BD_NOMBRE,))}
-    assert {"trg_auditoria_bu", "trg_auditoria_bd", "trg_acceso_bu", "trg_acceso_bd"} <= nombres
-
-
 def test_sesion_con_rol_distinto_se_invalida(entrar):
     """Si a un usuario le cambian el rol en la base, su sesion abierta deja de valer."""
     from conftest import sql_escribir
     c = entrar("recepcion")
     assert c.get("/inicio").status_code == 200
-    original = sql("SELECT id_rol FROM usuario WHERE cedula = %s", (USUARIOS["recepcion"],), uno=True)["id_rol"]
+    original = sql("SELECT id_rol FROM usuario WHERE nombre_usuario = %s", (USUARIOS["recepcion"],), uno=True)["id_rol"]
     otro = sql("SELECT id_rol FROM rol WHERE nombre = 'personal_imagenologia'", uno=True)["id_rol"]
     try:
-        sql_escribir("UPDATE usuario SET id_rol = %s WHERE cedula = %s", (otro, USUARIOS["recepcion"]))
+        sql_escribir("UPDATE usuario SET id_rol = %s WHERE nombre_usuario = %s", (otro, USUARIOS["recepcion"]))
         r = c.get("/inicio")
         assert r.status_code == 302 and "/login" in r.headers["Location"]
     finally:
-        sql_escribir("UPDATE usuario SET id_rol = %s WHERE cedula = %s", (original, USUARIOS["recepcion"]))
+        sql_escribir("UPDATE usuario SET id_rol = %s WHERE nombre_usuario = %s", (original, USUARIOS["recepcion"]))

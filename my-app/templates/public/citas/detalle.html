@@ -3,12 +3,12 @@
 {% from "components/_tabla.html" import tabla, vacio %}
 {% from "components/_estado_badge.html" import estado_badge %}
 {% from "components/_acciones.html" import boton_post %}
-{% set migas = [("Panel", url_for('dashboard.inicio')), ("Agenda de citas", url_for('citas.agenda')), ("Cita " ~ cita.id_cita, None)] %}
-{% set etiquetas_accion = {"confirmada": "Confirmar cita", "cancelada": "Cancelar cita", "no_asistio": "Marcar como no asistió", "pendiente": "Reactivar cita"} %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Calendario", url_for('calendario.semana')), ("Cita " ~ cita.id_cita, None)] %}
+{% set etiquetas_accion = {"confirmada": "Reactivar cita", "cancelada": "Cancelar cita", "no_asistio": "Marcar como no asistió"} %}
 {% block titulo %}Cita {{ cita.id_cita }}{% endblock %}
 {% block subtitulo %}{{ cita.paciente }} · {{ cita.fecha_cita|fecha }}, {{ cita.hora_inicio|hora }}{% endblock %}
 {% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/citas.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
-{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('citas.agenda') }}">{{ icono("flecha-izq") }}Volver a la agenda</a>{% endblock %}
+{% block acciones %}<a class="boton boton--secundario" href="{{ url_for('calendario.semana') }}">{{ icono("flecha-izq") }}Volver al calendario</a>{% endblock %}
 {% block contenido %}
 <div class="pagina-dividida pagina-dividida--lateral">
   <div class="pila">
@@ -29,25 +29,6 @@
       </dl>
     </section>
 
-    {% if session.cuenta == "administrador" %}
-    <section class="panel panel--sin-relleno">
-      <div class="panel__cabecera"><h2 class="panel__titulo">Historial de cambios</h2></div>
-      {% if historial %}
-        {% call tabla("Historial de cambios de la cita", ["Fecha del cambio", "Estado", "Fecha y hora", "Cuenta"]) %}
-          {% for h in historial %}
-          <tr>
-            <td data-etiqueta="Fecha del cambio">{{ h.fecha_cambio|fechahora }}</td>
-            <td data-etiqueta="Estado">{% if h.estado_anterior and h.estado_anterior != h.estado_nuevo %}{{ estado_badge(h.estado_anterior) }} <span aria-hidden="true">→</span> <span class="visualmente-oculto">a</span>{% endif %}{{ estado_badge(h.estado_nuevo) }}</td>
-            <td data-etiqueta="Fecha y hora">{% if h.fecha_nueva %}{{ h.fecha_nueva|fecha }} · {{ h.hora_nueva|hora }}{% else %}<span class="sin-dato">—</span>{% endif %}{% if h.fecha_anterior and (h.fecha_anterior != h.fecha_nueva or h.hora_anterior != h.hora_nueva) %}<span class="tabla__secundario">Antes: {{ h.fecha_anterior|fecha }} · {{ h.hora_anterior|hora }}</span>{% endif %}</td>
-            <td data-etiqueta="Cuenta"><span class="tabla__secundario">{{ h.usuario_bd }}</span></td>
-          </tr>
-          {% endfor %}
-        {% endcall %}
-      {% else %}
-        {% call vacio("Sin cambios registrados", "Esta cita no ha cambiado desde que se creó.") %}{% endcall %}
-      {% endif %}
-    </section>
-    {% endif %}
   </div>
 
   <aside class="panel" aria-label="Acciones de la cita">
@@ -60,7 +41,7 @@
         {% if destino == "cancelada" %}
           {{ boton_post(url_for('citas.estado', id_cita=cita.id_cita), etiquetas_accion[destino], "boton--peligro-suave", confirmar="¿Cancelar esta cita? El horario quedará libre.", boton_texto="Cancelar cita", campos={"estado": destino}) }}
         {% else %}
-          {{ boton_post(url_for('citas.estado', id_cita=cita.id_cita), etiquetas_accion[destino], "boton--primario" if destino == "confirmada" else "boton--secundario", campos={"estado": destino}) }}
+          {{ boton_post(url_for('citas.estado', id_cita=cita.id_cita), etiquetas_accion[destino], "boton--secundario", campos={"estado": destino}) }}
         {% endif %}
       {% endfor %}
       {% if cita.eliminable %}

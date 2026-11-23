@@ -15,17 +15,13 @@ PANTALLAS = {
     "/usuarios": ADMIN,
     "/usuarios/nuevo": ADMIN,
     "/roles": ADMIN,
-    "/personal": ADMIN,
     "/medicos": ADMIN,
-    "/medicos/1/horario": ADMIN,
     "/especialidades": ADMIN,
     "/catalogos": ADMIN,
     "/catalogos/areas": ADMIN,
     "/catalogos/recursos": ADMIN,
-    "/catalogos/medicamentos": ADMIN,
     "/pacientes": ADMIN_RECEP,
     "/pacientes/nuevo": ADMIN_RECEP,
-    "/citas/": ADMIN_RECEP,
     "/citas/nueva": ADMIN_RECEP,
     "/consultas/": {"medico"},
     "/consultas/examenes": {"medico"},
@@ -33,12 +29,10 @@ PANTALLAS = {
     "/imagenologia/": {"imagenologia"},
     "/laboratorio/": {"laboratorio"},
     "/historial/": {"paciente"},
-    "/historial/citas": {"paciente"},
+    "/calendario/": TODOS,
     "/historial/recetas": {"paciente"},
     "/historial/resultados": {"paciente"},
     "/reportes/ingresos": ADMIN,
-    "/auditoria/": ADMIN,
-    "/auditoria/accesos": ADMIN,
 }
 CASOS = [(url, rol, rol in permitidos) for url, permitidos in PANTALLAS.items() for rol in sorted(TODOS)]
 
@@ -60,9 +54,6 @@ ACCIONES = [
     ("/usuarios/1/estado", {"estado": "activo"}, ["recepcion", "medico", "imagenologia", "laboratorio", "paciente"]),
     ("/usuarios/1/desbloquear", {}, ["recepcion", "medico", "paciente"]),
     ("/usuarios/nuevo", {}, ["recepcion", "medico", "paciente"]),
-    ("/medicos/1/horario", {"dia": "1", "hora_inicio": "08:00", "hora_fin": "10:00"},
-     ["recepcion", "medico", "imagenologia", "laboratorio", "paciente"]),
-    ("/medicos/1/horario/1/eliminar", {}, ["recepcion", "medico", "imagenologia", "laboratorio", "paciente"]),
     ("/usuarios/1/eliminar", {}, ["recepcion", "medico", "imagenologia", "laboratorio", "paciente"]),
     ("/pacientes/0000000021/estado", {"estado": "inactivo"}, ["medico", "imagenologia", "laboratorio", "paciente"]),
     ("/pacientes/0000000021/eliminar", {}, ["medico", "imagenologia", "laboratorio", "paciente"]),
@@ -101,4 +92,4 @@ def test_el_medico_no_ve_citas_de_otro_medico(entrar):
 def test_menu_solo_muestra_lo_permitido(entrar):
     html = entrar("recepcion").get("/inicio").get_data(as_text=True)
     assert "/citas" in html and "/pacientes" in html
-    assert "/usuarios" not in html and "/auditoria" not in html and "/reportes" not in html
+    assert "/usuarios" not in html and "/auditoria" not in html and "/reportes" not in html

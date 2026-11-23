@@ -2,7 +2,7 @@
 -- MEDIMAGEN | 02_triggers.sql
 -- Triggers y procedimientos almacenados. Ejecutar con root.
 -- =====================================================================
-USE medimagen;
+USE medimagen2;
 DELIMITER $$
 
 -- Códigos automáticos: ESP-01, RX-01, TAC-01, RM-01, DO-01, LAB-01
@@ -10,9 +10,7 @@ CREATE TRIGGER trg_especialidad_bi BEFORE INSERT ON especialidad
 FOR EACH ROW
 BEGIN
     DECLARE v_num INT;
-    INSERT INTO secuencia_codigo (prefijo, ultimo_valor) VALUES ('ESP', 1)
-        ON DUPLICATE KEY UPDATE ultimo_valor = ultimo_valor + 1;
-    SELECT ultimo_valor INTO v_num FROM secuencia_codigo WHERE prefijo = 'ESP';
+    SELECT COALESCE(MAX(CAST(SUBSTRING(id_especialidad, 5) AS UNSIGNED)), 0) + 1 INTO v_num FROM especialidad;
     SET NEW.id_especialidad = CONCAT('ESP-', LPAD(v_num, GREATEST(2, CHAR_LENGTH(v_num)), '0'));
 END$$
 
@@ -20,50 +18,76 @@ CREATE TRIGGER trg_subtipo_examen_bi BEFORE INSERT ON subtipo_examen
 FOR EACH ROW
 BEGIN
     DECLARE v_num INT;
-    INSERT INTO secuencia_codigo (prefijo, ultimo_valor) VALUES (NEW.id_tipo, 1)
-        ON DUPLICATE KEY UPDATE ultimo_valor = ultimo_valor + 1;
-    SELECT ultimo_valor INTO v_num FROM secuencia_codigo WHERE prefijo = NEW.id_tipo;
+    SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(id_subtipo, '-', -1) AS UNSIGNED)), 0) + 1 INTO v_num
+    FROM subtipo_examen WHERE id_tipo = NEW.id_tipo;
     SET NEW.id_subtipo = CONCAT(NEW.id_tipo, '-', LPAD(v_num, GREATEST(2, CHAR_LENGTH(v_num)), '0'));
 END$$
 
--- Usuario: el perfil debe corresponder al rol y la cédula debe ser la del perfil
+-- Usuario: una sola columna `cedula`. Segun el rol debe existir en la ficha correspondiente
+-- (medico -> medico.cedula, paciente -> paciente.cedula_paciente); el resto del personal no tiene ficha.
+-- Para medico y paciente los nombres y apellidos se copian de la ficha, asi no se repiten ni se contradicen.
 CREATE PROCEDURE sp_validar_perfil_usuario(IN p_rol INT, IN p_cedula VARCHAR(10),
-    IN p_medico INT, IN p_paciente VARCHAR(10), IN p_personal INT)
+                                           INOUT p_nombres VARCHAR(100), INOUT p_apellidos VARCHAR(100))
 BEGIN
     DECLARE v_rol VARCHAR(50) DEFAULT NULL;
-    DECLARE v_cedula VARCHAR(10) DEFAULT NULL;
+    DECLARE v_nombres VARCHAR(100) DEFAULT NULL;
+    DECLARE v_apellidos VARCHAR(100) DEFAULT NULL;
     SELECT nombre INTO v_rol FROM rol WHERE id_rol = p_rol;
-    IF (v_rol = 'medico' AND p_medico IS NULL)
-       OR (v_rol = 'paciente' AND p_paciente IS NULL)
-       OR (v_rol NOT IN ('medico','paciente') AND p_personal IS NULL) THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El perfil asociado no corresponde al rol del usuario';
+    IF v_rol = 'medico' THEN
+        SELECT nombres, apellidos INTO v_nombres, v_apellidos FROM medico WHERE cedula = p_cedula;
+        IF v_nombres IS NULL THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La cédula no pertenece a ningún médico registrado';
+        END IF;
+        SET p_nombres = v_nombres, p_apellidos = v_apellidos;
+    ELSEIF v_rol = 'paciente' THEN
+        SELECT nombres, apellidos INTO v_nombres, v_apellidos FROM paciente WHERE cedula_paciente = p_cedula;
+        IF v_nombres IS NULL THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La cédula no pertenece a ningún paciente registrado';
+        END IF;
+        SET p_nombres = v_nombres, p_apellidos = v_apellidos;
     END IF;
-    IF p_medico IS NOT NULL THEN
-        SELECT cedula INTO v_cedula FROM medico WHERE id_medico = p_medico;
-    ELSEIF p_paciente IS NOT NULL THEN
-        SET v_cedula = p_paciente;
-    ELSEIF p_personal IS NOT NULL THEN
-        SELECT cedula INTO v_cedula FROM personal WHERE id_personal = p_personal;
+END$$
+
+-- Nombre de usuario automatico: primera letra del primer nombre + primer apellido, en minusculas y sin tildes
+-- (Cristian Marin -> cmarin). Si ya existe se agrega 01, 02, ... (cmarin01, cmarin02).
+CREATE FUNCTION fn_nombre_usuario(p_nombres VARCHAR(100), p_apellidos VARCHAR(100)) RETURNS VARCHAR(50)
+READS SQL DATA
+BEGIN
+    DECLARE v_base VARCHAR(50);
+    DECLARE v_candidato VARCHAR(50);
+    DECLARE v_n INT DEFAULT 0;
+    SET v_base = LOWER(CONCAT(LEFT(TRIM(SUBSTRING_INDEX(TRIM(p_nombres), ' ', 1)), 1),
+                              TRIM(SUBSTRING_INDEX(TRIM(p_apellidos), ' ', 1))));
+    SET v_base = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(v_base,
+                 'á','a'),'é','e'),'í','i'),'ó','o'),'ú','u'),'ü','u'),'ñ','n');
+    SET v_base = LEFT(REGEXP_REPLACE(v_base, '[^a-z0-9]', ''), 44);
+    IF CHAR_LENGTH(v_base) < 4 THEN
+        SET v_base = RPAD(v_base, 4, '0');
     END IF;
-    IF v_cedula IS NULL OR v_cedula <> p_cedula THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La cédula del usuario no coincide con la de su perfil';
-    END IF;
+    SET v_candidato = v_base;
+    WHILE EXISTS (SELECT 1 FROM usuario WHERE nombre_usuario = v_candidato) DO
+        SET v_n = v_n + 1;
+        SET v_candidato = CONCAT(v_base, LPAD(v_n, 2, '0'));
+    END WHILE;
+    RETURN v_candidato;
 END$$
 
 CREATE TRIGGER trg_usuario_bi BEFORE INSERT ON usuario
 FOR EACH ROW
 BEGIN
-    CALL sp_validar_perfil_usuario(NEW.id_rol, NEW.cedula, NEW.id_medico, NEW.cedula_paciente, NEW.id_personal);
+    CALL sp_validar_perfil_usuario(NEW.id_rol, NEW.cedula, NEW.nombres, NEW.apellidos);
+    IF NEW.nombre_usuario IS NULL OR NEW.nombre_usuario = '' THEN
+        SET NEW.nombre_usuario = fn_nombre_usuario(NEW.nombres, NEW.apellidos);
+    END IF;
 END$$
 
--- Solo se revalida cuando cambia el rol, la cedula o el perfil. Asi el login
+-- Solo se revalida cuando cambia el rol o la cedula. Asi el login
 -- (intentos, bloqueo, ultimo acceso, clave) no ejecuta la validacion en cada UPDATE.
 CREATE TRIGGER trg_usuario_bu BEFORE UPDATE ON usuario
 FOR EACH ROW
 BEGIN
-    IF NOT (OLD.id_rol <=> NEW.id_rol AND OLD.cedula <=> NEW.cedula AND OLD.id_medico <=> NEW.id_medico
-            AND OLD.cedula_paciente <=> NEW.cedula_paciente AND OLD.id_personal <=> NEW.id_personal) THEN
-        CALL sp_validar_perfil_usuario(NEW.id_rol, NEW.cedula, NEW.id_medico, NEW.cedula_paciente, NEW.id_personal);
+    IF NOT (OLD.id_rol <=> NEW.id_rol AND OLD.cedula <=> NEW.cedula) THEN
+        CALL sp_validar_perfil_usuario(NEW.id_rol, NEW.cedula, NEW.nombres, NEW.apellidos);
     END IF;
 END$$
 
@@ -79,19 +103,6 @@ BEGIN
                  AND c.hora_inicio = p_hora
                  AND c.activa = 1) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El médico ya tiene una consulta en ese horario';
-    END IF;
-END$$
-
--- El médico solo atiende dentro de sus turnos (horario_medico). Sin turnos registrados se usa el horario general.
-CREATE PROCEDURE sp_validar_turno_medico(IN p_id_medico INT, IN p_fecha DATE, IN p_hora TIME)
-BEGIN
-    IF EXISTS (SELECT 1 FROM horario_medico WHERE id_medico = p_id_medico)
-       AND NOT EXISTS (SELECT 1 FROM horario_medico
-                       WHERE id_medico = p_id_medico
-                         AND dia_semana = WEEKDAY(p_fecha) + 1
-                         AND hora_inicio <= p_hora
-                         AND ADDTIME(p_hora, '01:00:00') <= hora_fin) THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El médico no atiende en ese día u horario';
     END IF;
 END$$
 
@@ -118,38 +129,15 @@ END$$
 CREATE TRIGGER trg_medico_bd BEFORE DELETE ON medico
 FOR EACH ROW
 BEGIN
+    IF EXISTS (SELECT 1 FROM usuario WHERE cedula = OLD.cedula) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El médico tiene un usuario asociado: desactívalo en lugar de eliminarlo';
+    END IF;
     IF OLD.estado = 'activo' THEN
         CALL sp_validar_cobertura_especialidad(OLD.id_medico, OLD.id_especialidad);
     END IF;
 END$$
 
--- Turnos: la hora de fin debe terminar un bloque y los turnos de un mismo médico no se solapan
-CREATE PROCEDURE sp_validar_horario_medico(IN p_id_horario INT, IN p_id_medico INT, IN p_dia TINYINT,
-                                           IN p_inicio TIME, IN p_fin TIME)
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM bloque_horario WHERE hora_fin = p_fin) THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La hora de fin no corresponde a un bloque horario';
-    END IF;
-    IF EXISTS (SELECT 1 FROM horario_medico
-               WHERE id_medico = p_id_medico AND dia_semana = p_dia AND id_horario <> p_id_horario
-                 AND hora_inicio < p_fin AND hora_fin > p_inicio) THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El turno se cruza con otro turno del mismo médico';
-    END IF;
-END$$
-
-CREATE TRIGGER trg_horario_medico_bi BEFORE INSERT ON horario_medico
-FOR EACH ROW
-BEGIN
-    CALL sp_validar_horario_medico(0, NEW.id_medico, NEW.dia_semana, NEW.hora_inicio, NEW.hora_fin);
-END$$
-
-CREATE TRIGGER trg_horario_medico_bu BEFORE UPDATE ON horario_medico
-FOR EACH ROW
-BEGIN
-    CALL sp_validar_horario_medico(OLD.id_horario, NEW.id_medico, NEW.dia_semana, NEW.hora_inicio, NEW.hora_fin);
-END$$
-
--- Consulta: valida área 1, disponibilidad y turno del médico y asigna el costo de la especialidad
+-- Consulta: valida área 1, disponibilidad del médico y asigna el costo de la especialidad
 CREATE PROCEDURE sp_preparar_consulta(IN p_id_cita INT, IN p_id_medico INT)
 BEGIN
     DECLARE v_area INT;
@@ -164,7 +152,6 @@ BEGIN
     END IF;
     IF v_activa = 1 THEN
         CALL sp_validar_medico_libre(p_id_cita, p_id_medico, v_fecha, v_hora);
-        CALL sp_validar_turno_medico(p_id_medico, v_fecha, v_hora);
     END IF;
     SELECT e.costo_consulta INTO v_costo
     FROM medico m JOIN especialidad e ON e.id_especialidad = m.id_especialidad
@@ -230,7 +217,7 @@ BEGIN
     END IF;
 END$$
 
--- Al reprogramar o reactivar una consulta, el médico no puede quedar con dos pacientes ni fuera de su turno
+-- Al reprogramar o reactivar una consulta, el médico no puede quedar con dos pacientes en el mismo bloque
 CREATE TRIGGER trg_cita_bu BEFORE UPDATE ON cita
 FOR EACH ROW
 BEGIN
@@ -241,7 +228,6 @@ BEGIN
         SELECT id_medico INTO v_medico FROM cita_consulta WHERE id_cita = NEW.id_cita;
         IF v_medico IS NOT NULL THEN
             CALL sp_validar_medico_libre(NEW.id_cita, v_medico, NEW.fecha_cita, NEW.hora_inicio);
-            CALL sp_validar_turno_medico(v_medico, NEW.fecha_cita, NEW.hora_inicio);
         END IF;
     END IF;
 END$$
@@ -255,62 +241,51 @@ BEGIN
     END IF;
 END$$
 
--- Auditoría: cuenta de MySQL (USER()) y persona del sistema (@app_usuario, lo define Flask)
-CREATE TRIGGER trg_cita_au AFTER UPDATE ON cita
-FOR EACH ROW
-BEGIN
-    IF NOT (OLD.estado <=> NEW.estado AND OLD.fecha_cita <=> NEW.fecha_cita AND OLD.hora_inicio <=> NEW.hora_inicio) THEN
-        INSERT INTO auditoria_cita (id_cita, estado_anterior, estado_nuevo, fecha_anterior, fecha_nueva,
-                                    hora_anterior, hora_nueva, usuario_bd, id_usuario_app)
-        VALUES (OLD.id_cita, OLD.estado, NEW.estado, OLD.fecha_cita, NEW.fecha_cita,
-                OLD.hora_inicio, NEW.hora_inicio, USER(), @app_usuario);
-    END IF;
-END$$
-
-CREATE TRIGGER trg_cita_ad AFTER DELETE ON cita
-FOR EACH ROW
-BEGIN
-    INSERT INTO auditoria_cita (id_cita, estado_anterior, estado_nuevo, fecha_anterior, hora_anterior,
-                                usuario_bd, id_usuario_app)
-    VALUES (OLD.id_cita, OLD.estado, 'eliminada', OLD.fecha_cita, OLD.hora_inicio, USER(), @app_usuario);
-END$$
-
--- La auditoría no se puede alterar ni borrar
-CREATE TRIGGER trg_auditoria_bu BEFORE UPDATE ON auditoria_cita
-FOR EACH ROW
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La auditoría no se puede modificar'$$
-
-CREATE TRIGGER trg_auditoria_bd BEFORE DELETE ON auditoria_cita
-FOR EACH ROW
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La auditoría no se puede eliminar'$$
-
--- El registro de accesos tampoco se puede alterar ni borrar
-CREATE TRIGGER trg_acceso_bu BEFORE UPDATE ON auditoria_acceso
-FOR EACH ROW
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El registro de accesos no se puede modificar'$$
-
-CREATE TRIGGER trg_acceso_bd BEFORE DELETE ON auditoria_acceso
-FOR EACH ROW
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El registro de accesos no se puede eliminar'$$
-
--- Al desactivar a un paciente se desactiva también su usuario (recepción puede desactivar pacientes pero no ve usuarios)
+-- Al desactivar a un paciente se desactiva también su usuario (recepción puede desactivar pacientes pero no ve usuarios).
+-- Si cambian sus nombres, también cambian en el usuario (así no se repiten datos distintos).
 CREATE TRIGGER trg_paciente_au AFTER UPDATE ON paciente
 FOR EACH ROW
 BEGIN
     IF NEW.estado = 'inactivo' AND OLD.estado <> 'inactivo' THEN
-        UPDATE usuario SET estado = 'inactivo' WHERE cedula_paciente = NEW.cedula_paciente AND estado = 'activo';
+        UPDATE usuario u JOIN rol r ON r.id_rol = u.id_rol
+        SET u.estado = 'inactivo'
+        WHERE u.cedula = NEW.cedula_paciente AND r.nombre = 'paciente' AND u.estado = 'activo';
+    END IF;
+    IF NOT (OLD.nombres <=> NEW.nombres AND OLD.apellidos <=> NEW.apellidos) THEN
+        UPDATE usuario u JOIN rol r ON r.id_rol = u.id_rol
+        SET u.nombres = NEW.nombres, u.apellidos = NEW.apellidos
+        WHERE u.cedula = NEW.cedula_paciente AND r.nombre = 'paciente';
     END IF;
 END$$
 
--- El paciente edita solo su teléfono, correo y dirección (la cédula la pone la sesión, nunca el formulario)
-CREATE PROCEDURE sp_paciente_actualizar_contacto(IN p_cedula VARCHAR(10), IN p_telefono VARCHAR(15),
-    IN p_correo VARCHAR(100), IN p_direccion VARCHAR(200))
+-- Un paciente con usuario no se elimina (se desactiva)
+CREATE TRIGGER trg_paciente_bd BEFORE DELETE ON paciente
+FOR EACH ROW
 BEGIN
-    UPDATE paciente SET telefono = p_telefono, correo = p_correo, direccion = p_direccion
+    IF EXISTS (SELECT 1 FROM usuario WHERE cedula = OLD.cedula_paciente) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El paciente tiene un usuario asociado: desactívalo en lugar de eliminarlo';
+    END IF;
+END$$
+
+-- Si cambian los nombres de un médico, también cambian en su usuario
+CREATE TRIGGER trg_medico_au AFTER UPDATE ON medico
+FOR EACH ROW
+BEGIN
+    IF NOT (OLD.nombres <=> NEW.nombres AND OLD.apellidos <=> NEW.apellidos) THEN
+        UPDATE usuario u JOIN rol r ON r.id_rol = u.id_rol
+        SET u.nombres = NEW.nombres, u.apellidos = NEW.apellidos
+        WHERE u.cedula = NEW.cedula AND r.nombre = 'medico';
+    END IF;
+END$$
+
+-- El paciente edita solo su teléfono y correo (la cédula la pone la sesión, nunca el formulario)
+CREATE PROCEDURE sp_paciente_actualizar_contacto(IN p_cedula VARCHAR(10), IN p_telefono VARCHAR(15),
+    IN p_correo VARCHAR(100))
+BEGIN
+    UPDATE paciente SET telefono = p_telefono, correo = p_correo
     WHERE cedula_paciente = p_cedula AND estado = 'activo';
     IF ROW_COUNT() = 0 AND NOT EXISTS (SELECT 1 FROM paciente WHERE cedula_paciente = p_cedula
-                                       AND telefono <=> p_telefono AND correo <=> p_correo
-                                       AND direccion <=> p_direccion) THEN
+                                       AND telefono <=> p_telefono AND correo <=> p_correo) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No se pudo actualizar tu información';
     END IF;
 END$$
@@ -347,25 +322,24 @@ BEGIN
     END IF;
 END$$
 
--- Horarios libres de un recurso (y opcionalmente de un médico, dentro de sus turnos) en una fecha
+-- Horarios libres de un recurso (y opcionalmente de un médico) en una fecha: lunes a viernes, bloques de 60 minutos
+-- desde las 07:00 hasta las 17:00 (el último paciente se agenda a las 17:00)
 CREATE PROCEDURE sp_horarios_disponibles(IN p_fecha DATE, IN p_id_recurso INT, IN p_id_medico INT)
 BEGIN
-    SELECT b.hora_inicio, b.hora_fin
-    FROM bloque_horario b
+    WITH RECURSIVE h (hora) AS (
+        SELECT 7 UNION ALL SELECT hora + 1 FROM h WHERE hora < 17
+    )
+    SELECT MAKETIME(h.hora, 0, 0) AS hora_inicio, MAKETIME(h.hora + 1, 0, 0) AS hora_fin
+    FROM h
     WHERE WEEKDAY(p_fecha) < 5
       AND NOT EXISTS (SELECT 1 FROM cita c
                       WHERE c.id_recurso = p_id_recurso AND c.fecha_cita = p_fecha
-                        AND c.hora_inicio = b.hora_inicio AND c.activa = 1)
+                        AND c.hora_inicio = MAKETIME(h.hora, 0, 0) AND c.activa = 1)
       AND (p_id_medico IS NULL OR NOT EXISTS (SELECT 1 FROM cita c
                       JOIN cita_consulta cc ON cc.id_cita = c.id_cita
                       WHERE cc.id_medico = p_id_medico AND c.fecha_cita = p_fecha
-                        AND c.hora_inicio = b.hora_inicio AND c.activa = 1))
-      AND (p_id_medico IS NULL
-           OR NOT EXISTS (SELECT 1 FROM horario_medico h0 WHERE h0.id_medico = p_id_medico)
-           OR EXISTS (SELECT 1 FROM horario_medico h
-                      WHERE h.id_medico = p_id_medico AND h.dia_semana = WEEKDAY(p_fecha) + 1
-                        AND h.hora_inicio <= b.hora_inicio AND b.hora_fin <= h.hora_fin))
-    ORDER BY b.hora_inicio;
+                        AND c.hora_inicio = MAKETIME(h.hora, 0, 0) AND c.activa = 1))
+    ORDER BY h.hora;
 END$$
 
-DELIMITER ;
+DELIMITER ;

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "components/_icono.html" import icono %}
+{% set cuenta = session.get("cuenta") %}
+{% set migas = [("Panel", url_for('dashboard.inicio')), ("Calendario de citas", None)] %}
+{% block titulo %}Calendario de citas{% endblock %}
+{% block subtitulo %}
+  {% if cuenta == "paciente" %}Tus citas de la semana. Para agendar una, acércate a recepción.
+  {% elif puede_agendar %}Haz clic en un horario libre para agendar. Cada bloque es de una hora, de lunes a viernes.
+  {% else %}Tus citas de la semana, de lunes a viernes.{% endif %}
+{% endblock %}
+{% block css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/calendario.css') }}">{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/core/http.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/modules/calendario.js') }}" defer></script>
+{% endblock %}
+{% block acciones %}
+  {% if puede_agendar %}<a class="boton boton--primario" href="{{ url_for('citas.nueva') }}">{{ icono("cita-nueva") }}Nueva cita</a>{% endif %}
+{% endblock %}
+{% block contenido %}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<section class="cal" data-calendario data-url-datos="{{ url_for('calendario.datos') }}"
+         data-url-nueva="{{ url_for('citas.nueva') if puede_agendar else '' }}"
+         data-puede-agendar="{{ 'si' if puede_agendar else 'no' }}"
+         data-solo-cancelada="{{ 'si' if cuenta == 'paciente' else 'no' }}">
+  <div class="cal__barra">
+    <div class="cal__nav" role="group" aria-label="Cambiar de semana">
+      <button type="button" class="boton boton--secundario boton--pequeno" data-cal-anterior aria-label="Semana anterior">‹</button>
+      <button type="button" class="boton boton--secundario boton--pequeno" data-cal-hoy>Hoy</button>
+      <button type="button" class="boton boton--secundario boton--pequeno" data-cal-siguiente aria-label="Semana siguiente">›</button>
+    </div>
+    <h2 class="cal__rango" data-cal-rango aria-live="polite">&nbsp;</h2>
+    {% if puede_agendar %}
+    <div class="cal__filtros">
+      <label class="visualmente-oculto" for="cal-area">Área</label>
+      <select class="campo__control" id="cal-area" data-cal-area>
+        <option value="">Todas las áreas</option>
+        {% for a in areas %}<option value="{{ a.id_area }}">{{ a.nombre }}</option>{% endfor %}
+      </select>
+      <label class="visualmente-oculto" for="cal-medico">Médico</label>
+      <select class="campo__control" id="cal-medico" data-cal-medico>
+        <option value="">Todos los médicos</option>
+        {% for m in medicos %}<option value="{{ m.id_medico }}">{{ m.nombre }} · {{ m.especialidad }}</option>{% endfor %}
+      </select>
+      <label class="cal__canceladas"><input type="checkbox" data-cal-canceladas> Mostrar canceladas</label>
+    </div>
+    {% endif %}
+  </div>
+
+  <ul class="cal__leyenda" aria-label="Leyenda">
+    <li><span class="cal__punto cal__punto--a1"></span>Consulta</li>
+    <li><span class="cal__punto cal__punto--a2"></span>Imagenología</li>
+    <li><span class="cal__punto cal__punto--a3"></span>Laboratorio</li>
+  </ul>
+
+  <div class="cal__dias" role="tablist" aria-label="Día de la semana" data-cal-dias></div>
+  <p class="cal__estado" role="status" aria-live="polite" data-cal-estado>Cargando…</p>
+  <div class="cal__rejilla" data-cal-rejilla role="grid" aria-label="Calendario semanal"></div>
+
+  <aside class="cal__detalle" data-cal-detalle hidden aria-label="Detalle de la cita">
+    <div class="cal__detalle-cabeza">
+      <h3 class="cal__detalle-titulo" data-cal-d-titulo></h3>
+      <button type="button" class="boton boton--terciario boton--pequeno" data-cal-cerrar aria-label="Cerrar detalle">✕</button>
+    </div>
+    <dl class="cal__detalle-lista" data-cal-d-lista></dl>
+    <div class="cal__detalle-acciones" data-cal-d-acciones></div>
+  </aside>
+</section>
+{% endblock %}

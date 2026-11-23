@@ -55,6 +55,12 @@
     return selector ? selector.value : "";
   }
 
+  /* El equipo de imagenología lo decide el examen: se manda el examen y el servidor busca su equipo. */
+  function subtipoActual() {
+    var selector = formulario.querySelector("select[name='id_subtipo']");
+    return selector ? selector.value : "";
+  }
+
   function mostrarGrupos(area) {
     grupos.forEach(function (grupo) {
       var areas = grupo.getAttribute("data-grupo-area").split(" ");
@@ -137,6 +143,7 @@
     var paciente = cedulaActual();
     if (area === "1" && medico) { parametros.push("id_medico=" + encodeURIComponent(medico)); }
     if (recurso) { parametros.push("id_recurso=" + encodeURIComponent(recurso)); }
+    if (area === "2" && subtipoActual()) { parametros.push("id_subtipo=" + encodeURIComponent(subtipoActual())); }
     if (paciente) { parametros.push("cedula_paciente=" + encodeURIComponent(paciente)); }
     if (excluir) { parametros.push("excluir_cita=" + encodeURIComponent(excluir)); }
 
@@ -196,6 +203,7 @@
   });
   Array.prototype.forEach.call(formulario.querySelectorAll("[data-origen-costo]"), function (c) {
     c.addEventListener("change", mostrarCosto);
+    c.addEventListener("change", pedirHorarios);
   });
 
   if (radios.length) {

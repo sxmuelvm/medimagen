@@ -32,13 +32,8 @@
       </div>
       <p class="horarios-estado" id="estado-horarios" role="status" aria-live="polite" data-estado-horarios>Elige una fecha para ver los horarios libres.</p>
 
-      <div class="campo">
-        <label class="campo__etiqueta" for="id_recurso">{{ "Equipo" if examen.id_area == 2 else "Puesto" }}</label>
-        <select class="campo__control" id="id_recurso" name="id_recurso" data-campo-recurso>
-          {% if examen.id_area != 2 %}<option value="">Asignar automáticamente</option>{% endif %}
-          {% for r in recursos if r.id_area == examen.id_area %}<option value="{{ r.id_recurso }}"{% if recurso_actual|string == r.id_recurso|string %} selected{% endif %}>{{ r.nombre_recurso }}</option>{% endfor %}
-        </select>
-      </div>
+      {# El equipo o puesto se asigna solo; en imagenología se conserva el equipo del examen #}
+      <input type="hidden" name="id_recurso" data-campo-recurso value="{{ recurso_actual }}">
 
       <div class="campo">
         <label class="campo__etiqueta" for="observacion">Observación</label>

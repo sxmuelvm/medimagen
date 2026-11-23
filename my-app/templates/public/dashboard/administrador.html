@@ -18,7 +18,6 @@
     <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.medicos }}</span><span class="cifra-bloque__etiqueta">Médicos activos</span></div>
     <div class="cifra-bloque"><span class="cifra-bloque__valor">{{ i.usuarios_activos }}</span><span class="cifra-bloque__etiqueta">Usuarios activos</span></div>
     <div class="cifra-bloque{% if i.usuarios_bloqueados %} cifra-bloque--alerta{% endif %}"><span class="cifra-bloque__valor">{{ i.usuarios_bloqueados }}</span><span class="cifra-bloque__etiqueta">Usuarios bloqueados o inactivos</span></div>
-    <div class="cifra-bloque{% if i.accesos_fallidos_24h %} cifra-bloque--alerta{% endif %}"><span class="cifra-bloque__valor">{{ i.accesos_fallidos_24h }}</span><span class="cifra-bloque__etiqueta">Accesos fallidos (24 h)</span></div>
   </div>
 
   <div class="rejilla rejilla--principal">
@@ -43,27 +42,6 @@
       {% endif %}
     </section>
 
-    <section class="panel">
-      <div class="panel__cabecera">
-        <h2 class="panel__titulo">Últimos accesos</h2>
-        <a class="boton boton--terciario boton--pequeno" href="{{ url_for('auditoria.accesos') }}">Ver todos</a>
-      </div>
-      {% if datos.ultimos_accesos %}
-      <ul class="lista-simple">
-        {% for a in datos.ultimos_accesos %}
-        <li class="lista-simple__item">
-          <span>
-            <span class="lista-simple__titulo">{{ a.nombre_usuario or a.cedula_intento }}</span>
-            <span class="lista-simple__detalle">{{ a.fecha|fechahora }}</span>
-          </span>
-          {{ estado_badge(a.resultado) }}
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-        {% call vacio("Sin accesos registrados") %}{% endcall %}
-      {% endif %}
-    </section>
   </div>
 </div>
 {% endblock %}

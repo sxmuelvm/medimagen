@@ -17,14 +17,18 @@ log = obtener_logger("citas")
 
 POR_PAGINA = 15
 
+# Jornada de lunes a viernes de 07:00 a 18:00 en bloques de 60 minutos: el ultimo turno empieza a las 17:00
+_BLOQUES = " UNION ALL ".join(
+    f"SELECT MAKETIME({h}, 0, 0) AS hora_inicio, MAKETIME({h + 1}, 0, 0) AS hora_fin" for h in range(7, 18))
+
 _RECURSO_PLURAL = {AREA_CONSULTAS: "consultorios libres", AREA_IMAGENOLOGIA: "equipos libres",
                    AREA_LABORATORIO: "puestos de laboratorio libres"}
 
-# Cambios de estado permitidos al personal administrativo. 'atendida' la marca quien atiende al paciente.
+# Una cita nace confirmada (el paciente ya esta en recepcion). Cambios de estado permitidos al personal administrativo. 'atendida' la marca quien atiende al paciente.
 _TRANSICIONES = {
-    "pendiente": ("confirmada", "cancelada", "no_asistio"),
+    "pendiente": ("cancelada", "no_asistio"),
     "confirmada": ("cancelada", "no_asistio"),
-    "cancelada": ("pendiente",),
+    "cancelada": ("confirmada",),
     "no_asistio": (),
     "atendida": (),
 }
@@ -146,16 +150,8 @@ def obtener(cuenta, usuario, id_cita):
 
 
 def detalle(cuenta, usuario, id_cita):
-    """La cita y, solo para el administrador, su historial de cambios (recepcion no puede leer la auditoria)."""
-    cita = obtener(cuenta, usuario, id_cita)
-    historial = []
-    if cuenta == CUENTA_ADMINISTRADOR:
-        historial = consultar(cuenta, """
-            SELECT fecha_cambio, estado_anterior, estado_nuevo, fecha_anterior, fecha_nueva, hora_anterior,
-                   hora_nueva, usuario_bd, id_usuario_app
-            FROM auditoria_cita WHERE id_cita = %s ORDER BY fecha_cambio, id_auditoria""",
-                              (id_cita,), id_usuario_app=usuario)
-    return {"cita": cita, "historial": historial}
+    """La cita con sus datos completos."""
+    return {"cita": obtener(cuenta, usuario, id_cita)}
 
 
 def buscar_paciente(cuenta, usuario, cedula):
@@ -167,6 +163,26 @@ def buscar_paciente(cuenta, usuario, cedula):
     return consultar(cuenta, """
         SELECT cedula_paciente, nombres, apellidos, estado, TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
         FROM paciente WHERE cedula_paciente = %s""", (cedula,), id_usuario_app=usuario, uno=True)
+
+
+def buscar_pacientes(cuenta, usuario, q, limite=8):
+    """Pacientes cuya cedula empieza con lo escrito o cuyo nombre y apellido contienen todas las palabras escritas
+    ("carlos andrade", "andrade carlos", "0102"). Los activos salen primero. Vacio si se escribe muy poco."""
+    texto = " ".join(str(q or "").split())[:60]
+    if len(texto) < 2:
+        return []
+    if texto.isdigit():
+        donde, parametros = "p.cedula_paciente LIKE %s", [texto[:10] + "%"]      # una cedula tiene 10 digitos
+    else:
+        palabras = texto.split()[:4]
+        donde = " AND ".join("CONCAT(p.nombres, ' ', p.apellidos) LIKE %s" for _ in palabras)
+        parametros = [patron_like(w) for w in palabras]
+    return consultar(cuenta, f"""
+        SELECT p.cedula_paciente, CONCAT(p.nombres, ' ', p.apellidos) AS nombre, p.estado,
+               TIMESTAMPDIFF(YEAR, p.fecha_nacimiento, CURDATE()) AS edad
+        FROM paciente p WHERE {donde}
+        ORDER BY p.estado = 'activo' DESC, p.apellidos, p.nombres LIMIT %s""",
+                     parametros + [int(limite)], id_usuario_app=usuario)
 
 
 def opciones_nueva(cuenta, usuario, cedula=None):
@@ -191,10 +207,21 @@ def opciones_nueva(cuenta, usuario, cedula=None):
     }
 
 
+def _equipo_del_examen(cuenta, usuario, id_subtipo):
+    """Equipo que hace ese examen (tipo_procedimiento.id_recurso). None si el examen no tiene equipo fijo."""
+    codigo = str(id_subtipo or "").strip().upper()
+    if not codigo:
+        return None
+    fila = consultar(cuenta, """SELECT t.id_recurso FROM subtipo_examen s
+                                 JOIN tipo_procedimiento t ON t.id_tipo = s.id_tipo WHERE s.id_subtipo = %s""",
+                     (codigo,), id_usuario_app=usuario, uno=True)
+    return fila["id_recurso"] if fila else None
+
+
 def horarios_disponibles(cuenta, usuario, fecha, id_area, id_medico=None, id_recurso=None,
-                         cedula_paciente=None, excluir_cita=None):
+                         cedula_paciente=None, excluir_cita=None, id_subtipo=None):
     """Bloques de una hora libres en una fecha. Un bloque esta libre si hay un recurso activo del area sin cita
-    en ese horario y, segun lo que se indique, el medico (dentro de sus turnos) y el paciente tampoco tienen
+    en ese horario y, segun lo que se indique, el medico y el paciente tampoco tienen
     otra cita a esa hora."""
     dia = validators.fecha(fecha, "La fecha")
     area = validators.entero(id_area, "El área", minimo=1, maximo=3)
@@ -202,6 +229,8 @@ def horarios_disponibles(cuenta, usuario, fecha, id_area, id_medico=None, id_rec
         return []
 
     p = {"f": dia, "a": area, "x": validators.entero(excluir_cita, "La cita", minimo=1) if excluir_cita else 0}
+    if not id_recurso and area == AREA_IMAGENOLOGIA:
+        id_recurso = _equipo_del_examen(cuenta, usuario, id_subtipo)    # el equipo lo decide el examen
     recurso_extra = ""
     if id_recurso:
         p["r"] = validators.entero(id_recurso, "El recurso", minimo=1)
@@ -212,11 +241,7 @@ def horarios_disponibles(cuenta, usuario, fecha, id_area, id_medico=None, id_rec
         medico_extra = """
           AND NOT EXISTS (SELECT 1 FROM cita c JOIN cita_consulta cc ON cc.id_cita = c.id_cita
                           WHERE cc.id_medico = %(m)s AND c.fecha_cita = %(f)s AND c.hora_inicio = b.hora_inicio
-                            AND c.activa = 1 AND c.id_cita <> %(x)s)
-          AND (NOT EXISTS (SELECT 1 FROM horario_medico h0 WHERE h0.id_medico = %(m)s)
-               OR EXISTS (SELECT 1 FROM horario_medico h
-                          WHERE h.id_medico = %(m)s AND h.dia_semana = WEEKDAY(%(f)s) + 1
-                            AND h.hora_inicio <= b.hora_inicio AND b.hora_fin <= h.hora_fin))"""
+                            AND c.activa = 1 AND c.id_cita <> %(x)s)"""
     paciente_extra = ""
     if cedula_paciente:
         p["p"] = validators.cedula(cedula_paciente, "La cédula del paciente")
@@ -226,7 +251,7 @@ def horarios_disponibles(cuenta, usuario, fecha, id_area, id_medico=None, id_rec
 
     filas = consultar(cuenta, f"""
         SELECT b.hora_inicio, b.hora_fin
-        FROM bloque_horario b
+        FROM ({_BLOQUES}) b
         WHERE TIMESTAMP(%(f)s, b.hora_inicio) > NOW()
           AND EXISTS (SELECT 1 FROM recurso_atencion r
                       WHERE r.id_area = %(a)s AND r.estado = 'activo'{recurso_extra}
@@ -331,8 +356,8 @@ def registrar_cita(cuenta, usuario, cedula, area, datos):
     """Valida horario, medico, examen y recurso, y guarda la cita con su detalle en una sola transaccion.
 
     - Consulta: se elige el medico; el consultorio se asigna solo si no se indica.
-    - Imagenologia: se elige el equipo, el examen y el medico que lo solicita.
-    - Laboratorio: se elige el examen y el medico que lo solicita; el puesto se asigna solo si no se indica.
+    - Imagenologia: se elige el examen y el medico que lo solicita; el equipo lo decide el tipo de examen.
+    - Laboratorio: se elige el examen y el medico que lo solicita; el puesto se asigna solo.
     Lo usan recepcion, el administrador y el medico (cuando solicita un examen).
     """
     fecha = validators.fecha_laborable(datos.get("fecha_cita"))
@@ -350,7 +375,9 @@ def registrar_cita(cuenta, usuario, cedula, area, datos):
     if datos.get("id_recurso"):
         id_recurso = _recurso_valido(cuenta, usuario, datos.get("id_recurso"), area)
     elif area == AREA_IMAGENOLOGIA:
-        raise ErrorNegocio("Elige el equipo para el examen.")
+        id_recurso = _equipo_del_examen(cuenta, usuario, id_subtipo)     # el equipo lo decide el examen
+        if id_recurso is not None:
+            id_recurso = _recurso_valido(cuenta, usuario, id_recurso, area)
     observacion = validators.texto(datos.get("observacion"), "La observación", maximo=255, obligatorio=False)
 
     with transaccion(cuenta, usuario) as cursor:
@@ -408,7 +435,7 @@ def reprogramar(cuenta, usuario, id_cita, datos):
 
 
 def cambiar_estado(cuenta, usuario, id_cita, nuevo):
-    """Confirma, cancela, marca 'no asistio' o reactiva (cancelada -> pendiente). 'atendida' no se marca aqui."""
+    """Cancela, marca 'no asistio' o reactiva (cancelada -> confirmada). 'atendida' no se marca aqui."""
     nuevo = validators.opcion(nuevo, ESTADOS_CITA, "El estado")
     cita = obtener(cuenta, usuario, id_cita)
     if nuevo not in cita["transiciones"]:
@@ -416,13 +443,14 @@ def cambiar_estado(cuenta, usuario, id_cita, nuevo):
             raise ErrorNegocio("Solo se marca 'no asistió' cuando ya pasó la hora de la cita.")
         raise ErrorNegocio(f"No se puede pasar una cita {_texto_estado(cita['estado'])} "
                            f"a {_texto_estado(nuevo)}.")
-    if nuevo == "pendiente":
+    reactiva = cita["estado"] == "cancelada" and nuevo == "confirmada"
+    if reactiva:
         _validar_futura(cuenta, usuario, cita["fecha_cita"], cita["hora_inicio"])
 
-    estado_examen = "pendiente" if nuevo == "pendiente" else "cancelado"
+    estado_examen = "pendiente" if reactiva else "cancelado"
     with transaccion(cuenta, usuario) as cursor:
         cursor.execute("UPDATE cita SET estado = %s WHERE id_cita = %s", (nuevo, id_cita))
-        if nuevo != "confirmada":
+        if nuevo != "confirmada" or reactiva:
             if cita["id_area"] == AREA_IMAGENOLOGIA:
                 cursor.execute("UPDATE cita_imagenologia SET estado_procedimiento = %s WHERE id_cita = %s",
                                (estado_examen, id_cita))

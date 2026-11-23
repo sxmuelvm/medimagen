@@ -18,7 +18,7 @@
   <section class="panel">
     <div class="panel__cabecera"><h2 class="panel__titulo">Datos de la cuenta</h2></div>
     <dl class="ficha">
-      <div class="ficha__dato"><dt>Cédula</dt><dd>{{ usuario.cedula }}</dd></div>
+      {% if usuario.cedula_paciente %}<div class="ficha__dato"><dt>Cédula</dt><dd>{{ usuario.cedula_paciente }}</dd></div>{% endif %}
       <div class="ficha__dato"><dt>Nombre de usuario</dt><dd>{{ usuario.nombre_usuario }}</dd></div>
       <div class="ficha__dato"><dt>Tipo de cuenta</dt><dd>{{ usuario.rol }}</dd></div>
     </dl>
@@ -31,7 +31,7 @@
     <div class="atajos perfil__acciones">
       <a class="boton boton--primario" href="{{ url_for('perfil.cambiar_clave') }}">{{ icono("candado") }}Cambiar contraseña</a>
       {% if usuario.cuenta == "paciente" %}
-      <a class="boton boton--secundario" href="{{ url_for('historial.mis_datos') }}">{{ icono("editar") }}Actualizar mis datos de contacto</a>
+      <a class="boton boton--secundario" href="{{ url_for('historial.mis_datos') }}">{{ icono("editar") }}Actualizar teléfono y correo</a>
       {% endif %}
     </div>
   </section>

@@ -78,17 +78,6 @@ def test_cada_especialidad_activa_tiene_medico_y_cobertura_continua():
                         AND NOT EXISTS (SELECT 1 FROM medico m WHERE m.id_especialidad = e.id_especialidad
                                         AND m.estado = 'activo')""")
     assert sin_medico == []
-    # para cada especialidad, cada dia laborable y cada bloque de 07:00 a 17:00 hay al menos un medico con turno
-    huecos = sql("""SELECT e.id_especialidad, d.dia, b.hora_inicio
-                    FROM especialidad e
-                    CROSS JOIN (SELECT 1 AS dia UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
-                                UNION ALL SELECT 5) d
-                    CROSS JOIN bloque_horario b
-                    WHERE e.estado = 'activo' AND NOT EXISTS (
-                        SELECT 1 FROM medico m JOIN horario_medico h ON h.id_medico = m.id_medico
-                        WHERE m.id_especialidad = e.id_especialidad AND m.estado = 'activo' AND h.dia_semana = d.dia
-                          AND h.hora_inicio <= b.hora_inicio AND b.hora_fin <= h.hora_fin)""")
-    assert huecos == []
 
 
 def test_la_jornada_es_continua_de_7_a_18(entrar, dia):
